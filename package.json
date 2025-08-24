@@ -1,0 +1,151 @@
+{
+  "name": "j2me-launcher",
+  "version": "1.0.0",
+  "description": "Modern J2ME Game Manager and Launcher",
+  "main": "src/main/main.js",
+  "homepage": "./",
+  "scripts": {
+    "clean": "node -e \"const fs=require('fs');['dist','release'].forEach(d=>{if(fs.existsSync(d))fs.rmSync(d,{recursive:true,force:true})})\"",
+    "prepare": "husky",
+    "dev": "vite",
+    "build": "vite build",
+    "build:prod": "set NODE_ENV=production&& vite build",
+    "start": "electron .",
+    "electron": "electron .",
+    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
+    "lint": "eslint . --ext .js,.jsx",
+    "lint:fix": "eslint . --ext .js,.jsx --fix",
+    "stylelint": "stylelint \"src/**/*.{css,scss}\"",
+    "stylelint:fix": "stylelint \"src/**/*.{css,scss}\" --fix",
+    "verify:dist": "node scripts/verify-dist.js",
+    "dist": "npm run build:prod && npm run verify:dist && electron-builder",
+    "dist:clean": "npm run clean && npm run dist",
+    "dist:win": "npm run build:prod && npm run verify:dist && electron-builder --win",
+    "dist:win:x64": "npm run build:prod && npm run verify:dist && electron-builder --win --x64",
+    "dist:win:ia32": "npm run build:prod && npm run verify:dist && electron-builder --win --ia32",
+    "dist:win:arm64": "npm run build:prod && npm run verify:dist && electron-builder --win --arm64",
+    "dist:win:portable": "npm run build:prod && npm run verify:dist && electron-builder --win portable",
+    "dist:win:nsis": "npm run build:prod && npm run verify:dist && electron-builder --win nsis",
+    "dist:win:zip": "npm run build:prod && npm run verify:dist && electron-builder --win zip",
+    "dist:portable": "npm run dist:win:portable",
+    "dist:linux": "npm run build:prod && npm run verify:dist && electron-builder --linux",
+    "dist:linux:x64": "npm run build:prod && npm run verify:dist && electron-builder --linux --x64",
+    "dist:linux:arm64": "npm run build:prod && npm run verify:dist && electron-builder --linux --arm64",
+    "dist:linux:appimage": "npm run build:prod && npm run verify:dist && electron-builder --linux appimage",
+    "dist:linux:deb": "npm run build:prod && npm run verify:dist && electron-builder --linux deb",
+    "dist:linux:rpm": "npm run build:prod && npm run verify:dist && electron-builder --linux rpm",
+    "dist:linux:tar.gz": "npm run build:prod && npm run verify:dist && electron-builder --linux tar.gz",
+    "pack": "electron-builder --dir",
+    "postinstall": "electron-rebuild -f -w better-sqlite3"
+  },
+  "build": {
+    "appId": "com.magstic.j2me-launcher",
+    "productName": "J2ME-Launcher",
+    "copyright": "Copyright (c) 2025 Magstic",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "src/main/**/*",
+      "src/shared/**/*",
+      "src/assets/**/*",
+      "src/image/**/*",
+      "public/**/*",
+      "package.json",
+      "loading.html"
+    ],
+    "extraResources": [],
+    "asar": true,
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+    "npmRebuild": false,
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "build/icons/icon.ico",
+      "executableName": "J2ME_Launcher",
+      "publisherName": "Magstic",
+      "legalTrademarks": "Magstic",
+      "signAndEditExecutable": true,
+      "certificateFile": "build/xxxxx.pfx",
+      "certificatePassword": "xxxxxxxxxxxxxx"
+    },
+    "nsis": {
+      "artifactName": "${productName}-${version}-${os}-${arch}-nsis.${ext}",
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "J2ME Launcher"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-${os}-${arch}-portable.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb",
+        "rpm",
+        "tar.gz"
+      ],
+      "icon": "build/icons/icon.ico",
+      "executableName": "j2me-launcher",
+      "category": "Game",
+      "synopsis": "Modern J2ME Game Manager and Launcher",
+      "description": "A modern desktop application for managing and launching J2ME games with support for multiple emulators.",
+      "desktop": {
+        "Name": "J2ME Launcher",
+        "Comment": "Modern J2ME Game Manager and Launcher",
+        "Keywords": "J2ME;Games;Launcher;Emulator;Java;Mobile",
+        "Categories": "Game;Emulator;"
+      }
+    }
+  },
+  "keywords": [
+    "J2ME",
+    "Games",
+    "Launcher",
+    "GUI",
+    "Manager"
+  ],
+  "author": "Magstic",
+  "license": "MIT",
+  "lint-staged": {
+    "**/*.{js,jsx}": "eslint --fix"
+  },
+  "devDependencies": {
+    "@babel/eslint-parser": "^7.28.0",
+    "@babel/plugin-syntax-jsx": "^7.27.1",
+    "@vitejs/plugin-react": "^4.7.0",
+    "concurrently": "^9.2.0",
+    "electron": "^28.2.0",
+    "electron-builder": "^24.9.1",
+    "electron-rebuild": "^3.2.9",
+    "eslint": "^9.33.0",
+    "eslint-import-resolver-alias": "^1.1.2",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.5",
+    "stylelint": "^16.23.1",
+    "stylelint-config-standard": "^36.0.1",
+    "vite": "^7.0.6",
+    "wait-on": "^8.0.4"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.686.0",
+    "@aws-sdk/lib-storage": "^3.686.0",
+    "better-sqlite3": "^12.2.0",
+    "fs-extra": "^11.3.1",
+    "ini": "^5.0.0",
+    "js-yaml": "^4.1.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-window": "^1.8.11",
+    "yauzl": "^3.2.0"
+  }
+}

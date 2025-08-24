@@ -1,0 +1,45 @@
+import React, { useEffect } from 'react';
+import ReactDOM from 'react-dom/client';
+import { FolderWindowApp } from '@components';
+import './App.css';
+import './styles/theme.css';
+import './styles/buttons.css';
+
+function Root() {
+  // 啟動時應用持久化主題並監聽跨視窗同步
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('theme');
+      const theme = (saved === 'light' || saved === 'dark') ? saved : (document.body?.dataset?.theme || 'dark');
+      document.body && document.body.setAttribute('data-theme', theme);
+    } catch {}
+
+    const onStorage = (e) => {
+      if (e.key === 'theme') {
+        const v = e.newValue;
+        if (v === 'light' || v === 'dark') {
+          try { document.body && document.body.setAttribute('data-theme', v); } catch {}
+        }
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  // 在 React 首次繪製完成後的一個 animationFrame 再通知主進程顯示
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      if (window.electronAPI && window.electronAPI.folderWindowReady) {
+        window.electronAPI.folderWindowReady();
+      }
+    });
+    return () => cancelAnimationFrame(id);
+  }, []);
+  return <FolderWindowApp />;
+}
+
+ReactDOM.createRoot(document.getElementById('folder-root')).render(
+  <React.StrictMode>
+    <Root />
+  </React.StrictMode>
+);

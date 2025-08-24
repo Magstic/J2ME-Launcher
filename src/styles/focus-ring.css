@@ -1,0 +1,31 @@
+/*
+ * 全域焦點環策略（Focus Ring Policy）
+ * 作用：在 .app-container 下抑制瀏覽器預設焦點環，並為控制器模式（grid-mode）提供可控白名單焦點環。
+ * 範圍：全域級別選擇器，僅處理可訪問性與視覺焦點表現，不覆蓋元件內部的交互狀態。
+ * 依賴：僅依賴設計代幣（--color-accent）作為焦點顏色，避免硬編碼。
+ * 載入順序建議：tokens -> base(App.css) -> utility -> focus-ring -> components
+ * 注意：若某元件需要在非 grid-mode 下仍顯示自定義焦點環，請於該元件樣式中自行提升特異性覆寫。
+ */
+
+/* 1) 預設：抑制 .app-container 下的瀏覽器 outline/box-shadow */
+.app-container *:focus,
+.app-container *:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* 2) 白名單：在控制器檢視（grid-mode）中，僅允許明確選擇加入的元素使用自定義焦點環 */
+
+/* 使用更高的特異性和 !important 來覆蓋全域抑制 */
+.app-container.grid-mode .allow-focus-ring:focus,
+.app-container.grid-mode .allow-focus-ring:focus-visible {
+  outline: 2px solid var(--accent-color) !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 3px var(--focus-ring-weak) !important; /* 柔和光暈（代幣化） */
+}
+
+/* 3) 可選：當禁用/aria-disabled 時減少輪廓 */
+.app-container.grid-mode .allow-focus-ring[disabled],
+.app-container.grid-mode .allow-focus-ring[aria-disabled="true"] {
+  pointer-events: none;
+}

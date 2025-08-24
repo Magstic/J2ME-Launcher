@@ -1,0 +1,95 @@
+/*
+ * 主題樣式聚合：
+ * - 現僅匯入 tokens.css 作為代幣單一來源
+ * - 保留下方共享微型組件樣式（選框、載入指示器、拖拽預覽等）
+ */
+@import url('./tokens.css');
+
+/* === 共享微調元件（全域載入，減少重複） ===
+ * 放置位置：theme.css（兩個入口皆已載入），避免額外 import。
+ * 元件：
+ *  - .selection-rect 橡皮筋框選矩形（GPU 友善：opacity/transform）
+ *  - .loading-spinner::before 純 CSS 轉圈指示器（無額外 DOM）
+ */
+
+/* 橡皮筋框選矩形（桌面/資料夾視圖共用） */
+.selection-rect {
+  border: 1px solid var(--accent-color);
+  background: color-mix(in oklab, var(--accent-color) 14%, transparent);
+  box-shadow: 0 0 0 1px var(--accent-color-alpha) inset;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 2000;
+  transition: opacity 180ms ease-out;
+  opacity: 1;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+.selection-rect.fade-out { opacity: 0; }
+
+/* 載入狀態容器（不含轉圈本體）由各視圖自行控制布局 */
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-secondary);
+}
+
+/* 純 CSS 轉圈載入指示器（共用樣式） */
+.loading-spinner::before {
+  content: '';
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border-color);
+  border-top: 3px solid var(--accent-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 拖拽預覽元素（桌面/資料夾視圖共用） */
+.drag-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.drag-preview {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0.8;
+  transform: translate(-50%, -50%);
+}
+
+.drag-preview-game {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--background-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+}
+
+.drag-preview-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.drag-preview-name {
+  font-size: 12px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

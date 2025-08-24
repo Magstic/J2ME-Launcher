@@ -1,0 +1,294 @@
+/*
+ * 資料夾相關樣式（Folder.css）
+ *
+ * 重構說明（繁體中文）：
+ * - 資料夾卡片基礎樣式在 `src/components/Desktop/Desktop.css` 中；
+ *   本檔僅保留不被 Desktop 覆蓋的「補充/特殊樣式」。
+ * - 後續建議改為 CSS Modules 或以 `.folder-` 命名空間統一，避免跨檔案層疊干擾。
+ */
+
+/* 資料夾徽章樣式 */
+.folder-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--folder-color);
+  color: var(--text-color-fixed);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+
+/* 表單組 */
+.form-group {
+  margin-bottom: 20px;
+}
+
+/* 單獨取消「描述」表單組的底部間距 */
+/* stylelint-disable-next-line selector-class-pattern */
+.form-group.form-group--description {
+  margin-bottom: 0;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color); /* 修正變數語法空白錯誤 */
+  border-radius: 6px;
+  background: var(--dialog-bg);
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: border-color 0.15s ease;
+  box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--accent-color-alpha);
+}
+
+.form-group input.error,
+.form-group textarea.error {
+  border-color: var(--error-color);
+}
+
+/* 錯誤時在輸入框內用 placeholder 顯示訊息，採用錯誤色提高可見度 */
+.form-group input.error::placeholder {
+  color: var(--error-color);
+  opacity: 0.95;
+}
+
+/* 無效提交時的輸入抖動動畫（提示必填） */
+.form-group input.shake {
+  animation: input-shake 0.35s ease;
+}
+
+@keyframes input-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+
+.form-group textarea {
+  resize: none;
+  min-height: 80px;
+}
+
+/* 錯誤文本 */
+.error-text {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--error-color);
+}
+
+.error-message {
+  background: var(--error-color-light);
+  color: var(--error-color);
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  margin-top: 16px;
+}
+
+/* 內嵌輸入錯誤提示 */
+.input-with-overlay {
+  position: relative;
+}
+
+.input-with-overlay .input-overlay-error {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--error-color);
+  background: var(--dialog-bg);
+  padding: 0 4px;
+  max-width: calc(100% - 24px);
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.95;
+}
+
+.input-with-overlay input.error {
+  padding-right: 12ch;
+}
+
+/* 圖標選擇器 */
+.icon-selector {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.icon-option {
+  background: var(--dialog-bg);
+  border: 1px solid var(--dialog-border);
+  border-radius: 6px;
+  padding: clamp(8px, 1.2vw, 14px);
+  font-size: clamp(24px, 4.5vw, 44px);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-option:hover {
+  background: var(--hover-color);
+  transform: scale(1.1);
+}
+
+.icon-option.selected {
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+  color: var(--text-color);
+  transform: scale(1.1);
+}
+
+/* 顏色選擇器 */
+.color-selector {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+  justify-content: center;
+  justify-items: center;
+}
+
+/* 顏色選擇器單個顏色選項 */
+.color-option {
+  width: 32px;
+  height: 32px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+/* 顏色選擇器選框 */
+.color-option:hover {
+  transform: scale(1.1);
+  box-shadow: var(--shadow-lg);
+}
+
+.color-option.selected {
+  border-color: var(--text-primary);
+  transform: scale(1.1);
+}
+
+/* 顏色選擇器中的選中標記 */
+.color-option.selected::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--text-color);
+  font-size: 12px;
+  font-weight: bold;
+  text-shadow: var(--shadow-text-strong);
+}
+
+/* 預覽區域 */
+.folder-preview {
+  margin-top: 8px;
+  padding: 16px;
+  background: var(--dialog-bg);
+  border: 1px solid var(--dialog-border);
+  border-radius: 6px;
+  display: flex;
+  justify-content: center;
+}
+
+/* 兩欄佈局：左側方形預覽 + 右側字段 */
+.create-folder-two-col {
+  --preview-col: clamp(120px, 18vw, 192px);
+
+  display: grid;
+  grid-template-columns: var(--preview-col) 1fr;
+  grid-auto-rows: min-content;
+  column-gap: 16px;
+  align-items: start;
+  margin-bottom: 16px;
+}
+
+/* 左側預覽區域 */
+.left-preview {
+  grid-row: span 2;
+  width: var(--preview-col);
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 6px;
+}
+
+/* 左側預覽容器 */
+.folder-preview.compact {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 右側輸入框 */
+.right-fields {
+  padding-left: 4px;
+  margin-top: 13.5px;
+}
+
+.preview-folder-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 預覽資料夾卡片佈局 */
+.preview-folder-card .folder-icon {
+  width: clamp(64px, 12vw, 128px);
+  height: clamp(64px, 12vw, 128px);
+  margin: 0 auto 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* 預覽資料夾圖示 */
+.preview-folder-card .folder-emoji {
+  font-size: clamp(32px, 6vw, 64px);
+  display: block;
+  line-height: 1;
+}
+
+/* 預覽資料夾名稱 */
+.preview-folder-card .folder-name {
+  font-size: 11px;
+  text-align: center;
+  width: 100%;
+  line-height: 1.2;
+}

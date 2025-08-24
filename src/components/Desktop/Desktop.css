@@ -1,0 +1,340 @@
+/*
+ * 桌面視圖樣式（Desktop.css）
+ * 作用：定義桌面視圖（主視窗）中的網格、卡片、上下文選單與拖拽覆蓋層等樣式。
+ * 範圍：僅在 `.desktop-manager .desktop-view` 作用域內生效，避免污染其他視圖。
+ * 依賴：使用全域設計代幣（theme.css）之色彩、陰影、圓角、動效時序。
+ * 注意：與 `FolderWindowApp.css` 保持選中/框選/載入動效一致，避免視覺漂移。
+ */
+.desktop-view.mounting { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .desktop-view { transition: none; }
+}
+
+/* 全局重置：移除瀏覽器默認邊距，避免左側“貼邊”被擠開（例如 body 默認 8px margin） */
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+/* FLIP 動畫優化：保留 transform 的硬體加速，但不要全局禁用過渡
+ * 之前的 transition-property: none 會關閉卡片自身的 opacity/transform 過渡，
+ * 導致與網格視圖入場不同步（看起來慢一拍）。
+ * 這裡只保留 will-change/translateZ 以提升性能，並允許卡片自身的過渡生效。
+ */
+.desktop-grid .game-card {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* 桌面視圖樣式 */
+.desktop-view {
+  flex: 1;
+  height: 100%;
+
+  /* 僅允許垂直滾動，避免抽屜平移造成橫向滾動條 */
+  overflow: hidden auto;
+  position: relative;
+  background: var(--background-primary);
+
+  /* 取消整體容器淡入，避免壓過卡片過渡（卡片本身已有入場動畫） */
+  opacity: 1;
+  transition: none;
+
+  /* 確保右鍵菜單覆蓋整個區域，但不影響子元素 */
+  min-height: calc(100vh - 100px);
+
+  /* 防止瀏覽器滾動錨點在列表異動（例如拖拽插入/刪除，且發生在視口外）時導致視圖跳動 */
+  overflow-anchor: none;
+
+  /* 鎖定滾動條佔位，避免出現/消失導致寬度抖動 */
+  scrollbar-gutter: stable both-edges;
+}
+
+/* 抽屜開啟時，平移桌面網格內容層（.desktop-shift-layer），避免影響 fixed/overlay 元素 */
+.desktop-manager .content-area-inner > .desktop-view .desktop-shift-layer {
+  transition: transform 160ms ease; /* 僅針對 transform 動畫 */
+  will-change: transform;
+}
+
+.desktop-manager.drawer-open .content-area-inner > .desktop-view .desktop-shift-layer {
+  transform: translateX(60px);
+}
+
+/* 桌面網格 - 只在桌面視圖中生效 */
+.desktop-view .desktop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  grid-auto-rows: max-content; /* 讓行高自適應內容 */
+  gap: 20px;
+  padding: 20px;
+  width: 100%;
+
+  /* 讓網格至少撐滿視圖高度，便於在空白區域開始框選（與 .desktop-view 對齊） */
+  min-height: calc(100vh - 100px);
+
+  /* 與容器一致，避免滾動錨點影響網格重排時的視口位置 */
+  overflow-anchor: none;
+
+  /* 與容器一致，固定滾動條佔位 */
+  scrollbar-gutter: stable both-edges;
+}
+
+/* 桌面視圖中的遊戲卡片樣式覆蓋 */
+.desktop-view .game-card {
+  width: 120px;
+  padding: 12px;
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+  position: relative; /* 用於放置選擇覆蓋層 */
+  overflow: hidden;   /* 防止覆蓋層外溢 */
+
+  /* 桌面視圖進場略快於網格（提升“跟手感”）；保留 hover 的背景色漸變 */
+  transition: opacity 120ms ease-out, transform 120ms ease-out, background-color 200ms ease;
+}
+
+/* folder-card desktop styles removed (drawer has its own styles in FolderDrawer.css) */
+
+.desktop-view .game-card:hover {
+  transform: translateY(-2px);
+  background-color: var(--hover-color);
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+/* 選擇覆蓋層（使用偽元素，支持選中/取消選中的漸入漸出 + 輕微回縮） */
+.desktop-view .game-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  background: var(--accent-color-light);
+
+  /* 內嵌描邊感 */
+  box-shadow: 0 0 0 2px var(--accent-color-alpha);
+  opacity: 0;
+  transform: scale(0.965);
+  transition: opacity 160ms ease-out, transform 180ms ease-out;
+  pointer-events: none;
+}
+
+.desktop-view .game-card.selected::before,
+.desktop-view .game-card.ephemeral-selected::before {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* 初次掛載進場效果（桌面視圖） */
+
+.desktop-view .game-card.appearing {
+  opacity: 0;
+  transform: translateY(2px);
+}
+
+.desktop-view .game-icon-container {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 8px;
+  background-color: transparent;
+}
+
+.desktop-view .game-icon {
+  width: 48px;
+  height: 48px;
+}
+
+.desktop-view .game-info {
+  text-align: center;
+}
+
+.desktop-view .game-name {
+  font-size: 11px;
+  line-height: 1.2;
+  max-height: 2.4em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.desktop-view .game-vendor,
+.desktop-view .game-version {
+  display: none; /* 桌面視圖中隱藏詳細信息 */
+}
+
+/* folder icon/name desktop styles removed (drawer has its own styles in FolderDrawer.css) */
+
+/* 載入狀態 */
+.desktop-grid.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* loading-spinner 與 @keyframes spin 已移至全域 theme.css */
+
+/* 空狀態（提高選擇器特異性，覆蓋 grid 顯示） */
+.desktop-view .desktop-grid.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* 與 game-grid.empty 對齊視口高度基準，確保垂直居中一致 */
+  min-height: calc(100vh - 32px);
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--text-secondary);
+  max-width: 300px;
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.empty-state h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+
+/* 拖拽覆蓋層 */
+
+/* 拖拽預覽元素已移至全域 theme.css；以下針對桌面視圖仍保留媒體查詢微調 */
+
+/* 右鍵菜單 */
+.context-menu {
+  background: var(--background-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+  min-width: 180px;
+  padding: 4px 0;
+  backdrop-filter: blur(20px);
+
+  /* Smooth appear to avoid tearing artifacts */
+  opacity: 0;
+  transform: scale(0.98);
+  transform-origin: top left;
+  transition: opacity 120ms ease-out, transform 120ms ease-out;
+  will-change: opacity, transform;
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  font-size: 14px;
+}
+
+.context-menu-item:hover:not(.disabled) {
+  background: var(--hover-color);
+}
+
+.context-menu-item.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.menu-icon {
+  font-size: 16px;
+  width: 16px;
+  text-align: center;
+}
+
+.menu-label {
+  color: var(--text-primary);
+}
+
+.context-menu-separator {
+  height: 1px;
+  background: var(--border-color);
+  margin: 4px 0;
+}
+
+/* Active state triggers the fade/scale-in */
+.context-menu.open {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* 拖拽狀態 - 只在桌面視圖中生效 */
+.desktop-view .game-card.dragging {
+  opacity: 0.5;
+  transform: scale(0.95);
+}
+
+/* folder drop-target desktop style removed */
+
+/* 多選：被選中的卡片樣式 */
+
+/* 桌面遊戲選中樣式：將顏色交由覆蓋層處理，保留圓角與描邊視覺 */
+.desktop-view .game-card.selected {
+  border-radius: 8px;
+}
+
+/* folder selected desktop style removed */
+
+/* 橡皮筋框選矩形：移除桌面視圖特定樣式，統一使用全域 .selection-rect 定義 */
+
+.desktop-view .desktop-grid.box-selecting {
+  cursor: crosshair;
+}
+
+/* 全域 selection-rect 已移至 theme.css 共用定義 */
+
+/* 與資料夾視圖一致：框選期間暫時靜音卡片指標事件，降低 hover/active 重繪 */
+.desktop-view .desktop-grid.box-selecting .game-card {
+  pointer-events: none !important;
+}
+
+/* 拖拽時，讓所有被選中的項目變暗，強化反饋 */
+.desktop-view .desktop-grid.dragging .game-card.selected {
+  opacity: 0.6;
+  filter: saturate(0.7);
+}
+
+/* 響應式設計 - 只在桌面視圖中生效 */
+@media (width <= 768px) {
+  .desktop-view .desktop-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 16px;
+    padding: 16px;
+  }
+  
+  .context-menu {
+    min-width: 160px;
+  }
+  
+  .drag-preview-game {
+    padding: 6px 10px;
+  }
+}
+
+@media (width <= 480px) {
+  .desktop-view .desktop-grid {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 12px;
+    padding: 12px;
+  }
+}

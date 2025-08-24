@@ -1,0 +1,89 @@
+/*
+ * 全域按鈕樣式（Buttons）
+ * 作用：集中定義按鈕的基礎外觀與語義變體（primary/secondary/warning/danger/icon）。
+ * 範圍：僅提供通用樣式，不綁定特定元件，避免覆寫組件私有樣式。
+ * 依賴：依賴設計代幣（如 --color-accent、--color-border、--text-color...）。
+ * 載入順序建議：tokens -> base(App.css) -> utility -> buttons -> components
+ * 注意：若需要特定對話框或畫面專用按鈕外觀，請在該元件的 *.css 中局部覆寫，避免回寫至此文件。
+ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: var(--border-radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  text-align: center;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--accent-color);
+  color: var(--text-on-accent);
+}
+
+.btn-primary:hover:not(:disabled) {
+  /* 主要按鈕懸停色（原: #0056b3） */
+  background: var(--accent-primary-hover);
+}
+
+.btn-secondary {
+  background: var(--background-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--hover-color);
+}
+
+.btn-warning {
+  /* 警告按鈕背景（原: #f59e0b） */
+  background: var(--color-accent-warning);
+  color: var(--text-primary);
+}
+
+.btn-warning:hover:not(:disabled) {
+  /* 警告按鈕懸停（原: #d97706） */
+  background: var(--color-accent-warning-hover);
+}
+
+.btn-danger {
+  /* 危險按鈕背景（原: #ef4444） */
+  background: var(--color-accent-danger);
+  color: var(--text-color-fixed);
+}
+
+.btn-danger:hover:not(:disabled) {
+  /* 危險按鈕懸停（原: #dc2626） */
+  background: var(--color-accent-danger-hover);
+}
+
+.btn-icon {
+  padding: 8px;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  border-radius: 8px;
+}
+
+.btn-icon:hover {
+  background: var(--hover-color);
+  color: var(--text-primary);
+}
+
+.btn-icon.btn-danger:hover {
+  /* 危險圖示按鈕懸停背景（原: rgba(239, 68, 68, 0.12)） */
+  background: var(--color-danger-bg-12a);
+}

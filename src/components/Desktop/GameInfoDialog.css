@@ -1,0 +1,139 @@
+/* 遊戲主要信息 */
+.game-info-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+
+  /* 與對話框邊界色一致 */
+  border-bottom: 1px solid var(--dialog-border);
+}
+
+.game-icon-large {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.game-icon-large img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.game-icon-placeholder {
+  font-size: 32px;
+  opacity: 0.6;
+}
+
+.game-basic-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.game-title {
+  margin: 0 0 4px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.game-filename {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  word-break: break-all;
+}
+
+/* 詳細信息區域 */
+.game-details {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.detail-section h4 {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.detail-section h4::before {
+  content: '';
+  width: 3px;
+  height: 16px;
+  background: var(--accent-color);
+  border-radius: 2px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-item .full-width {
+  grid-column: 1 / -1;
+}
+
+.detail-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-value {
+  font-size: 14px;
+  color: var(--text-color);
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+/* 分類標籤 */
+.categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.category-tag {
+  background: var(--accent-color);
+  color: var(--text-on-accent);
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* 響應式設計 */
+@media (width <= 600px) {
+  .game-info-main {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+  
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}

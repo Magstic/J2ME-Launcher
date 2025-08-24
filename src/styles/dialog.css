@@ -1,0 +1,86 @@
+/*
+ * 對話框樣式（Dialog Primitives）
+ * 作用：提供全域可重用的對話框基礎樣式（遮罩、容器、標題/內容/底部、關閉按鈕）。
+ * 範圍：僅定義結構性與語義性樣式，不綁定特定組件，避免污染元件內部細節。
+ * 依賴：僅使用設計代幣（如 --dialog-bg、--dialog-border、--dialog-shadow 等），不直接使用硬編碼顏色。
+ * 載入順序建議：tokens -> base(App.css) -> utility -> dialog -> components
+ * 注意：請勿在此新增與特定對話框專屬的樣式，元件特殊樣式應放到各自的 *.css 中以降低耦合。
+ */
+
+/* 通用覆蓋層（modal-overlay */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+
+  /* 遮罩層（預設：60%；深色模式提升至 80%） */
+  background: var(--overlay-scrim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000; /* 統一覆蓋層層級 */
+  backdrop-filter: blur(4px);
+}
+
+/* 通用對話框容器（不修改現有 JSX，與 game-info-dialog / modal-content 聯合選擇） */
+.modal-content {
+  background: var(--dialog-bg);
+  border: 1px solid var(--dialog-border);
+  border-radius: var(--dialog-radius);
+  box-shadow: var(--dialog-shadow);
+  overflow: hidden;
+}
+
+/* 通用對話框區塊：標題、內容、底部（與 modal-* 聯合） */
+.modal-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--dialog-border);
+}
+
+.modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  background: var(--dialog-bg);
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+
+  /* 對齊對話框背景語彙，避免與內容區背景不一致 */
+  background: var(--dialog-bg);
+  border-top: 1px solid var(--dialog-border);
+}
+
+/* 深色主題覆寫：僅調整遮罩強度（顏色源自 tokens） */
+@media (prefers-color-scheme: dark) {
+  .modal-overlay {
+    /* 使用統一覆蓋層代幣，避免使用舊的 scrim 等級別名 */
+    background: var(--overlay-scrim);
+  }
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: var(--border-radius-sm);
+  padding: 4px 6px;
+  transition: all 0.15s ease;
+}
+
+.modal-close-btn:hover {
+  background: var(--hover-color);
+  color: var(--text-primary);
+}
+
+/* 統一訊息區塊（ConfirmDialog 等） */
+.modal-message {
+  padding: 8px 0;
+  color: var(--text-primary);
+  line-height: 1.5;
+}

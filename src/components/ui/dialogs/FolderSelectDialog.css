@@ -1,0 +1,235 @@
+/* 資料夾選擇對話框覆蓋層 */
+.folder-select-overlay {
+  position: fixed;
+  inset: 0;
+
+  /* 與 shared dialog.css 對齊的遮罩強度（可隨主題調整） */
+  background: var(--overlay-scrim);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* 與通用覆蓋層層級一致，避免被其他浮層壓住 */
+  z-index: 10000;
+  animation: fade-in 0.2s ease-out;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* 對話框主體 */
+.folder-select-dialog {
+  /* 採用統一對話框代幣 */
+  background: var(--dialog-bg);
+  border: 1px solid var(--dialog-border);
+  border-radius: 12px;
+  box-shadow: var(--dialog-shadow);
+  width: 400px;
+  max-width: 90vw;
+  max-height: 500px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slide-in 0.3s ease-out;
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* 標題欄 */
+.folder-select-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--background-tertiary);
+
+  /* 與對話框邊界色一致 */
+  border-bottom: 1px solid var(--dialog-border);
+}
+
+.folder-select-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.folder-select-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: background-color 0.2s;
+}
+
+.folder-select-close:hover {
+  background: var(--hover-color);
+}
+
+/* 內容區域 */
+.folder-select-content {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.folder-select-message {
+  margin: 0 0 16px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* 無資料夾狀態 */
+.no-folders {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.no-folders-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.no-folders p {
+  margin: 4px 0;
+}
+
+.no-folders-hint {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+/* 資料夾列表 */
+.folder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.folder-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--background-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.folder-item:hover {
+  background: var(--hover-color);
+  border-color: var(--accent-color);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg);
+}
+
+.folder-icon {
+  font-size: 20px;
+  margin-right: 12px;
+}
+
+.folder-info {
+  flex: 1;
+}
+
+.folder-name {
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.folder-count {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.folder-arrow {
+  color: var(--text-secondary);
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.folder-item:hover .folder-arrow {
+  opacity: 1;
+}
+
+/* 底部按鈕區域 */
+.folder-select-footer {
+  display: flex;
+  justify-content: flex-end;
+
+  /* 由外層 .modal-footer 提供 padding 與背景，避免高度偏大 */
+  padding: 0;
+  background: transparent;
+
+  /* 去除頂部分隔線，避免與外層樣式疊加產生多餘橫線 */
+  border-top: none;
+}
+
+.cancel-btn {
+  background: var(--background-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.cancel-btn:hover {
+  background: var(--hover-color);
+}
+
+/* 響應式設計 */
+@media (width <= 480px) {
+  .folder-select-dialog {
+    width: 95vw;
+    margin: 10px;
+  }
+  
+  .folder-select-header {
+    padding: 12px 16px;
+  }
+  
+  .folder-select-content {
+    padding: 16px;
+  }
+  
+  .folder-item {
+    padding: 10px 12px;
+  }
+}

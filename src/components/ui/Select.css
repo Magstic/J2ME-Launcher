@@ -1,0 +1,202 @@
+:root {
+  --select-height-sm: 34px;
+  --select-height-md: 40px;
+  --select-height-lg: 46px;
+  --select-radius: 8px;
+}
+
+.select-root {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.select-sm .select-button {
+  height: var(--select-height-sm);
+  font-size: 13px;
+}
+
+.select-md .select-button {
+  height: var(--select-height-md);
+  font-size: 14px;
+}
+
+.select-lg .select-button {
+  height: var(--select-height-lg);
+  font-size: 15px;
+}
+
+.select-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--select-radius);
+  background: var(--background-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+}
+
+.select-button.placeholder {
+  color: var(--text-secondary);
+}
+
+.select-button:hover {
+  border-color: var(--accent-color);
+}
+
+.select-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.select-button:disabled,
+.is-disabled .select-button {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.select-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.select-caret {
+  margin-left: 12px;
+  transition: transform 0.2s ease;
+}
+.select-caret.up { transform: rotate(180deg); }
+
+/* Popover */
+.select-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 100%;
+  z-index: 4500;
+  background: var(--background-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--select-radius);
+  box-shadow: var(--card-shadow);
+  animation: select-fade-in 0.12s ease-out;
+}
+
+.select-popover.drop-up {
+  top: auto;
+  bottom: calc(100% + 6px);
+  animation: select-fade-in-up 0.12s ease-out;
+}
+
+.select-popover.closing {
+  animation: select-fade-out 0.12s ease-in forwards;
+  pointer-events: none; /* 避免收起動畫期間誤點擊 */
+}
+
+.select-popover.drop-up.closing {
+  animation: select-fade-out-up 0.12s ease-in forwards;
+}
+
+@keyframes select-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes select-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes select-fade-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes select-fade-out-up {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.select-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.select-option:hover,
+.select-option.is-highlight {
+  background: var(--hover-color);
+}
+
+.select-option.is-selected {
+  background: var(--hover-color);
+  border: 1px solid var(--accent-color);
+}
+
+.option-check {
+  color: var(--accent-color);
+  margin-left: 12px;
+}
+
+/* ====== Dialog-scoped overrides: 只在對話框/彈窗內使用對話框代幣，避免全域回歸 ====== */
+
+/* 在 .modal-body 內的 Select 按鈕外觀，與對話框容器一致 */
+.modal-body .select-button {
+  border-color: var(--dialog-border);
+  background: var(--dialog-bg);
+}
+
+/* 在對話框內的選單浮層：背景/邊框/陰影對齊對話框代幣 */
+.modal-body .select-popover {
+  background: var(--dialog-bg);
+  border-color: var(--dialog-border);
+  box-shadow: var(--dialog-shadow);
+}
+
+.select-empty {
+  padding: 10px;
+  color: var(--text-secondary);
+}

@@ -1,0 +1,767 @@
+/* ==================== 管理彈窗樣式 ==================== */
+
+/* 彈窗遮罩（外觀與定位由 shared dialog.css 提供；此處僅保留動畫） */
+.modal-overlay {
+  animation: modal-fade-in 0.2s ease-out;
+}
+
+/* 關閉過渡期間讓遮罩不攔截點擊，避免不可見區域無法點擊 */
+
+@keyframes modal-fade-in {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0);
+  }
+
+  to {
+    opacity: 1;
+    backdrop-filter: blur(4px);
+  }
+}
+
+/* 關閉時的漸出動畫（遮罩） */
+.modal-overlay.closing {
+  animation: modal-fade-out 0.2s ease-in forwards;
+  pointer-events: none;
+}
+
+@keyframes modal-fade-out {
+  from {
+    opacity: 1;
+    backdrop-filter: blur(4px);
+  }
+
+  to {
+    opacity: 0;
+    backdrop-filter: blur(0);
+  }
+}
+
+/* 彈窗主體（外觀交由 shared dialog.css；保留尺寸/布局/動畫） */
+.modal-content {
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  animation: modal-slide-in 0.2s ease-out;
+  pointer-events: auto;
+}
+
+/* 尺寸工具類：統一寬高，避免內部展開時整體撐大/縮小 */
+.modal-content.has-actions.modal-sm {
+  width: 420px;
+  max-height: 85vh;
+}
+
+/* 預設中號：按需求設置為主窗口 75%（視窗 75%），以便參數配置時擁有更大面積 */
+.modal-content.has-actions.modal-md {
+  width: 75vw;
+  height: 75vh;
+}
+
+/* 大號可按需擴展（保留）；如需比 75% 更大可改為 85% */
+.modal-content.has-actions.modal-lg {
+  width: 85vw;
+  height: 85vh;
+}
+
+/* 主體關閉狀態：避免在關閉動畫時攔截點擊，並播放滑出動畫 */
+.modal-content.closing {
+  pointer-events: none;
+  animation: modal-slide-out 0.22s ease-in forwards;
+}
+
+@keyframes modal-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 關閉時的漸出動畫（主體）對應的 keyframes 定義 */
+
+@keyframes modal-slide-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+}
+
+/* 彈窗特定樣式：尺寸交由工具類（如 .modal-md）控制 */
+
+/* 彈窗標題欄 */
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.3;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.modal-close-btn:hover {
+  background: var(--hover-color);
+  color: var(--text-primary);
+}
+
+/* 彈窗主要內容 */
+.modal-body {
+  flex: 1;
+
+  /* 允許內部彈性項在容器內縮小，避免被撐開引起回流 */
+  min-width: 0;
+}
+
+/* 帶按鈕的配置彈窗：縮小內邊距，讓可視內容更寬/更高一些（不影響無按鈕彈窗） */
+.modal-content.has-actions .modal-body {
+  /* 上 右 下 左 */
+  padding: 16px 8px 16px 14px;
+  overflow-y: scroll;
+}
+
+/* 讓目錄管理彈窗的 body 使用彈性佈局，
+   以便 .directory-list 能佔滿剩餘高度，
+   讓空狀態可在容器內做垂直置中 */
+.directory-manager .modal-body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 歡迎引導彈窗的 body：使用更高特異性覆蓋預設樣式 */
+.modal-content.has-actions .modal-body.welcome-guide-body {
+  display: flex;
+  flex-direction: column;
+  overflow-y: visible;
+  padding: 0;
+  height: 100%;
+}
+
+/* 僅對含有動作按鈕的彈窗，強制內部滾動並始終預留滾動條寬度，避免寬度跳動 */
+
+
+/* WebKit 滾動條樣式（Chromium/Electron）使滾動槽顏色與背景一致，避免右側有色差 */
+.modal-content.has-actions .modal-body::-webkit-scrollbar {
+  width: 12px;
+}
+
+.modal-content.has-actions .modal-body::-webkit-scrollbar-track {
+  background: var(--dialog-bg);
+}
+
+.modal-content.has-actions .modal-body::-webkit-scrollbar-thumb {
+  /* 與對話框邊界色一致，避免與內容區塊不協調 */
+  background: var(--dialog-border);
+  border-radius: 8px;
+  border: 3px solid var(--dialog-bg);
+}
+
+/* 防止彈窗內常見容器在內容溢出時撐開寬度，導致 modal-body 重新計算行寬 */
+.section,
+.section-header,
+.section-body,
+.grid-2,
+.form-row {
+  min-width: 0;
+}
+
+/* ====== 通用表單樣式（模擬器配置 / 首次啟動配置 共用） ====== */
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 6px;
+}
+
+.form-label {
+  width: 180px;
+  min-width: 180px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.form-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--dialog-border);
+  border-radius: 8px;
+  background: var(--dialog-bg);
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  border-color: var(--accent-color);
+}
+
+/* 文本域/只讀欄位保持一致外觀 */
+input.form-input[readonly] {
+  color: var(--text-secondary);
+}
+
+/* 下拉選擇美化 */
+select.form-input {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-secondary) 50%),
+    linear-gradient(135deg, var(--text-secondary) 50%, transparent 50%),
+    linear-gradient(to right, transparent, transparent);
+  background-position: calc(100% - 18px) 50%, calc(100% - 12px) 50%, 100% 0;
+  background-size: 6px 6px, 6px 6px, 2.5em 100%;
+  background-repeat: no-repeat;
+}
+
+/* 單選框風格微調（保留原生但跟隨主題色） */
+input[type="radio"], input[type="checkbox"] {
+  accent-color: var(--accent-color);
+}
+
+.radio-group {
+  display: flex;
+  gap: 16px;
+}
+
+/* 讓「參數配置」的選項更顯眼：膠囊式選項 + 選中強提示 */
+.radio-group .radio-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--dialog-border);
+  border-radius: 999px; /* 膠囊 */
+  background: var(--dialog-bg);
+  color: var(--text-primary);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+}
+
+.radio-group .radio-option:hover {
+  background: var(--hover-color);
+  border-color: var(--accent-color);
+}
+
+/* 選中狀態：更高對比度與描邊 */
+.radio-group .radio-option.checked {
+  background: color-mix(in srgb, var(--accent-color) 15%, transparent); /* 依主題色做柔和底色（代幣化） */
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--focus-ring) inset;
+}
+
+/* 鍵盤聚焦：可見焦點環 */
+.radio-group .radio-option:focus-within {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+/* 現代化單選樣式（替代系統外觀） */
+.radio-input {
+  appearance: none; /* fixes lint about standard 'appearance' */
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--dialog-border);
+  border-radius: 50%;
+  background: var(--dialog-bg);
+  display: inline-block;
+  position: relative;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.radio-input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--focus-ring-weak);
+}
+
+.radio-input:checked {
+  border-color: var(--accent-color);
+  background: radial-gradient(circle at center, var(--accent-color) 45%, transparent 46%);
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+/* === Table-like grid for conflict details === */
+.table-like {
+  display: grid;
+
+  /* path | local md5 | remote md5 | local mtime | remote mtime | status */
+  grid-template-columns: minmax(0, 2fr) repeat(4, minmax(0, 1fr)) minmax(0, 1fr);
+  gap: 6px 8px;
+}
+
+.table-like .row {
+  display: contents; /* allow cells to participate in parent grid */
+}
+
+.table-like .row .cell {
+  padding: 4px;
+  border-bottom: 1px solid var(--dialog-border);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.table-like .row.header .cell {
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom-color: var(--dialog-border);
+}
+
+.table-like code {
+  white-space: nowrap;
+}
+
+/* Conflict dialog scoped utilities */
+.conflict-dialog .chips.limited {
+  max-height: 180px; /* ~5-6 rows of chips */
+  overflow-y: auto;
+  padding-right: 4px; /* keep content off scrollbar */
+}
+
+.conflict-dialog .table-like.limited {
+  max-height: 220px; /* header + ~5 rows */
+  overflow-y: auto;
+}
+
+.conflict-dialog .chip,
+.conflict-dialog .chip code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Inline code appearance: use body font and GitHub-like pill */
+.modal-body code,
+.table-like code,
+.card code {
+  font-family: inherit;
+  font-size: 0.92em;
+  background: var(--background-secondary);
+  border: 1px solid var(--dialog-border);
+  border-radius: 6px;
+  padding: 2px 6px;
+  color: var(--text-primary);
+}
+
+/* Chip grid (replaces lists) */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  white-space: nowrap;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--background-secondary);
+  border: 1px solid var(--dialog-border);
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
+.chip code {
+  border: none;
+  background: transparent;
+  padding: 0;
+}
+
+/* Selection list rows (no UL/LI) */
+.select-list {
+  border: 1px solid var(--dialog-border);
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.select-list .row {
+  padding: 6px;
+}
+
+.select-list .row:last-child {
+  border-bottom: none;
+}
+
+/* Modern checkboxes (scoped to modal to avoid global regressions) */
+.modal-body input[type="checkbox"] {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+
+  /* 對話框內控件改用對話框邊界色，與容器一致 */
+  border: 2px solid var(--dialog-border);
+  border-radius: 6px;
+
+  /* 與對話框背景一致，避免色板不協調 */
+  background: var(--dialog-bg);
+  display: inline-block;
+  position: relative;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.modal-body input[type="checkbox"]:hover {
+  border-color: var(--accent-color);
+}
+
+.modal-body input[type="checkbox"]:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-lg);
+}
+
+.modal-body input[type="checkbox"]:checked {
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+.modal-body input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 10px;
+  border: solid var(--text-on-accent);
+  border-width: 0 2px 2px 0;
+  transform: translate(-50%, -60%) rotate(45deg);
+}
+
+/* 區塊/標題與可折疊區域 */
+.section {
+  background: var(--background-secondary);
+  border: 1px solid var(--dialog-border);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.section + .section {
+  margin-top: 16px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.section-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.caret {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.section-header:hover .caret {
+  background: var(--hover-color);
+  color: var(--text-primary);
+}
+
+.caret.open {
+  transform: rotate(90deg);
+}
+
+.section-body {
+  margin-top: 12px;
+}
+
+/* 移除數字輸入的上下調節按鈕 */
+input[type="number"].form-input::-webkit-outer-spin-button,
+input[type="number"].form-input::-webkit-inner-spin-button {
+  appearance: none; /* 標準屬性：隱藏 WebKit 的數字調節按鈕 */
+  margin: 0;
+}
+
+input[type="number"].form-input {
+  appearance: textfield; /* Firefox */
+  appearance: none; /* 標準屬性：統一移除原生外觀 */
+}
+
+/* 小螢幕時自適應：雙欄改為單欄 */
+@media (width <= 820px) {
+  .grid-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* 操作按鈕區（佈局保留，樣式使用全域 buttons.css） */
+.action-buttons {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+/* 掃描進度 */
+.scan-progress {
+  background: var(--background-secondary);
+  border: 1px solid var(--dialog-border);
+  border-radius: var(--border-radius-md);
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.progress-message {
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.progress-details {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* 目錄列表 */
+.directory-list {
+  border: 1px solid var(--dialog-border);
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+
+  /* 佔滿剩餘高度，空狀態才能垂直置中 */
+  flex: 1 1 auto;
+}
+
+/* 無資料夾時置中顯示空狀態 */
+.directory-list.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+}
+
+.directory-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid var(--dialog-border);
+  transition: background-color 0.2s ease;
+}
+
+.directory-item:last-child {
+  border-bottom: none;
+}
+
+.directory-item:hover {
+  background: var(--hover-color);
+}
+
+.directory-item.disabled {
+  opacity: 0.6;
+}
+
+.directory-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.directory-path {
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.directory-meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.last-scan {
+  color: var(--text-accent);
+}
+
+.never-scanned {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.directory-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 切換開關 */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: var(--background-tertiary);
+  transition: 0.3s;
+  border-radius: 24px;
+  border: 1px solid var(--border-color);
+}
+
+/* 對話框上下文：僅在彈窗內將切換開關邊框對齊對話框邊界色 */
+.modal-body .toggle-slider {
+  border-color: var(--dialog-border);
+}
+
+.toggle-slider::before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 2px;
+  bottom: 2px;
+  background-color: var(--text-secondary);
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+  background-color: var(--accent-color);
+}
+
+input:checked + .toggle-slider::before {
+  transform: translateX(20px);
+  background-color: var(--text-on-accent);
+}
+
+/* 空狀態 */
+.directory-manager .empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+}
+
+.directory-manager .empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.directory-manager .empty-hint {
+  font-size: 14px;
+  margin-top: 8px;
+  opacity: 0.8;
+}
+
+/* 右側按鈕組：無論左側是否有內容，都靠右對齊 */
+.modal-footer .push-right {
+  margin-left: auto;
+}
+
+/* 資料夾/目錄管理彈窗：底部按鈕靠右，且移除頂部分隔線 */
+.directory-manager .modal-footer {
+  justify-content: flex-end;
+  border-top: none;
+}
+
+.directory-stats {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* ====== 通用：柔和按鈕懸停動畫，用於「從雲端恢復」等操作 ====== */
+.btn.soft-hover {
+  transition: background-color 0.18s ease, color 0.18s ease, filter 0.18s ease, transform 0.06s ease;
+}
+
+.btn.soft-hover:hover {
+  filter: brightness(1.06);
+}
+
+.btn.soft-hover:active {
+  transform: translateY(0.5px);
+}
+
+/* ====== 卡片標題樣式：讓區塊內的小標題更像標題 ====== */
+.card-title {
+  margin: 2px 0 10px;
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+/* 響應式設計 */
+@media (width <= 768px) {
+  .directory-manager {
+    width: 95vw;
+    height: 85vh;
+  }
+  
+  .modal-body {
+    padding: 16px;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .directory-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .directory-actions {
+    align-self: flex-end;
+  }
+}

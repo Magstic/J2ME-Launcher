@@ -1,0 +1,652 @@
+/* Windows 11 Fluent Design 基礎樣式 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* 追加：控制器模式聚焦動畫與平滑滾動 */
+
+.game-card-wrapper.focused .game-card {
+  /* 聚焦時輕微放大，並啟用硬體加速層 */
+  transform: translateZ(0) scale(1.03);
+  border-color: var(--accent-color);
+
+  /* 焦點外環（原: rgba(0, 123, 255, 0.15)） */
+  box-shadow: 0 0 0 4px var(--focus-ring-weak);
+}
+
+/* 視圖分層：同時渲染 Desktop 與 Grid，避免卸載導致閃爍
+ * 使用 visibility/pointer-events 控制顯示，以保留每個視圖自己的滾動位置
+ */
+
+ 
+.view-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden auto; /* 各視圖獨立滾動 */ /* 防止抽屜/平移導致橫向滾動條 */
+
+  /* 穩定滾動條凹槽，避免在顯示/隱藏時造成布局左右跳動 */
+  scrollbar-gutter: stable both-edges;
+  padding: inherit; /* 保留 content-area 的內邊距 */
+}
+
+.view-hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.view-active {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* 應用程式容器，包含標題欄和主體 */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--background-primary);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* 自定義標題欄 */
+.title-bar {
+  height: 36px;
+  background: var(--titlebar-gradient);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  -webkit-app-region: drag;
+  user-select: none;
+  flex-shrink: 0;
+  padding: 0 0 0 8px;
+}
+
+.title-bar-title {
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  margin-left: 8px;
+}
+
+.window-controls {
+  display: flex;
+  -webkit-app-region: no-drag;
+}
+
+.title-bar-button {
+  width: 48px;
+  height: 36px;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.title-bar-button:hover {
+  background-color: var(--hover-color);
+}
+
+#close-btn:hover {
+  background-color: var(--window-control-close-hover-bg);
+}
+
+#close-btn:hover svg {
+  fill: var(--window-control-close-hover-color);
+}
+
+.title-bar-button svg {
+  width: 10px;
+  height: 10px;
+  fill: var(--text-primary);
+}
+
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--background-primary);
+  min-height: 100vh;
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.4;
+  overflow: hidden;
+  user-select: none; /* 禁用全局文本選擇 */
+}
+
+.app {
+  display: flex;
+  height: calc(100vh - 32px);
+}
+
+/* 主應用程式容器 - 主內容區域 */
+.main-content {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: hidden; /* 確保主容器不滾動，滾動交給 content-area */
+  position: relative; /* 為懸浮元素的定位提供基準 */
+  background-color: var(--background-primary);
+  min-height: 0; /* 允許子項（content-area）在 flex 佈局中正確縮放 */
+}
+
+/* 僅在桌面模式為主內容預留抽屜空間（避免影響控制器模式） */
+.desktop-mode .main-content {
+  /* 與 FolderDrawer 寬度一致 */
+  padding-left: 120px;
+}
+
+/* 控制器模式不需要抽屜空間，重置為 0 */
+.grid-mode .main-content {
+  padding-left: 0;
+}
+
+/* 內容區域，包含兩個視圖層（各自可滾動） */
+.content-area {
+  flex-grow: 1;
+  overflow: hidden; /* 由子視圖自行滾動 */
+  padding: 6px;
+  padding-top: 10px; /* 頂部間距由搜索欄的 margin-bottom 提供 */
+  display: flex; /* 讓內部主容器能夠填滿高度 */
+  flex-direction: column;
+  position: relative;
+
+  /* 為垂直滾動條預留穩定空間，並在左右兩側保留等寬凹槽，避免右側看起來比左側寬 */
+  scrollbar-gutter: stable both-edges;
+}
+
+/* 懸浮操作按鈕 (FAB) 容器 */
+.fab-container {
+  /* 完全脫離佈局：固定在視窗右下角，不受任何父容器尺寸與滾動影響 */
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column-reverse; /* 讓菜單在按鈕上方 */
+  align-items: center;
+  z-index: 3001; /* 高於 selection-rect(2000) 等覆蓋層，確保可點擊 */
+  pointer-events: none; /* 預設不攔截事件，避免影響框選 */
+}
+
+/* 允許主按鈕可點擊（容器仍然穿透） */
+.fab-container > .fab {
+  pointer-events: auto;
+}
+
+/* 抽屜式選單 */
+.fab-menu {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px; /* 與主按鈕的間距 */
+  background-color: var(--background-secondary);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--card-shadow);
+  padding: 8px;
+  width: 220px; /* 固定寬度，不隨文字變化 */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+  pointer-events: none; /* 隱藏狀態不攔截事件 */
+}
+
+.fab:hover + .fab-menu,
+.fab-menu:hover,
+.fab-menu.open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto; /* 顯示時恢復互動 */
+}
+
+/* 選單項目 */
+.fab-menu-item {
+  background-color: transparent;
+  border: none;
+  color: var(--text-primary);
+  padding: 10px 16px;
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  width: 100%; /* 使項目填滿選單寬度 */
+  transition: background-color 0.2s ease;
+}
+
+.fab-menu-item:hover {
+  background-color: var(--hover-color);
+}
+
+/* 懸浮操作按鈕 (FAB) */
+.fab {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  background-color: var(--accent-color);
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: var(--border-radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 30%);
+  cursor: pointer;
+  opacity: 0.7; /* 設置半透明 */
+  transition: background-color 0.2s, transform 0.2s, opacity 0.2s, color 0.2s;
+  overflow: hidden; /* 讓覆蓋層遵循圓角 */
+}
+
+/* 灰階覆蓋層：使用透明度實現平滑的進出過渡 */
+.fab::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--fab-overlay-gradient);
+  opacity: 0;
+  transition: opacity 0.2s ease; /* 關鍵：灰色覆蓋層的漸變動畫 */
+  pointer-events: none; /* 不攔截事件，事件禁用由容器控制 */
+}
+
+.fab:hover {
+  background-color: var(--accent-primary-hover);
+  transform: translateY(-2px);
+  opacity: 1; /* 懸停时不透明 */
+}
+
+/* FAB 圖標：180° 紙片翻轉（桌面 ↔ 控制器），使用 currentColor 作為純色染色 */
+.fab-icon {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  transform-style: preserve-3d;
+  transition: transform 0.18s ease; /* 與卡片動畫一致 180ms */
+  will-change: transform;
+}
+
+.fab-icon .face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backface-visibility: hidden;
+}
+
+.fab-icon .face svg {
+  width: 24px;
+  height: 24px;
+  fill: currentcolor; /* 純色染色 */
+}
+
+/* 正面：桌面圖示 */
+.fab-icon .front { transform: rotateY(0deg); }
+
+/* 背面：控制器圖示，先反轉，容器翻轉時顯示 */
+.fab-icon .back { transform: rotateY(180deg); }
+
+/* 狀態：桌面模式（顯示 front） */
+.fab-icon.is-desktop { transform: rotateY(0deg); }
+
+/* 狀態：控制器模式（顯示 back） */
+.fab-icon.is-grid { transform: rotateY(180deg); }
+
+/* 全域規則：任一 .modal-overlay 存在時，FAB 不可被滑鼠響應，並呈現漸變灰色 */
+body.any-modal-open .fab-container {
+  pointer-events: none; /* 容器完全不接收事件（含主按鈕與菜單） */
+}
+
+body.any-modal-open .fab-container .fab,
+body.any-modal-open .fab-container .fab-menu,
+body.any-modal-open .fab-container .fab-menu-item {
+  pointer-events: none; /* 保險：子元素也不接收事件 */
+}
+
+body.any-modal-open .fab { 
+  /* 模態開啟時的柔和前景色（原: #f5f6f7） */
+  color: var(--color-fab-muted-fg);
+  opacity: 0.7; /* 保持半透明 */
+  transform: none; /* 禁用浮起動畫效果 */
+}
+
+body.any-modal-open .fab::after {
+  opacity: 1; /* 顯示灰色覆蓋層，並通過透明度過渡 */
+}
+
+/* 在關閉動畫期間，提前開始將 FAB 從灰色恢復（覆蓋 any-modal-open 規則） */
+body.any-modal-open.modal-fading-out .fab::after {
+  opacity: 0;
+}
+
+body.any-modal-open.modal-fading-out .fab {
+  color: var(--text-on-accent);
+}
+
+body.any-modal-open .fab:hover + .fab-menu,
+body.any-modal-open .fab-menu:hover,
+body.any-modal-open .fab-menu.open {
+  opacity: 0;           /* 不顯示菜單 */
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.fab svg {
+  width: 24px;
+  height: 24px;
+}
+
+
+
+/* 搜索欄 */
+.search-bar {
+  margin-top: 0;
+  margin-left: 24px;
+  margin-right: 24px;
+  padding-top: 16px;
+  display: flex;
+  justify-content: flex-start; /* 搜索與網格左邊緣對齊 */
+  position: relative; /* 供 z-index 生效 */
+  z-index: 9600; /* 高於抽屜（2400）與主內容 */
+}
+
+.search-bar-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-shrink: 0;
+}
+
+/* 搜索容器填滿可用的內容寬度（與網格寬度一致） */
+.search-container {
+  width: 100%;
+}
+
+.search-input-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+}
+
+.search-input {
+  width: 100%;
+  padding: 8px 12px 8px 36px;
+  background-color: var(--background-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+  user-select: text; /* 允許在輸入框中選擇文本 */
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+
+  /* 聚焦內陰影（原: rgba(0, 123, 255, 0.2)） */
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  width: 16px;
+  height: 16px;
+}
+
+.search-results-count {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* 遊戲網格 */
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 24px;
+  flex: 1; /* 作為 flex 子項填滿高度，便於空狀態垂直置中 */
+  min-height: 0; /* 避免在 flex 布局中高度膨脹導致滾動異常 */
+  scroll-behavior: smooth; /* 讓連續移動時滾動有動畫 */
+}
+
+/* 控制器模式：穩定滾動條凹槽並水平置中網格 */
+.game-grid.controller-mode {
+  /* 因控制器模式自身作為滾動容器，這裡需要自行預留雙側凹槽，避免右偏 */
+  scrollbar-gutter: stable both-edges;
+  justify-content: center; /* 將網格軌道在可用寬度中居中 */
+}
+
+/* 讓桌面網格同樣填滿可用高度 */
+.content-area > .desktop-grid {
+  flex: 1;
+  min-height: 0;
+}
+
+/* 空狀態置中（網格視圖） */
+.game-grid.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* 嘗試填滿視口高度，避免父層內容不足導致無法垂直置中 */
+  min-height: calc(100vh - 32px);
+}
+
+.loading-container, .empty-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.loading-container p, .empty-container p {
+  font-size: 16px;
+  margin-top: 16px;
+}
+
+/* 遊戲卡片 */
+.game-card {
+  background-color: var(--background-secondary);
+  border-radius: var(--border-radius-md);
+  padding: 16px;
+  text-align: center;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  transition: opacity 0.18s ease-out, transform 0.18s ease-out, box-shadow 0.2s ease, border-color 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--card-shadow);
+}
+
+/* 初次掛載進場效果（網格視圖） */
+.game-card.appearing {
+  opacity: 0;
+  transform: translateY(2px);
+}
+
+.game-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent-color);
+
+  /* 懸停陰影（原: 0 8px 24px rgba(0, 0, 0, 0.5)） */
+  box-shadow: var(--shadow-lg);
+}
+
+.game-icon-container {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+  background-color: var(--hover-color);
+  border-radius: var(--border-radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.game-icon {
+  pointer-events: none;
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+}
+
+/* 合併至下方 .game-info 區塊 */
+
+.game-icon-img:hover {
+  opacity: 0.9;
+}
+
+.game-icon-fallback {
+  font-size: 24px;
+  display: block;
+  opacity: 0.6;
+}
+
+.game-icon-fallback:hover {
+  opacity: 0.8;
+}
+
+.game-icon-fallback.hidden {
+  display: none;
+}
+
+.game-info {
+  text-align: center;
+  z-index: 1;
+  position: relative;
+  width: 100%;
+}
+
+.game-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%; /* 確保 text-overflow 生效 */
+}
+
+.game-vendor {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* 控制器模式：廠商名稱單行省略，與遊戲名一致的邏輯 */
+.game-grid.controller-mode .game-card .game-vendor {
+  display: block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.game-version {
+  /* 次要文字（原: #8a8886） */
+  color: var(--fg-muted-1);
+  font-size: 12px;
+  margin-bottom: 0;
+}
+
+/* 載入狀態 */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+
+  /* 載入狀態文字（原: #605e5c） */
+  color: var(--fg-muted-2);
+}
+
+/* loading-spinner 與 @keyframes spin 已移至全域 theme.css 的共用定義 */
+
+/* 空狀態 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  /* 讓空狀態可根據父容器彈性置中，不固定高度 */
+  height: auto;
+
+  /* 空狀態文字（原: #605e5c） */
+  color: var(--fg-muted-2);
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-state h3 {
+  /* 空狀態標題（原: #323130） */
+  color: var(--fg-strong);
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.empty-state p {
+  font-size: 14px;
+
+  /* 空狀態副文（原: #8a8886） */
+  color: var(--fg-muted-1);
+}
+
+/* 響應式設計 */
+@media (width <= 768px) {
+  .game-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+  }
+  
+  .content-area {
+    padding: 16px;
+  }
+}
+
+/* 滾動條樣式 */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  /* 滾動條拇指（原: rgba(0, 0, 0, 0.2)） */
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  /* 滾動條拇指懸停（原: rgba(0, 0, 0, 0.3)） */
+  background: var(--scrollbar-thumb-hover);
+}
+
+

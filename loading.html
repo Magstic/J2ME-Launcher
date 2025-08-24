@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="zh-Hant" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>J2ME Launcher</title>
+<style>
+:root{--bg-primary:#0f1115;--bg-secondary:#131722;--border:rgba(255,255,255,0.08);--text:#e6e8eb;--text-muted:#9aa4ad;--accent:#4cc2ff;color-scheme:dark}
+html,body,#splash-root{height:100%}
+body{margin:0;background:var(--bg-primary);color:var(--text);}
+
+.splash-overlay{
+  position:fixed;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#0f1115;
+  backdrop-filter:none;
+  opacity:0;
+  animation:overlay-in 300ms ease-out forwards
+}
+.splash-overlay.blur-on{background:transparent;backdrop-filter:blur(8px)}
+@keyframes overlay-in{from{opacity:0}to{opacity:1}}
+
+.splash-content{
+  width:min(740px,90vw);
+  height:auto;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:clamp(32px,8vh,60px);
+  opacity:0;
+  transform:translateY(20px);
+  animation:content-in 400ms ease-out 150ms forwards;
+  position:relative;
+  padding:clamp(14px,4vw,28px);
+  text-align:left
+}
+@keyframes content-in{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+.brand-section{
+  display:flex;
+  align-items:center;
+  gap:clamp(16px,4vw,24px);
+  position:relative;
+  z-index:2;
+  transform:translateX(-8px) translateY(4px)
+}
+
+.splash-logo{
+  width:clamp(90px,16vw,120px);
+  height:clamp(90px,16vw,120px);
+  border-radius:24px;
+  background:linear-gradient(135deg,rgba(76,194,255,0.15),rgba(125,92,255,0.12));
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 20px 60px rgba(0,0,0,0.4),inset 0 0 0 1px rgba(255,255,255,0.1);
+  backdrop-filter:blur(10px);
+  overflow:hidden;
+  transform:rotate(-3deg) translateY(-2px)
+}
+
+.splash-logo img{
+  width:68%;
+  height:68%;
+  object-fit:contain;
+  display:block;
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,0.2))
+}
+
+.splash-titles{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  transform:translateX(12px) translateY(6px)
+}
+
+.splash-title{
+  font-size:clamp(28px,6vw,42px);
+  font-weight:900;
+  letter-spacing:0.8px;
+  line-height:1.1;
+  background:linear-gradient(120deg,#e6e8eb 0%,#4cc2ff 50%,#7d5cff 100%);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale
+}
+
+.splash-motto{
+  font-size:clamp(13px,2.8vw,16px);
+  color:color-mix(in srgb,var(--text-muted) 85%,transparent);
+  letter-spacing:0.4px;
+  opacity:0.95;
+  transform:translateY(2px)
+}
+
+.progress-section{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:16px;
+  transform:translateX(6px) translateY(-8px)
+}
+
+.splash-progress{
+  position:relative;
+  width:clamp(280px,100vw,580px);
+  height:5px;
+  border-radius: 50%;
+  background:rgba(255,255,255,0.06);
+  overflow:hidden;
+  box-shadow:inset 0 2px 4px rgba(0,0,0,0.3),0 4px 20px rgba(0,0,0,0.2)
+}
+
+.splash-progress::before{
+  content:'';
+  position:absolute;
+  left:-30%;
+  top:0;
+  bottom:0;
+  width:30%;
+  border-radius:999px;
+  background:linear-gradient(90deg,transparent,rgba(76,194,255,0.8),transparent);
+  animation:progress-slide 3.8s ease-in-out infinite
+}
+@keyframes progress-slide{0%{left:-35%}40%{left:35%}70%{left:75%}100%{left:105%}}
+
+.meta-section{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;       /* from flex-start -> flex-end */
+  gap:8px;
+  transform:translateX(0) translateY(4px); /* or remove this line */
+  /* If .meta-section sits in a flex parent, push the whole block to the right: */
+  margin-left:auto;
+}
+
+.corner-meta{
+  color:var(--text-muted);
+  font-size:clamp(11px,2.4vw,13px);
+  opacity:0.7;
+  letter-spacing:0.5px;
+  text-align:right;           /* ensure text is right-aligned */
+}
+
+.floating-particles{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:1
+}
+
+.floating-particles::before,.floating-particles::after{
+  content:'';
+  position:absolute;
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(76,194,255,0.3),transparent);
+  animation:float 6s ease-in-out infinite alternate
+}
+
+.floating-particles::before{
+  width:100px;
+  height:100px;
+  top:15%;
+  left:10%;
+  animation-delay:-2s;
+  filter:blur(18px)
+}
+
+.floating-particles::after{
+  width:70px;
+  height:70px;
+  bottom:25%;
+  right:15%;
+  background:radial-gradient(circle,rgba(125,92,255,0.25),transparent);
+  animation-delay:-4s;
+  filter:blur(12px)
+}
+
+@keyframes float{from{transform:translateY(0) scale(1)}to{transform:translateY(-16px) scale(1.08)}}
+
+@media (max-width:640px){
+  .splash-content{gap:clamp(24px,6vh,40px);padding:clamp(16px,4vw,32px)}
+  .brand-section{gap:12px;transform:translateX(-4px) translateY(2px)}
+  .splash-logo{transform:rotate(-2deg) translateY(-1px)}
+  .splash-titles{transform:translateX(8px) translateY(3px)}
+  .progress-section{transform:translateX(4px) translateY(-4px)}
+  .meta-section{transform:translateX(12px) translateY(2px)}
+}
+
+html.hide .splash-overlay{opacity:0;transition:opacity 300ms ease-in}
+
+@media (prefers-reduced-motion:reduce){
+  .splash-overlay,.splash-content{animation:none !important;opacity:1 !important;transform:none !important}
+  .splash-logo,.splash-titles,.progress-section,.meta-section{transform:none !important}
+}
+</style>
+</head>
+<body>
+<div id="splash-root">
+<div class="splash-overlay">
+<div class="splash-content" role="dialog" aria-modal="true">
+<div class="floating-particles" aria-hidden="true"></div>
+<div class="brand-section">
+<div class="splash-logo" aria-hidden="true"><img src="./src/assets/icons/icon.svg" alt="App Icon" /></div>
+<div class="splash-titles">
+<div class="splash-title">J2ME LAUNCHER</div>
+<div class="splash-motto">Ver. 1.0.0 Beta</div>
+</div>
+</div>
+<div class="progress-section">
+<div class="splash-progress" aria-label="Loading"></div>
+</div>
+<div class="meta-section">
+<div class="corner-meta">歲月常伴，情懷如故。</div>
+<div class="corner-meta">Welcome to J2ME Launcher!</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+// 兩幀後啟用模糊，避免首幀合成白閃
+requestAnimationFrame(()=>requestAnimationFrame(()=>{
+  try{document.querySelector('.splash-overlay')?.classList.add('blur-on')}catch(_){}
+}));
+// 接收主進程訊號觸發淡出
+window.addEventListener('message',(e)=>{if(e.data==='fade-out')document.documentElement.classList.add('hide')});
+</script>
+</body>
+</html>

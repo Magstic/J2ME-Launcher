@@ -1,0 +1,45 @@
+/*
+ * 公用工具類別（Utilities）
+ * 作用：提供小而穩定的工具類別（版面、間距、字體、可見性、元件尺寸）。
+ * 範圍：僅包含原子化/實用化 class，不應覆蓋元件語義樣式。
+ * 依賴：可少量依賴設計代幣（如 --text-secondary），避免硬編碼色彩。
+ * 載入順序建議：tokens -> base(App.css) -> utility -> components
+ * 注意：新增加的工具類別請保持語義精簡，避免與 components/*.css 重疊。
+ */
+
+/* Layout */
+.flex { display: flex; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-8 { gap: 8px; }
+
+/* Spacing */
+.mb-6 {
+  margin-bottom: 6px;
+  margin-top: 6px;
+}
+.mb-8 { margin-bottom: 8px; }
+
+.mb-12 {
+  margin-bottom: 12px;
+  margin-top: 12px;
+}
+.mb-24 { margin-bottom: 24px; }
+.mt-8 { margin-top: 8px; }
+.p-12 { padding: 12px; }
+
+/* Typography */
+.text-12 { font-size: 12px; }
+.text-16 { font-size: 16px; }
+.text-secondary { color: var(--text-secondary); }
+.opacity-90 { opacity: 0.9; }
+
+/* Visibility */
+.hidden { display: none !important; }
+.invisible { visibility: hidden !important; }
+
+/* Components */
+.modal-md { width: 720px; }
+
+.card { border-radius: 12px; }
+.card-muted { background: var(--overlay-on-light-06); }

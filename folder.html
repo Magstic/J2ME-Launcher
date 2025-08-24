@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/x-icon" href="../assets/icons/icon.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>資料夾視圖 - J2ME Launcher</title>
+  <script>
+    // 在渲染前應用持久化主題，避免閃爍
+    (function() {
+      try {
+        var t = localStorage.getItem('theme');
+        if (t !== 'light' && t !== 'dark') { t = 'dark'; }
+        if (document.body) {
+          document.body.setAttribute('data-theme', t);
+        } else {
+          document.addEventListener('DOMContentLoaded', function() {
+            try { document.body && document.body.setAttribute('data-theme', t); } catch (e) {}
+          }, { once: true });
+        }
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+  <div id="folder-root"></div>
+  <!-- 預顯示渲染：等待字體與一兩幀渲染，再通知主進程顯示窗口，避免白閃 -->
+  <script>
+    (async function() {
+      try {
+        if (document.fonts && document.fonts.ready) {
+          await document.fonts.ready;
+        }
+        // 等待 2 個 requestAnimationFrame，確保首屏布局/圖片解碼更穩定
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+        if (window.electronAPI && window.electronAPI.folderWindowReady) {
+          window.electronAPI.folderWindowReady();
+        }
+      } catch (e) {
+        // 失敗也嘗試通知，避免窗口卡住
+        if (window.electronAPI && window.electronAPI.folderWindowReady) {
+          window.electronAPI.folderWindowReady();
+        }
+      }
+    })();
+  </script>
+  <script type="module" src="/src/folder-main.jsx"></script>
+</body>
+</html>

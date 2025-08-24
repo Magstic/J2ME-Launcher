@@ -1,0 +1,437 @@
+/* 設計代幣（Tokens）單一來源：僅定義 :root 變數，不包含樣式規則或別名過渡 */
+:root {
+  /* Dark Theme Palette */
+
+  /* === Backgrounds === */
+  --background-primary: #1e2127;      /* 主內容區域背景 */
+  --background-secondary: #2a2d35;    /* 側邊欄、卡片、搜索欄背景 */
+  --background-tertiary: #3c4049;     /* 懸停狀態、按鈕背景 */
+  
+  /* 懸停效果統一使用 --hover-color 基礎代幣 */
+
+  /* === Text === */
+  --text-primary: #dbd9d9;             /* 主要文字顏色 */
+  --text-secondary: #c4c3c3;           /* 次要、輔助文字顏色 */
+  --text-accent: #38bdf8;              /* 強調文字顏色 */
+  --text-on-accent: #fff;              /* 在強調色背景上的文字 */
+  --text-color-fixed: #fff;            /* 固定顔色的文本 */
+
+  /* === Accents & Borders === */
+  --accent-color: #007bff;                 /* 主要交互顏色 (藍色) */
+  --accent-color-dark: #0056b3;            /* 深色強調色 */
+  --accent-color-light: rgb(0 123 255 / 10%); /* 淺色強調背景 */
+  --accent-color-alpha: rgb(0 123 255 / 20%); /* 半透明強調色 */
+  --accent-primary: #007bffa6;             /* 保持向後兼容 */
+  --border-color: #6a778b7b;               /* 邊框和分割線 */
+  --border-primary: #374151;               /* 保持向後兼容 */
+  --hover-color: rgb(255 255 255 / 8%);    /* 懸停效果 */
+  --error-color: #dc3545;                  /* 錯誤顏色 */
+  --error-color-light: rgb(220 53 69 / 10%); /* 淺色錯誤背景 */
+  
+  /* === Window Controls === */
+  --titlebar-background: transparent;      /* 保持沉浸式透明 */
+  --window-control-color: var(--text-secondary);
+  --window-control-hover-bg: var(--background-tertiary);
+  --window-control-close-hover-bg: #e81123; /* Windows 標準關閉按鈕紅色 */
+  --window-control-close-hover-color: #fff;
+
+  
+  /* === Gradients & Shadows === */
+  --titlebar-gradient: linear-gradient(to right, #2a2d35, #1e2127 80%);
+  --card-shadow: 0 4px 12px rgb(0 0 0 / 40%);
+
+  
+  
+  /* Standardized shadows used across components */
+  --shadow-sm: 0 1px 3px rgb(0 0 0 / 12%);
+  --shadow-md: 0 4px 12px rgb(0 0 0 / 15%);
+  --shadow-lg: 0 8px 24px rgb(0 0 0 / 24%);
+
+  /* === Sizing & Radius === */
+  --border-radius-md: 8px;
+  --border-radius-sm: 4px;
+  --border-radius-lg: 12px;
+
+  /* === Legacy aliases (removed after audit; no references remain) === */
+
+
+  /* --surface-color, --surface-secondary, --text-color removed */
+
+
+  /* === Semantic aliases (for gradual migration) === */
+
+
+  /* DEPRECATED: previously provided --color-* aliases. Removed during cleanup. */
+
+
+  /* All components should use base tokens directly (background-*, text-*, border-*, accent-*). */
+
+
+  /* === 附加語義別名（清理後僅保留必要例外） === */
+
+
+  /* Keep shadow strength token */
+  --shadow-lg-strong: 0 8px 24px rgb(0 0 0 / 50%);
+
+
+  /* === 對話框/覆蓋層 與 按鈕語義 === */
+
+
+  /* FAB 在模態開啟時使用的柔和前景色 */
+  --color-fab-muted-fg: #f5f6f7; /* exact from App.css any-modal-open */
+
+
+  /* 亮色前景覆蓋層（移除 color-*，統一使用 overlay-on-light-* 基礎代幣） */
+
+
+  /* 警告/危險按鈕語義（精確映射現有視覺） */
+  --color-accent-warning: #f59e0b;         /* buttons.css */
+  --color-accent-warning-hover: #d97706;   /* buttons.css */
+  --color-accent-danger: #ef4444;          /* buttons.css */
+  --color-accent-danger-hover: #dc2626;    /* buttons.css */
+  --color-danger-bg-12a: rgb(239 68 68 / 12%); /* buttons icon hover */
+
+
+  /* 特定標題漸變（資訊對話框） */
+  --gradient-info-header: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gradient-info-header-dark: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+
+
+  /* === 統一命名 與 向後兼容別名 === */
+
+
+  /* Shadows 統一層級 */
+  --shadow-xl: 0 20px 40px rgb(0 0 0 / 30%); /* 對話框等大型陰影 */
+
+
+  /* Text Shadows（文字陰影專用；請勿用 box-shadow 變量） */
+  --shadow-text-strong: 0 1px 2px rgb(0 0 0 / 50%);
+  --shadow-text-soft: 0 1px 2px rgb(0 0 0 / 35%);
+
+
+  /* Focus Ring 統一命名（直接使用顏色值） */
+  --focus-ring: rgb(0 123 255 / 20%);
+  --focus-ring-weak: rgb(0 123 255 / 15%);
+
+
+  /* Foreground neutrals 統一命名（直接值） */
+  --fg-muted-1: #8a8886;
+  --fg-muted-2: #605e5c;
+  --fg-strong: #323130;
+
+
+  /* Subtle bg/border 統一命名（直接值） */
+  --bg-muted: #f3f3f3;
+  --border-subtle: rgb(0 0 0 / 10%);
+
+
+  /* Scrollbar 統一命名（直接值） */
+  --scrollbar-thumb: rgb(0 0 0 / 20%);
+  --scrollbar-thumb-hover: rgb(0 0 0 / 30%);
+
+
+  /* === Unified neutral overlays (for maintenance) === */
+
+
+  /* White overlays (foreground lines, tracks, subtle surfaces) */
+  --overlay-on-light-05: rgb(255 255 255 / 5%);
+  --overlay-on-light-08: rgb(255 255 255 / 8%);
+  --overlay-on-light-10: rgb(255 255 255 / 10%);
+  --overlay-on-light-12: rgb(255 255 255 / 12%);
+  --overlay-on-light-16: rgb(255 255 255 / 16%);
+  --overlay-on-light-20: rgb(255 255 255 / 20%);
+  --overlay-on-light-30: rgb(255 255 255 / 30%);
+  --overlay-on-light-36: rgb(255 255 255 / 36%);
+  --overlay-on-light-45: rgb(255 255 255 / 45%);
+  --overlay-on-light-60: rgb(255 255 255 / 60%);
+
+
+  /* Black scrims (backdrops, elevated surfaces, transient overlays) */
+  --scrim-12: rgb(0 0 0 / 12%);
+  --scrim-25: rgb(0 0 0 / 25%);
+  --scrim-30: rgb(0 0 0 / 30%);
+  --scrim-35: rgb(0 0 0 / 35%);
+
+
+  /* existing: --scrim-50, --scrim-60, --scrim-80 */
+
+
+  /* Scrim 統一命名 */
+  --scrim-50: rgb(0 0 0 / 50%);
+  --scrim-60: rgb(0 0 0 / 60%);
+  --scrim-80: rgb(0 0 0 / 80%);
+
+
+  /* Dialog 通用代幣（預設值） */
+  --overlay-scrim: var(--scrim-80);
+  --dialog-bg: var(--background-primary);
+  --dialog-border: var(--border-color);
+  --dialog-radius: 16px;
+  --dialog-shadow: var(--shadow-xl);
+
+
+  /* Overlay on light（互動態） */
+
+
+  /* (duplicate removed; use the value defined in Unified neutral overlays) */
+
+
+  /* Brand/Spinner 統一命名（直接值） */
+  --brand-primary: #0078d4;
+  --spinner-track: #f3f2f1;
+
+
+  /* Hover aliases and decorative overlays */
+
+
+  /* 統一主要按鈕懸停色別名（供 buttons.css / App.css 使用） */
+  --accent-primary-hover: var(--accent-color-dark);
+
+
+  /* FAB 覆蓋層漸變（從 App.css 內聯抽出為代幣） */
+  --fab-overlay-gradient: linear-gradient(135deg, #3781e197, #1276b8a2);
+
+
+  /* 淡覆蓋層（精確 6% 白）供 card-muted 等使用 */
+  --overlay-on-light-06: rgb(255 255 255 / 6%);
+
+
+  /* === Dividers & Glass Panels (dark baseline) === */
+  --divider-rail: linear-gradient(90deg, transparent, rgb(255 255 255 / 20%), transparent);
+  --divider-rail-accent: linear-gradient(90deg, transparent, rgb(255 0 0 / 20%), transparent);
+  --glass-panel-gradient: linear-gradient(180deg, rgb(25 25 28 / 95%), rgb(18 18 20 / 95%));
+
+
+  /* === Brand Cyan Alphas (decorative, limited set) === */
+  --brand-cyan-02a: rgb(79 195 247 / 2%);
+  --brand-cyan-12a: rgb(98 225 255 / 12%);
+  --brand-cyan-18a: rgb(98 225 255 / 18%);
+  --brand-cyan-25a: rgb(98 225 255 / 25%);
+  --brand-cyan-35a: rgb(98 225 255 / 35%);
+  --brand-cyan-gradient-vertical: linear-gradient(180deg, transparent, var(--brand-cyan-25a), transparent);
+  --brand-cyan-hairline: inset -1px 0 0 var(--brand-cyan-35a);
+}
+
+
+/* ==============================================
+   Light Theme Overrides (optional)
+   Apply by setting data-theme="light" on a root element
+   Minimal changes to preserve layout while ensuring contrast
+   ============================================== */
+[data-theme="light"] {
+  /* Light Theme — Soft & Fresh */
+
+
+  /* === Backgrounds === */
+  --background-primary: #f7f7f8;      /* app surface */
+  --background-secondary: #fff;       /* cards, panels */
+  --background-tertiary: #f0f2f4;     /* hovers, subtle fills */
+
+
+  /* 懸停效果統一使用 --hover-color 基礎代幣 */
+
+
+  /* === Text === */
+  --text-primary: #696969;             /* readable body text */
+  --text-secondary: #3d4044;           /* subdued labels */
+  --text-accent: #0b6bcb;              /* accent text on light */
+  --text-on-accent: #fff;              /* text on accent backgrounds */
+  --text-color-fixed: #fff;
+
+
+  /* === Accents & Borders === */
+  --accent-color: #3b82f6;                  /* soft blue */
+  --accent-color-dark: #2563eb;             /* hover/active */
+  --accent-color-light: rgb(59 130 246 / 12%); /* subtle fill */
+  --accent-color-alpha: rgb(59 130 246 / 20%);
+  --accent-primary: #3b82f6a6;              /* legacy compat */
+  --border-color: #d0d7de;                  /* subtle dividers */
+  --border-primary: #cbd5e1;                /* legacy compat */
+  --hover-color: rgb(0 0 0 / 6%);           /* gentle hover on light */
+  --error-color: #dc3545;                   /* error red */
+  --error-color-light: rgb(220 53 69 / 12%);
+
+
+  /* === Window Controls === */
+  --titlebar-background: transparent;      /* 保持沉浸式透明 */
+  --window-control-color: var(--text-secondary);
+  --window-control-hover-bg: var(--background-tertiary);
+  --window-control-close-hover-bg: #e81123; /* Windows 標準關閉按鈕紅色 */
+  --window-control-close-hover-color: #fff;
+
+
+  /* === Gradients & Shadows === */
+  --titlebar-gradient: linear-gradient(to right, #ffffffc6, #fff 80%);
+  --card-shadow: 0 4px 12px rgb(0 0 0 / 12%);
+
+
+  /* Standardized shadows used across components */
+  --shadow-sm: 0 1px 3px rgb(0 0 0 / 12%);
+  --shadow-md: 0 4px 12px rgb(0 0 0 / 15%);
+  --shadow-lg: 0 8px 24px rgb(0 0 0 / 24%);
+
+
+  /* === Sizing & Radius === */
+  --border-radius-md: 8px;
+  --border-radius-sm: 4px;
+  --border-radius-lg: 12px;
+
+
+  /* === Legacy aliases (removed after audit; no references remain) === */
+
+
+  /* --surface-color, --surface-secondary, --text-color removed */
+
+
+  /* === Semantic aliases (for gradual migration) === */
+
+
+  /* DEPRECATED: previously provided --color-* aliases. Removed during cleanup. */
+
+
+  /* All components should use base tokens directly (background-*, text-*, border-*, accent-*). */
+
+
+  /* === 附加語義別名（清理後僅保留必要例外） === */
+
+
+  /* Keep shadow strength token */
+  --shadow-lg-strong: 0 8px 24px rgb(0 0 0 / 50%);
+
+
+  /* === 對話框/覆蓋層 與 按鈕語義 === */
+
+
+  /* FAB 在模態開啟時使用的柔和前景色 */
+  --color-fab-muted-fg: #f5f6f7; /* exact from App.css any-modal-open */
+
+
+  /* 亮色前景覆蓋層（移除 color-*，統一使用 overlay-on-light-* 基礎代幣） */
+
+
+  /* 警告/危險按鈕語義（精確映射現有視覺） */
+  --color-accent-warning: #f59e0b;         /* buttons.css */
+  --color-accent-warning-hover: #d97706;   /* buttons.css */
+  --color-accent-danger: #ef4444;          /* buttons.css */
+  --color-accent-danger-hover: #dc2626;    /* buttons.css */
+  --color-danger-bg-12a: rgb(239 68 68 / 12%); /* buttons icon hover */
+
+
+  /* 特定標題漸變（資訊對話框） */
+  --gradient-info-header: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gradient-info-header-dark: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+
+
+  /* === 統一命名 與 向後兼容別名 === */
+
+
+  /* Shadows 統一層級 */
+  --shadow-xl: 0 20px 40px rgb(0 0 0 / 30%); /* 對話框等大型陰影 */
+
+
+  /* Text Shadows（文字陰影專用；請勿用 box-shadow 變量） */
+  --shadow-text-strong: 0 1px 2px rgb(0 0 0 / 50%);
+  --shadow-text-soft: 0 1px 2px rgb(0 0 0 / 35%);
+
+
+  /* Focus Ring 統一命名（直接使用顏色值） */
+  --focus-ring: rgb(0 123 255 / 20%);
+  --focus-ring-weak: rgb(0 123 255 / 15%);
+
+
+  /* Foreground neutrals 統一命名（直接值） */
+  --fg-muted-1: #8a8886;
+  --fg-muted-2: #605e5c;
+  --fg-strong: #323130;
+
+
+  /* Subtle bg/border 統一命名（直接值） */
+  --bg-muted: #f3f3f3;
+  --border-subtle: rgb(0 0 0 / 10%);
+
+
+  /* Scrollbar 統一命名（直接值） */
+  --scrollbar-thumb: rgb(0 0 0 / 25%);
+  --scrollbar-thumb-hover: rgb(0 0 0 / 35%);
+
+
+  /* === Unified neutral overlays (for maintenance) === */
+
+
+  /* White overlays (foreground lines, tracks, subtle surfaces) */
+  --overlay-on-light-05: rgb(0 0 0 / 5%);
+  --overlay-on-light-08: rgb(0 0 0 / 8%);
+  --overlay-on-light-10: rgb(0 0 0 / 10%);
+  --overlay-on-light-12: rgb(0 0 0 / 12%);
+  --overlay-on-light-16: rgb(0 0 0 / 16%);
+  --overlay-on-light-20: rgb(0 0 0 / 20%);
+  --overlay-on-light-30: rgb(0 0 0 / 30%);
+  --overlay-on-light-36: rgb(0 0 0 / 36%);
+  --overlay-on-light-45: rgb(0 0 0 / 45%);
+  --overlay-on-light-60: rgb(0 0 0 / 60%);
+
+
+  /* Black scrims (backdrops, elevated surfaces, transient overlays) */
+  --scrim-12: rgb(0 0 0 / 12%);
+  --scrim-25: rgb(0 0 0 / 25%);
+  --scrim-30: rgb(0 0 0 / 30%);
+  --scrim-35: rgb(0 0 0 / 35%);
+
+
+  /* existing: --scrim-50, --scrim-60, --scrim-80 */
+
+
+  /* Scrim 統一命名 */
+  --scrim-50: rgb(0 0 0 / 50%);
+  --scrim-60: rgb(0 0 0 / 60%);
+  --scrim-80: rgb(0 0 0 / 80%);
+
+
+  /* Dialog 通用代幣（預設值） */
+  --overlay-scrim: var(--scrim-80);
+  --dialog-bg: var(--background-primary);
+  --dialog-border: var(--border-color);
+  --dialog-radius: 16px;
+  --dialog-shadow: var(--shadow-xl);
+
+
+  /* Overlay on light（互動態） */
+
+
+  /* (duplicate removed; use the value defined in Unified neutral overlays) */
+
+
+  /* Brand/Spinner 統一命名（直接值） */
+  --brand-primary: #0078d4;
+  --spinner-track: #f3f2f1;
+
+
+  /* Hover aliases and decorative overlays */
+
+
+  /* 統一主要按鈕懸停色別名（供 buttons.css / App.css 使用） */
+  --accent-primary-hover: var(--accent-color-dark);
+
+
+  /* FAB 覆蓋層漸變（從 App.css 內聯抽出為代幣） */
+  --fab-overlay-gradient: linear-gradient(135deg, #3781e197, #1276b8a2);
+
+
+  
+  /* 淡覆蓋層（精確 6% 白）供 card-muted 等使用 */
+  --overlay-on-light-06: rgb(102 153 177 / 6%);
+
+  /* === Dividers & Glass Panels (dark baseline) === */
+  --divider-rail: linear-gradient(90deg, transparent, rgb(0, 0, 0, 20%), transparent);
+  --divider-rail-accent: linear-gradient(90deg, transparent, rgb(255 0 0 / 20%), transparent);
+  --glass-panel-gradient: linear-gradient(180deg, rgb(255 255 255 / 95%), rgb(255 255 255 / 95%));
+
+  /* === Brand Cyan Alphas (decorative, limited set) === */
+  --brand-cyan-02a: rgb(79 195 247 / 2%);
+  --brand-cyan-12a: rgb(98 225 255 / 12%);
+  --brand-cyan-18a: rgb(98 225 255 / 18%);
+  --brand-cyan-25a: rgb(98 225 255 / 25%);
+  --brand-cyan-35a: rgb(98 225 255 / 35%);
+  --brand-cyan-gradient-vertical: linear-gradient(180deg, transparent, var(--brand-cyan-25a), transparent);
+  --brand-cyan-hairline: inset -1px 0 0 var(--brand-cyan-35a);
+}
