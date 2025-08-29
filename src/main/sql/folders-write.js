@@ -88,10 +88,25 @@ function removeGameFromFolder(folderId, filePath) {
   db.prepare(`DELETE FROM folder_games WHERE folderId=? AND filePath=?`).run(folderId, filePath);
 }
 
+// 批次移除：使用交易 + prepared statements，避免多次 IPC 調用
+function removeGamesFromFolderBatch(folderId, filePaths) {
+  if (!Array.isArray(filePaths) || filePaths.length === 0) return;
+  const db = getDB();
+  const stmt = db.prepare(`DELETE FROM folder_games WHERE folderId=? AND filePath=?`);
+  const tx = db.transaction((paths) => {
+    for (const fp of paths) {
+      if (!fp) continue;
+      stmt.run(folderId, fp);
+    }
+  });
+  tx(filePaths);
+}
+
 module.exports = {
   upsertFolder,
   deleteFolder,
   addGameToFolder,
   addGamesToFolderBatch,
   removeGameFromFolder,
+  removeGamesFromFolderBatch,
 };

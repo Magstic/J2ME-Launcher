@@ -31,6 +31,7 @@
 .btn-primary {
   background: var(--accent-color);
   color: var(--text-on-accent);
+  border: 1px solid transparent;
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -51,7 +52,7 @@
 .btn-warning {
   /* 警告按鈕背景（原: #f59e0b） */
   background: var(--color-accent-warning);
-  color: var(--text-primary);
+  color: var(--text-color-fixed);
 }
 
 .btn-warning:hover:not(:disabled) {

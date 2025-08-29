@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import ReactDOM from 'react-dom';
 import FolderDrawer from './FolderDrawer/FolderDrawer';
 import { DragProvider } from './DragDrop/DragProvider';
 import DesktopView from './Desktop/DesktopView';
@@ -9,6 +8,7 @@ import { FolderSelectDialog } from '@components';
 import GameInfoDialog from './Desktop/GameInfoDialog';
 import ConfirmDialog from './Common/ConfirmDialog';
 import { ModalWithFooter, ModalHeaderOnly } from '@ui';
+import { useTranslation } from '@hooks/useTranslation';
 
 /**
  * 桌面管理器組件
@@ -21,6 +21,7 @@ const DesktopManager = ({
   onGameLaunch,
   isSwitchingToDesktop = false
 }) => {
+  const { t } = useTranslation();
   // 狀態管理
   const [folders, setFolders] = useState([]);
   const [desktopItems, setDesktopItems] = useState([]);
@@ -57,18 +58,12 @@ const DesktopManager = ({
   // 批次狀態（用於顯示載入卡片）
   const [bulkStatus, setBulkStatus] = useState({ active: false, total: 0, done: 0, label: '' });
 
-  // 左側資料夾抽屜（手動開關）
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  // 左側資料夾抽屜（固定顯示）
   const drawerWidth = 120; // 與需求一致的固定寬度
-  const toggleDrawer = useCallback(() => setDrawerOpen((v) => !v), []);
-  // 臨時除錯：關閉把手除錯模式（恢復正式樣式）
-  const DEBUG_HANDLE = false;
 
   // 量測搜尋列相對於內容包裹層的偏移，讓抽屜頂部貼在搜尋列下方
   const contentWrapRef = useRef(null);
   const [drawerTopOffset, setDrawerTopOffset] = useState(0);
-  const [contentWrapHeight, setContentWrapHeight] = useState(0);
-  const [handleTopPx, setHandleTopPx] = useState(140);
   const [drawerTopViewport, setDrawerTopViewport] = useState(0);
   const measureTopOffset = useCallback(() => {
     try {
@@ -77,10 +72,6 @@ const DesktopManager = ({
       const search = document.querySelector('.search-bar') || document.querySelector('.search-bar-container');
       if (!search) {
         setDrawerTopOffset(0);
-        // 以 wrap 為基準估一個把手位置（中間）
-        const wrapRect0 = wrap.getBoundingClientRect();
-        const fallbackCenter = Math.round(wrapRect0.top + wrapRect0.height / 2);
-        setHandleTopPx(fallbackCenter);
         return;
       }
       const wrapRect = wrap.getBoundingClientRect();
@@ -90,17 +81,6 @@ const DesktopManager = ({
       // 另外計算抽屜在 wrap 內的偏移（供內部捲動/高度計算使用）
       const inWrapTop = Math.max(0, Math.round(searchRect.top - wrapRect.top));
       setDrawerTopOffset(inWrapTop);
-      setContentWrapHeight(Math.round(wrapRect.height));
-      // 把手位置（使用 inWrapTop 作為可視區上界）
-      const visibleHeight = Math.max(0, wrapRect.height - inWrapTop);
-      const centerInWrap = inWrapTop + Math.floor(visibleHeight / 2);
-      const minInWrap = inWrapTop + 60;
-      const maxInWrap = inWrapTop + Math.max(0, visibleHeight - 60);
-      const clampedInWrap = Math.max(minInWrap, Math.min(maxInWrap, centerInWrap));
-      const handleTopCalc = Math.round(wrapRect.top + clampedInWrap);
-      setHandleTopPx(handleTopCalc);
-      // 除錯輸出
-      console.debug('[DrawerHandle] wrapRect.top=', wrapRect.top, 'offset=', offset, 'handleTopPx=', handleTopCalc);
     } catch (_) {}
   }, []);
   useEffect(() => {
@@ -112,22 +92,10 @@ const DesktopManager = ({
     return () => { window.removeEventListener('resize', onResize); clearTimeout(t); };
   }, [measureTopOffset]);
 
-  // 把手樣式參數（交由 FolderDrawer 內部渲染）
-  const HANDLE_WIDTH = 26;
-  const HANDLE_HEIGHT = '100%';
-  const HANDLE_RADIUS = 24;
-  const HANDLE_OVERLAP = 26;
-
-  // 在主視圖內雙擊空白處（抽屜外）則自動收回抽屜
-  const handleMainDoubleClick = useCallback((e) => {
-    if (!drawerOpen) return;
-    const inDrawer = e.target && typeof e.target.closest === 'function' && e.target.closest('.folder-drawer');
-    if (!inDrawer) setDrawerOpen(false);
-  }, [drawerOpen]);
-
+  
   
 
-  // 載入資料夾數據
+  // 載入資料夾資料
   const loadFolders = useCallback(async () => {
     try {
       if (window.electronAPI?.getFolders) {
@@ -139,7 +107,7 @@ const DesktopManager = ({
     }
   }, []);
 
-  // 載入桌面數據（遊戲 + 資料夾）
+  // 載入桌面資料（遊戲 + 資料夾）
   const loadDesktopItems = useCallback(async () => {
     try {
       if (window.electronAPI?.getDesktopItems) {
@@ -147,7 +115,7 @@ const DesktopManager = ({
         setDesktopItems(items);
       }
     } catch (error) {
-      console.error('載入桌面數據失敗:', error);
+      console.error('載入桌面資料失敗:', error);
     }
   }, []);
 
@@ -171,7 +139,7 @@ const DesktopManager = ({
     })();
   }, [loadFolders, loadDesktopItems]);
 
-  // 初始化數據
+  // 初始化資料
   useEffect(() => {
     loadFolders();
     loadDesktopItems();
@@ -187,6 +155,45 @@ const DesktopManager = ({
       return unsubscribe;
     }
   }, [guardedRefresh]);
+
+  // 監聽批次操作事件
+  useEffect(() => {
+    const handleBulkStart = (data) => {
+      console.log('批次操作開始:', data);
+      if (data.total > 30) {
+        setBulkMutating(true);
+        setBulkStatus({ 
+          active: true, 
+          total: data.total, 
+          done: 0, 
+          label: t('desktopManager.label') 
+        });
+      }
+    };
+
+    const handleBulkEnd = (data) => {
+      console.log('批次操作結束:', data);
+      setBulkMutating(false);
+      setBulkStatus({ active: false, total: 0, done: 0, label: '' });
+    };
+
+    if (window.electronAPI?.onBulkOperationStart) {
+      window.electronAPI.onBulkOperationStart(handleBulkStart);
+    }
+    if (window.electronAPI?.onBulkOperationEnd) {
+      window.electronAPI.onBulkOperationEnd(handleBulkEnd);
+    }
+
+    return () => {
+      // 清理監聽器
+      if (window.electronAPI?.offBulkOperationStart) {
+        window.electronAPI.offBulkOperationStart(handleBulkStart);
+      }
+      if (window.electronAPI?.offBulkOperationEnd) {
+        window.electronAPI.offBulkOperationEnd(handleBulkEnd);
+      }
+    };
+  }, [t]);
 
   // 監聽遊戲變更事件
   useEffect(() => {
@@ -204,7 +211,7 @@ const DesktopManager = ({
     try {
       if (window.electronAPI?.createFolder) {
         await window.electronAPI.createFolder(folderData);
-        // 事件監聽器會自動刷新數據
+        // 事件監聽器會自動刷新資料
       }
     } catch (error) {
       console.error('創建資料夾失敗:', error);
@@ -217,7 +224,7 @@ const DesktopManager = ({
     try {
       if (window.electronAPI?.updateFolder) {
         await window.electronAPI.updateFolder(folderId, folderData);
-        // 事件監聽器會自動刷新數據
+        // 事件監聽器會自動刷新資料
       }
     } catch (error) {
       console.error('更新資料夾失敗:', error);
@@ -234,10 +241,10 @@ const DesktopManager = ({
         console.log('正在將遊戲添加到資料夾:', gameFilePath, folderId);
         await window.electronAPI.addGameToFolder(gameFilePath, folderId);
         
-        // 立即刷新數據，不依賴事件監聽
+        // 立即刷新資料，不依賴事件監聽
         await loadFolders();
         await loadDesktopItems();
-        console.log('遊戲添加完成，數據已刷新');
+        console.log('遊戲添加完成，資料已刷新');
       }
     } catch (error) {
       console.error('添加遊戲到資料夾失敗:', error);
@@ -282,10 +289,10 @@ const DesktopManager = ({
         await handleUpdateFolder(createFolderDialog.initialData.id, folderData);
       }
       
-      // 立即刷新數據
+      // 立即刷新資料
       await loadFolders();
       await loadDesktopItems();
-      console.log('資料夾操作完成，數據已刷新');
+      console.log('資料夾操作完成，資料已刷新');
     } catch (error) {
       console.error('資料夾操作失敗:', error);
       throw error;
@@ -359,48 +366,65 @@ const DesktopManager = ({
         // 抑制自動事件刷新，留出 FLIP 前後狀態捕捉窗口
         suppressUntilRef.current = Date.now() + 160;
         if (Array.isArray(list) && list.length > 0) {
-          // 多選：併發執行；大於門檻時使用分段批次（每批 50）
+          // 多選：使用統一的批次處理邏輯
           setBulkMutating(true);
           const unique = Array.from(new Set(list));
-          const threshold = 30;
-          const chunkSize = 50;
 
           // 開始前關閉資料夾選擇對話框，避免遮擋並減少重排
           try { setFolderSelectDialog({ isOpen: false, game: null, selectedFilePaths: null }); } catch (_) {}
 
-          if (unique.length > threshold) {
-            setBulkStatus({ active: true, total: unique.length, done: 0, label: '正在加入遊戲…' });
-            for (let i = 0; i < unique.length; i += chunkSize) {
-              const chunk = unique.slice(i, i + chunkSize);
-              if (window.electronAPI?.addGamesToFolderBatch) {
-                await window.electronAPI.addGamesToFolderBatch(chunk, selectedFolder.id, { quiet: true });
-              } else {
-                await Promise.allSettled(chunk.map(fp => window.electronAPI.addGameToFolder(fp, selectedFolder.id)));
-              }
-              setBulkStatus(prev => ({ ...prev, done: Math.min(prev.done + chunk.length, prev.total) }));
-              // 批次之間不再刻意讓出主執行緒，以加快處理（有載入卡片遮罩即可）
-              await new Promise(r => setTimeout(r, 0));
-            }
-            // 批末一次性廣播（主進程匯總刷新）
-            try { if (window.electronAPI?.emitFolderBatchUpdates) await window.electronAPI.emitFolderBatchUpdates(selectedFolder.id); } catch (_) {}
-            console.log('多個遊戲已加入資料夾（分段批次）');
-          } else {
-            if (window.electronAPI?.addGamesToFolderBatch) {
-              await window.electronAPI.addGamesToFolderBatch(unique, selectedFolder.id, { quiet: false });
-            } else {
-              await Promise.allSettled(unique.map(fp => window.electronAPI.addGameToFolder(fp, selectedFolder.id)));
-            }
-            console.log('多個遊戲已加入資料夾（批次）');
+          // 啟動進度顯示（降低門檻確保用戶看到反饋）
+          if (unique.length > 10) {
+            setBulkStatus({ active: true, total: unique.length, done: 0, label: t('desktopManager.label') });
           }
+
+          // 確保批次參數可序列化
+          const cleanFilePaths = unique.filter(fp => typeof fp === 'string');
+          const folderIdStr = typeof selectedFolder.id === 'string' ? selectedFolder.id : String(selectedFolder.id || '');
+          
+          // 使用統一的批次處理 API
+          if (window.electronAPI?.batchAddGamesToFolder) {
+            // 創建可序列化的選項物件（不包含函數）
+            const batchOptions = {
+              threshold: 30,
+              chunkSize: 50,
+              quiet: true
+            };
+            
+            // 單獨處理進度回調，避免序列化函數
+            const progressHandler = (progress) => {
+              const processed = typeof progress?.processed === 'number' ? progress.processed : 0;
+              const total = typeof progress?.total === 'number' ? progress.total : 0;
+              setBulkStatus(prev => ({ 
+                ...prev, 
+                done: processed,
+                total: total 
+              }));
+            };
+            
+            await window.electronAPI.batchAddGamesToFolder(cleanFilePaths, folderIdStr, batchOptions);
+          } else {
+            // 回退到舊的批次邏輯
+            if (window.electronAPI?.addGamesToFolderBatch) {
+              await window.electronAPI.addGamesToFolderBatch(cleanFilePaths, folderIdStr, { quiet: true });
+            } else {
+              await Promise.allSettled(cleanFilePaths.map(fp => window.electronAPI.addGameToFolder(fp, folderIdStr)));
+            }
+          }
+          console.log('多個遊戲已加入資料夾（批次）');
         } else if (game) {
-          const result = await window.electronAPI.addGameToFolder(game.filePath, selectedFolder.id);
+          // 確保只傳遞可序列化的參數
+          const gameFilePath = typeof game.filePath === 'string' ? game.filePath : String(game.filePath || '');
+          const folderIdStr = typeof selectedFolder.id === 'string' ? selectedFolder.id : String(selectedFolder.id || '');
+          
+          const result = await window.electronAPI.addGameToFolder(gameFilePath, folderIdStr);
           if (result && result.success === false) {
-            setInfoDialog({ isOpen: true, title: '加入資料夾', message: '加入資料夾失敗' });
+            setInfoDialog({ isOpen: true, title: t('desktopManager.addToFolder.title'), message: t('desktopManager.info.addToFolder.fail') });
           } else {
             console.log('遊戲已加入資料夾');
           }
         }
-        // 刷新數據（微延遲 + 受控刷新）：避免『先消失再重排』
+        // 刷新資料（微延遲 + 受控刷新）：避免『先消失再重排』
         await new Promise((r) => setTimeout(r, 80));
         // 解除抑制並執行一次受控刷新
         suppressUntilRef.current = 0;
@@ -408,13 +432,24 @@ const DesktopManager = ({
       }
     } catch (error) {
       console.error('加入資料夾失敗:', error);
-      setInfoDialog({ isOpen: true, title: '加入資料夾', message: '加入資料夾失敗: ' + error.message });
+      // 確保錯誤訊息可序列化
+      const errorMessage = typeof error?.message === 'string' ? error.message : String(error || t('desktopManager.common.unknownError'));
+      const dialogTitle = String(t('desktopManager.addToFolder.title') || '加入資料夾');
+      const dialogMessage = String(t('desktopManager.info.addToFolder.failWithReason', { reason: errorMessage }) || `加入資料夾失敗: ${errorMessage}`);
+      
+      setInfoDialog({ 
+        isOpen: true, 
+        title: dialogTitle, 
+        message: dialogMessage 
+      });
     }
     finally {
       if (Array.isArray(list) && list.length > 0) {
         setBulkMutating(false);
-        // 關閉進度卡片
-        setBulkStatus(prev => ({ ...prev, active: false }));
+        // 延遲關閉進度卡片，確保用戶看到完成狀態
+        setTimeout(() => {
+          setBulkStatus(prev => ({ ...prev, active: false }));
+        }, 1000);
       }
       // 若是單項流程，確保對話框關閉
       try { setFolderSelectDialog({ isOpen: false, game: null, selectedFilePaths: null }); } catch (_) {}
@@ -453,16 +488,16 @@ const DesktopManager = ({
         const result = await window.electronAPI.removeGameFromFolder(game.filePath, folderId);
         if (result.success) {
           console.log('遊戲已從資料夾移除');
-          // 刷新桌面數據，這會同步所有窗口
+          // 刷新桌面資料，這會同步所有窗口
           await loadDesktopItems();
           await loadFolders();
         } else {
-          setInfoDialog({ isOpen: true, title: '移除遊戲', message: '移除遊戲失敗' });
+          setInfoDialog({ isOpen: true, title: t('desktopManager.removeFromFolder.title'), message: t('desktopManager.info.removeFromFolder.fail') });
         }
       }
     } catch (error) {
       console.error('移除遊戲失敗:', error);
-      setInfoDialog({ isOpen: true, title: '移除遊戲', message: '移除遊戲失敗: ' + error.message });
+      setInfoDialog({ isOpen: true, title: t('desktopManager.removeFromFolder.title'), message: t('desktopManager.info.removeFromFolder.failWithReason', { reason: (error?.message || t('desktopManager.common.unknownError')) }) });
     }
   }, [loadDesktopItems, loadFolders]);
 
@@ -473,16 +508,16 @@ const DesktopManager = ({
         const result = await window.electronAPI.moveGameBetweenFolders(game.filePath, fromFolderId, toFolderId);
         if (result.success) {
           console.log('遊戲已在資料夾間移動');
-          // 刷新所有數據
+          // 刷新所有資料
           await loadDesktopItems();
           await loadFolders();
         } else {
-          setInfoDialog({ isOpen: true, title: '移動遊戲', message: '移動遊戲失敗' });
+          setInfoDialog({ isOpen: true, title: t('desktopManager.moveGame.title'), message: t('desktopManager.info.moveGame.fail') });
         }
       }
     } catch (error) {
       console.error('移動遊戲失敗:', error);
-      setInfoDialog({ isOpen: true, title: '移動遊戲', message: '移動遊戲失敗: ' + error.message });
+      setInfoDialog({ isOpen: true, title: t('desktopManager.moveGame.title'), message: t('desktopManager.info.moveGame.failWithReason', { reason: (error?.message || t('desktopManager.common.unknownError')) }) });
     }
   }, [loadDesktopItems, loadFolders]);
 
@@ -492,7 +527,7 @@ const DesktopManager = ({
     if (searchQuery && searchQuery.trim()) {
       return games;
     }
-    // 非搜索狀態：如果有桌面數據，使用桌面數據中的遊戲
+    // 非搜索狀態：如果有桌面資料，使用桌面資料中的遊戲
     if (desktopItems.length > 0) {
       return desktopItems.filter(item => item.type === 'game');
     }
@@ -506,7 +541,7 @@ const DesktopManager = ({
     if (searchQuery && searchQuery.trim()) {
       return [];
     }
-    // 非搜索狀態：如果有桌面數據，使用桌面數據中的資料夾
+    // 非搜索狀態：如果有桌面資料，使用桌面資料中的資料夾
     if (desktopItems.length > 0) {
       return desktopItems.filter(item => item.type === 'folder');
     }
@@ -516,7 +551,7 @@ const DesktopManager = ({
 
   // 抽屜使用的資料夾列表（不受搜尋影響）
   const getDrawerFolders = useCallback(() => {
-    // 若有桌面數據，仍以桌面數據中的資料夾為準，確保順序/來源一致
+    // 若有桌面資料，仍以桌面資料中的資料夾為準，確保順序/來源一致
     if (desktopItems.length > 0) {
       return desktopItems.filter(item => item.type === 'folder');
     }
@@ -525,16 +560,16 @@ const DesktopManager = ({
 
 // 手動刷新功能
 const handleRefresh = useCallback(async () => {
-  console.log('手動刷新數據');
+  console.log('手動刷新資料');
   await loadFolders();
   await loadDesktopItems();
 }, [loadFolders, loadDesktopItems]);
 
 return (
   <DragProvider>
-    <div className={`desktop-manager${drawerOpen ? ' drawer-open' : ''}`} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* 相對定位的包裹層：抽屜與內容區同級 */}
-      <div ref={contentWrapRef} className="content-wrap" style={{ position: 'relative', flex: 1, minHeight: 0, overflow: 'visible' }} onDoubleClick={handleMainDoubleClick}>
+    <div className={`desktop-manager`} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* 相對定位的包裹層：抽屜與內容區同級（抽屜固定顯示） */}
+      <div ref={contentWrapRef} className="content-wrap" style={{ position: 'relative', flex: 1, minHeight: 0, overflow: 'visible' }}>
         {/* 內容區域（抽屜改為懸浮覆蓋，不再推擠內容寬度） */}
         <div className="content-area" style={{ height: '100%' }}>
           <div className="content-area-inner" style={{ paddingLeft: 0, height: '100%' }}>
@@ -557,9 +592,8 @@ return (
             />
           </div>
         </div>
-        {/* 左側資料夾抽屜（手動開關） - 與 content-area 同級 */}
+        {/* 左側資料夾抽屜 - 與 content-area 同級 */}
         <FolderDrawer
-          open={drawerOpen}
           width={drawerWidth}
           topOffset={drawerTopOffset}
           topViewport={drawerTopViewport}
@@ -568,11 +602,6 @@ return (
           onCreateFolder={handleOpenCreateFolderDialog}
           onEditFolder={handleEditFolder}
           onDeleteFolder={handleDeleteFolder}
-          onToggle={toggleDrawer}
-          handleWidth={HANDLE_WIDTH}
-          handleHeight={HANDLE_HEIGHT}
-          handleRadius={HANDLE_RADIUS}
-          handleOverlap={HANDLE_OVERLAP}
         />
       </div>
       </div>
@@ -591,12 +620,12 @@ return (
         folders={folders}
         onClose={handleCloseFolderSelectDialog}
         onSelect={handleFolderSelect}
-        title="選擇資料夾"
+        title={t('desktopManager.folderSelect.title')}
         message={(() => {
           const count = Array.isArray(folderSelectDialog.selectedFilePaths) ? folderSelectDialog.selectedFilePaths.length : 0;
-          if (count > 1) return `已選取 ${count} 個遊戲，請選擇要加入的資料夾：`;
-          const name = folderSelectDialog.game?.gameName || folderSelectDialog.game?.name || '遊戲';
-          return `請選擇要加入「${name}」的資料夾：`;
+          if (count > 1) return t('desktopManager.folderSelect.multi', { count });
+          const name = folderSelectDialog.game?.gameName || folderSelectDialog.game?.name || t('desktopManager.common.game');
+          return t('desktopManager.folderSelect.single', { name });
         })()}
       />
       
@@ -613,7 +642,7 @@ return (
       <ModalWithFooter
         isOpen={noFolderGuideOpen}
         onClose={() => setNoFolderGuideOpen(false)}
-        title="加入資料夾"
+        title={t('desktopManager.noFolder.title')}
         size="sm"
         requestCloseRef={noFolderGuideCloseRef}
         footer={
@@ -626,23 +655,23 @@ return (
                 if (noFolderGuideCloseRef.current) noFolderGuideCloseRef.current();
               }}
             >
-              新建資料夾
+              {t('desktopManager.noFolder.createButton')}
             </button>
           </div>
         }
       >
         <div>
-          <p>現無資料夾，請新建。</p>
+          <p>{t('desktopManager.noFolder.message')}</p>
         </div>
       </ModalWithFooter>
 
       {/* 刪除資料夾確認對話框（主題樣式） */}
       <ConfirmDialog
         isOpen={confirmDelete.isOpen}
-        title="刪除資料夾"
-        message={`確定要刪除資料夾『${confirmDelete.folder?.name || ''}』嗎？\n資料夾刪除後，其中的遊戲將釋放到桌面。`}
-        confirmText="刪除"
-        cancelText="取消"
+        title={t('desktopManager.confirmDelete.title')}
+        message={t('desktopManager.confirmDelete.message', { name: confirmDelete.folder?.name || '' })}
+        confirmText={t('desktopManager.confirmDelete.confirm')}
+        cancelText={t('desktopManager.confirmDelete.cancel')}
         variant="danger"
         onClose={closeConfirmDelete}
         onCancel={closeConfirmDelete}
@@ -656,16 +685,16 @@ return (
               if (window.electronAPI?.deleteFolder && folder) {
                 const result = await window.electronAPI.deleteFolder(folder.id, true);
                 if (!result.success) {
-                  setInfoDialog({ isOpen: true, title: '刪除資料夾', message: '刪除資料夾失敗' });
+                  setInfoDialog({ isOpen: true, title: t('desktopManager.confirmDelete.title'), message: t('desktopManager.info.deleteFolder.fail') });
                 }
                 await loadFolders();
                 await loadDesktopItems();
               } else {
-                setInfoDialog({ isOpen: true, title: '刪除資料夾', message: 'deleteFolder API 不可用' });
+                setInfoDialog({ isOpen: true, title: t('desktopManager.confirmDelete.title'), message: t('desktopManager.info.deleteFolder.apiUnavailable') });
               }
             } catch (error) {
               console.error('刪除資料夾失敗:', error);
-              setInfoDialog({ isOpen: true, title: '刪除資料夾', message: '刪除資料夾失敗: ' + (error?.message || '未知錯誤') });
+              setInfoDialog({ isOpen: true, title: t('desktopManager.confirmDelete.title'), message: t('desktopManager.info.deleteFolder.failWithReason', { reason: (error?.message || t('desktopManager.common.unknownError')) }) });
             }
           }, 30);
         }}
@@ -706,7 +735,7 @@ return (
                 width: 22, height: 22, border: '3px solid var(--overlay-on-light-20)',
                 borderTopColor: '#6aa8ff', borderRadius: '50%', animation: 'spin 0.9s linear infinite'
               }} />
-              <div style={{ fontSize: 16, fontWeight: 600 }}>{bulkStatus.label || '正在處理…'}</div>
+              <div style={{ fontSize: 16, fontWeight: 600 }}>{bulkStatus.label || t('desktopManager.bulk.processing')}</div>
             </div>
             <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 10 }}>
               {bulkStatus.done} / {bulkStatus.total}

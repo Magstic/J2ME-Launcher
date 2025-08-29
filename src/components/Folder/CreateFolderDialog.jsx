@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import './Folder.css';
 import '../DirectoryManager.css';
 import { ModalWithFooter } from '@ui';
+import { useTranslation } from '@hooks/useTranslation';
 
 /**
  * 創建資料夾對話框組件
@@ -13,6 +14,7 @@ const CreateFolderDialog = ({
   initialData = null,
   mode = 'create' // 'create' | 'edit'
 }) => {
+  const { t } = useTranslation();
   const requestCloseRef = useRef(null);
   const nameInputRef = useRef(null);
   const [formData, setFormData] = useState({
@@ -84,13 +86,9 @@ const CreateFolderDialog = ({
     const newErrors = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = '資料夾名稱不能為空';
+      newErrors.name = t('folder.nameError');
     } else if (formData.name.trim().length > 50) {
-      newErrors.name = '資料夾名稱不能超過50個字符';
-    }
-
-    if (formData.description.length > 200) {
-      newErrors.description = '描述不能超過200個字符';
+      newErrors.name = t('folder.nameError');
     }
 
     setErrors(newErrors);
@@ -124,7 +122,7 @@ const CreateFolderDialog = ({
       if (requestCloseRef.current) requestCloseRef.current();
     } catch (error) {
       console.error('創建/編輯資料夾失敗:', error);
-      setErrors({ submit: '操作失敗，請重試' });
+      setErrors({ submit: 'Please try again...' });
     } finally {
       setIsSubmitting(false);
     }
@@ -151,7 +149,7 @@ const CreateFolderDialog = ({
     <ModalWithFooter
       isOpen={isOpen}
       onClose={onClose}
-      title={mode === 'create' ? '創建資料夾' : '編輯資料夾'}
+      title={mode === 'create' ? t('folder.create') : t('folder.edit')}
       size="md"
       requestCloseRef={requestCloseRef}
       bodyClassName=""
@@ -162,14 +160,14 @@ const CreateFolderDialog = ({
             onClick={handleCancel}
             disabled={isSubmitting}
           >
-            取消
+            {t('app.cancel')}
           </button>
           <button 
             className="btn btn-primary"
             onClick={handleConfirm}
             disabled={isSubmitting}
           >
-            {isSubmitting ? '處理中...' : (mode === 'create' ? '創建' : '保存')}
+            {isSubmitting ? t('app.loading') : (mode === 'create' ? t('app.create') : t('app.save'))}
           </button>
         </div>
       }
@@ -178,7 +176,7 @@ const CreateFolderDialog = ({
           {/* 兩欄佈局：左側預覽（方形，跨兩行）；右側名稱與描述輸入框 */}
           <div className="create-folder-two-col">
             {/* 左：預覽（跨兩行） */}
-            <div className="left-preview" aria-label="預覽">
+            <div className="left-preview">
               <div className="folder-preview compact">
                 <div 
                   className="preview-folder-card"
@@ -191,7 +189,7 @@ const CreateFolderDialog = ({
                     </div>
                   </div>
                   <div className="folder-name">
-                    {formData.name || '新資料夾'}
+                    {formData.name || t('folder.newFolder')}
                   </div>
                 </div>
               </div>
@@ -200,14 +198,14 @@ const CreateFolderDialog = ({
             {/* 右上：名稱 */}
             <div className="right-fields">
               <div className="form-group">
-                <label htmlFor="folder-name">資料夾名稱 *</label>
+                <label htmlFor="folder-name">{t('folder.name')} *</label>
                 <div className="input-with-overlay">
                   <input
                     id="folder-name"
                     type="text"
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
-                    placeholder={errors.name && !formData.name ? errors.name : '輸入資料夾名稱'}
+                    placeholder={errors.name && !formData.name ? errors.name : t('folder.nameHint')}
                     maxLength={20}
                     autoFocus
                     ref={nameInputRef}
@@ -223,12 +221,12 @@ const CreateFolderDialog = ({
 
               {/* 右下：描述 */}
               <div className="form-group form-group--description">
-                <label htmlFor="folder-description">描述</label>
+                <label htmlFor="folder-description">{t('folder.description')}</label>
                 <textarea
                   id="folder-description"
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
-                  placeholder="輸入資料夾描述（可選）"
+                  placeholder={t('folder.descHint')}
                   maxLength={200}
                   rows={3}
                   className={errors.description ? 'error' : ''}
@@ -240,7 +238,7 @@ const CreateFolderDialog = ({
 
           {/* 圖標選擇 */}
           <div className="form-group">
-            <label>圖標</label>
+            <label>{t('folder.icon')}</label>
             <div className="icon-selector">
               {iconOptions.map(icon => (
                 <button
@@ -257,7 +255,7 @@ const CreateFolderDialog = ({
 
           {/* 顏色選擇 */}
           <div className="form-group">
-            <label>顏色</label>
+            <label>{t('folder.color')}</label>
             <div className="color-selector">
               {colorOptions.map(color => (
                 <button
@@ -266,13 +264,10 @@ const CreateFolderDialog = ({
                   className={`color-option ${formData.color === color ? 'selected' : ''}`}
                   style={{ backgroundColor: color }}
                   onClick={() => handleInputChange('color', color)}
-                  aria-label={`選擇顏色 ${color}`}
                 />
               ))}
             </div>
           </div>
-
-          {/* 預覽已移至頂部 */}
 
           {errors.submit && (
             <div className="error-message">{errors.submit}</div>

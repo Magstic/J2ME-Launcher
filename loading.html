@@ -18,103 +18,111 @@ body{margin:0;background:var(--bg-primary);color:var(--text);}
   background:#0f1115;
   backdrop-filter:none;
   opacity:0;
-  animation:overlay-in 300ms ease-out forwards
+  animation:overlay-in 300ms ease-out forwards;
+  padding: clamp(24px, 6vw, 48px); /* 增加整體內間距 */
 }
 .splash-overlay.blur-on{background:transparent;backdrop-filter:blur(8px)}
 @keyframes overlay-in{from{opacity:0}to{opacity:1}}
 
 .splash-content{
-  width:min(740px,90vw);
+  width:min(680px, 100%); /* 減少最大寬度，讓內容更緊湊 */
   height:auto;
   display:flex;
   flex-direction:column;
-  align-items:flex-start;
-  gap:clamp(32px,8vh,60px);
+  align-items:stretch; /* 改為 stretch 讓子元素佔滿寬度 */
+  gap:clamp(40px, 8vh, 64px); /* 增加垂直間距 */
   opacity:0;
   transform:translateY(20px);
   animation:content-in 400ms ease-out 150ms forwards;
   position:relative;
-  padding:clamp(14px,4vw,28px);
-  text-align:left
+  padding:clamp(28px, 5vw, 40px); /* 增加內部填充 */
+  text-align:left;
+  border-radius: 20px;
+  backdrop-filter: blur(20px);
 }
 @keyframes content-in{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 
 .brand-section{
   display:flex;
   align-items:center;
-  gap:clamp(16px,4vw,24px);
+  gap:clamp(20px, 5vw, 32px); /* 增加 logo 和標題間距 */
   position:relative;
   z-index:2;
-  transform:translateX(-8px) translateY(4px)
+  transform:translateX(-4px) translateY(2px); /* 減少位移 */
 }
 
 .splash-logo{
-  width:clamp(90px,16vw,120px);
-  height:clamp(90px,16vw,120px);
-  border-radius:24px;
-  background:linear-gradient(135deg,rgba(76,194,255,0.15),rgba(125,92,255,0.12));
+  width:clamp(100px, 18vw, 140px); /* 稍微增大 logo */
+  height:clamp(100px, 18vw, 140px);
+  border-radius:28px; /* 增加圓角 */
+  background:linear-gradient(135deg,rgba(76,194,255,0.18),rgba(125,92,255,0.15)); /* 增強透明度 */
   display:flex;
   align-items:center;
   justify-content:center;
-  box-shadow:0 20px 60px rgba(0,0,0,0.4),inset 0 0 0 1px rgba(255,255,255,0.1);
-  backdrop-filter:blur(10px);
+  box-shadow:0 24px 80px rgba(0,0,0,0.5),inset 0 0 0 1px rgba(255,255,255,0.12); /* 增強陰影 */
+  backdrop-filter:blur(15px);
   overflow:hidden;
-  transform:rotate(-3deg) translateY(-2px)
+  transform:rotate(-4deg) translateY(-3px); /* 增加旋轉角度 */
+  flex-shrink: 0; /* 防止收縮 */
 }
 
 .splash-logo img{
-  width:68%;
-  height:68%;
+  width:65%;
+  height:65%;
   object-fit:contain;
   display:block;
-  filter:drop-shadow(0 1px 1px rgba(0,0,0,0.2))
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3))
 }
 
 .splash-titles{
   display:flex;
   flex-direction:column;
-  gap:8px;
-  transform:translateX(12px) translateY(6px)
+  gap:12px; /* 增加標題間距 */
+  transform:translateX(8px) translateY(4px);
+  flex-grow: 1; /* 讓標題區域佔據剩餘空間 */
 }
 
 .splash-title{
-  font-size:clamp(28px,6vw,42px);
+  font-size:clamp(32px, 7vw, 48px); /* 稍微增大標題 */
   font-weight:900;
-  letter-spacing:0.8px;
+  letter-spacing:1px; /* 增加字母間距 */
   line-height:1.1;
-  background:linear-gradient(120deg,#e6e8eb 0%,#4cc2ff 50%,#7d5cff 100%);
+  background:linear-gradient(120deg,#e6e8eb 0%,#4cc2ff 45%,#7d5cff 100%);
   -webkit-background-clip:text;
   -webkit-text-fill-color:transparent;
   background-clip:text;
   -webkit-font-smoothing:antialiased;
-  -moz-osx-font-smoothing:grayscale
+  -moz-osx-font-smoothing:grayscale;
+  text-shadow: 0 0 30px rgba(76,194,255,0.3); /* 添加發光效果 */
 }
 
 .splash-motto{
-  font-size:clamp(13px,2.8vw,16px);
-  color:color-mix(in srgb,var(--text-muted) 85%,transparent);
-  letter-spacing:0.4px;
+  font-size:clamp(14px, 3vw, 18px); /* 稍微增大副標題 */
+  color:color-mix(in srgb,var(--text-muted) 90%,transparent);
+  letter-spacing:0.6px;
   opacity:0.95;
-  transform:translateY(2px)
+  transform:translateY(1px);
+  font-weight: 500; /* 增加字重 */
 }
 
 .progress-section{
   width:100%;
   display:flex;
   flex-direction:column;
-  align-items:flex-start;
-  gap:16px;
-  transform:translateX(6px) translateY(-8px)
+  align-items:stretch; /* 改為 stretch */
+  gap:20px; /* 增加間距 */
+  transform:translateX(0) translateY(0); /* 移除偏移 */
+  padding: 0 8px; /* 添加左右內間距 */
 }
 
 .splash-progress{
   position:relative;
-  width:clamp(280px,100vw,580px);
-  height:5px;
-  border-radius: 50%;
-  background:rgba(255,255,255,0.06);
+  width:100%; /* 佔滿寬度 */
+  height:6px; /* 稍微增加高度 */
+  border-radius:3px;
+  background:rgba(255,255,255,0.08); /* 增強背景 */
   overflow:hidden;
-  box-shadow:inset 0 2px 4px rgba(0,0,0,0.3),0 4px 20px rgba(0,0,0,0.2)
+  box-shadow:inset 0 2px 6px rgba(0,0,0,0.4),0 6px 25px rgba(0,0,0,0.25); /* 增強陰影 */
 }
 
 .splash-progress::before{
@@ -124,33 +132,39 @@ body{margin:0;background:var(--bg-primary);color:var(--text);}
   top:0;
   bottom:0;
   width:30%;
-  border-radius:999px;
-  background:linear-gradient(90deg,transparent,rgba(76,194,255,0.8),transparent);
-  animation:progress-slide 3.8s ease-in-out infinite
+  border-radius:3px;
+  background:linear-gradient(90deg,transparent,rgba(76,194,255,0.9),rgba(125,92,255,0.7),transparent); /* 增強漸變 */
+  animation:progress-slide 3.5s ease-in-out infinite; /* 稍微加快動畫 */
+  box-shadow: 0 0 15px rgba(76,194,255,0.4); /* 添加發光 */
 }
-@keyframes progress-slide{0%{left:-35%}40%{left:35%}70%{left:75%}100%{left:105%}}
+@keyframes progress-slide{0%{left:-35%}45%{left:35%}75%{left:75%}100%{left:105%}}
 
 .meta-section{
   display:flex;
   flex-direction:column;
-  align-items:flex-end;       /* from flex-start -> flex-end */
-  gap:8px;
-  transform:translateX(0) translateY(4px); /* or remove this line */
-  /* If .meta-section sits in a flex parent, push the whole block to the right: */
+  align-items:flex-end;
+  gap:10px;
+  transform:translateX(0) translateY(0); /* 移除偏移 */
   margin-left:auto;
+  padding-right: 8px; /* 添加右內間距 */
 }
 
 .corner-meta{
   color:var(--text-muted);
-  font-size:clamp(11px,2.4vw,13px);
-  opacity:0.7;
-  letter-spacing:0.5px;
-  text-align:right;           /* ensure text is right-aligned */
+  font-size:clamp(12px, 2.6vw, 15px);
+  opacity:0.8;
+  letter-spacing:0.8px;
+  text-align:right;
+  font-weight: 800;
+  background: linear-gradient(90deg, rgb(0, 121, 207), rgb(255, 255, 255));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .floating-particles{
   position:absolute;
-  inset:0;
+  inset:-20px; /* 擴大粒子範圍 */
   pointer-events:none;
   z-index:1
 }
@@ -159,38 +173,83 @@ body{margin:0;background:var(--bg-primary);color:var(--text);}
   content:'';
   position:absolute;
   border-radius:50%;
-  background:radial-gradient(circle,rgba(76,194,255,0.3),transparent);
-  animation:float 6s ease-in-out infinite alternate
+  animation:float 7s ease-in-out infinite alternate; /* 稍微放慢 */
 }
 
 .floating-particles::before{
-  width:100px;
-  height:100px;
-  top:15%;
-  left:10%;
+  width:120px; /* 增大粒子 */
+  height:120px;
+  top:12%;
+  left:8%;
+  background:radial-gradient(circle,rgba(76,194,255,0.35),transparent);
   animation-delay:-2s;
-  filter:blur(18px)
+  filter:blur(20px)
 }
 
 .floating-particles::after{
-  width:70px;
-  height:70px;
-  bottom:25%;
-  right:15%;
-  background:radial-gradient(circle,rgba(125,92,255,0.25),transparent);
+  width:90px; /* 增大粒子 */
+  height:90px;
+  bottom:20%;
+  right:12%;
+  background:radial-gradient(circle,rgba(125,92,255,0.3),transparent);
   animation-delay:-4s;
-  filter:blur(12px)
+  filter:blur(15px)
 }
 
-@keyframes float{from{transform:translateY(0) scale(1)}to{transform:translateY(-16px) scale(1.08)}}
+/* 添加第三個粒子 */
+.floating-particles::before {
+  box-shadow: 
+    200px 150px 80px 20px rgba(125,92,255,0.15),
+    -150px 200px 60px 10px rgba(76,194,255,0.2);
+}
 
-@media (max-width:640px){
-  .splash-content{gap:clamp(24px,6vh,40px);padding:clamp(16px,4vw,32px)}
-  .brand-section{gap:12px;transform:translateX(-4px) translateY(2px)}
-  .splash-logo{transform:rotate(-2deg) translateY(-1px)}
-  .splash-titles{transform:translateX(8px) translateY(3px)}
-  .progress-section{transform:translateX(4px) translateY(-4px)}
-  .meta-section{transform:translateX(12px) translateY(2px)}
+@keyframes float{from{transform:translateY(0) scale(1) rotate(0deg)}to{transform:translateY(-20px) scale(1.1) rotate(5deg)}}
+
+@media (max-width:768px){
+  .splash-overlay { padding: clamp(16px, 4vw, 32px); }
+  .splash-content{
+    gap:clamp(32px, 6vh, 48px);
+    padding:clamp(20px, 4vw, 32px);
+  }
+  .brand-section{
+    gap:16px;
+    transform:translateX(-2px) translateY(1px)
+  }
+  .splash-logo{
+    transform:rotate(-3deg) translateY(-2px)
+  }
+  .splash-titles{
+    transform:translateX(6px) translateY(2px)
+  }
+  .progress-section{
+    padding: 0 4px;
+  }
+  .meta-section{
+    padding-right: 4px;
+  }
+}
+
+@media (max-width:480px){
+  .splash-content{
+    gap:clamp(24px, 5vh, 36px);
+    padding:clamp(16px, 3vw, 24px);
+  }
+  .brand-section{
+    flex-direction: column; /* 小屏幕垂直排列 */
+    text-align: center;
+    gap: 20px;
+  }
+  .splash-titles{
+    transform: none;
+    align-items: center;
+  }
+  .meta-section{
+    align-items: center;
+    margin-left: 0;
+  }
+  .corner-meta{
+    text-align: center;
+  }
 }
 
 html.hide .splash-overlay{opacity:0;transition:opacity 300ms ease-in}
@@ -198,6 +257,7 @@ html.hide .splash-overlay{opacity:0;transition:opacity 300ms ease-in}
 @media (prefers-reduced-motion:reduce){
   .splash-overlay,.splash-content{animation:none !important;opacity:1 !important;transform:none !important}
   .splash-logo,.splash-titles,.progress-section,.meta-section{transform:none !important}
+  .floating-particles::before,.floating-particles::after{animation:none !important}
 }
 </style>
 </head>
@@ -207,7 +267,7 @@ html.hide .splash-overlay{opacity:0;transition:opacity 300ms ease-in}
 <div class="splash-content" role="dialog" aria-modal="true">
 <div class="floating-particles" aria-hidden="true"></div>
 <div class="brand-section">
-<div class="splash-logo" aria-hidden="true"><img src="./src/assets/icons/icon.svg" alt="App Icon" /></div>
+<div class="splash-logo" aria-hidden="true"><img id="splash-icon" src="./public/icon.ico" alt="App Icon" /></div>
 <div class="splash-titles">
 <div class="splash-title">J2ME LAUNCHER</div>
 <div class="splash-motto">Ver. 1.0.0 Beta</div>
@@ -217,7 +277,6 @@ html.hide .splash-overlay{opacity:0;transition:opacity 300ms ease-in}
 <div class="splash-progress" aria-label="Loading"></div>
 </div>
 <div class="meta-section">
-<div class="corner-meta">歲月常伴，情懷如故。</div>
 <div class="corner-meta">Welcome to J2ME Launcher!</div>
 </div>
 </div>
@@ -230,6 +289,32 @@ requestAnimationFrame(()=>requestAnimationFrame(()=>{
 }));
 // 接收主進程訊號觸發淡出
 window.addEventListener('message',(e)=>{if(e.data==='fade-out')document.documentElement.classList.add('hide')});
+
+// 嘗試不同位置的圖示，以兼容開發與發佈包
+(function(){
+  try {
+    const img = document.getElementById('splash-icon');
+    if (!img) return;
+    const candidates = [
+      './public/icon.ico',            // dev: public folder
+      './icon.ico',                   // prod: root next to loading.html
+      '../icon.ico',                  // fallback one level up
+      './resources/icon.ico',         // packaged resources
+      './src/assets/icons/icon.svg'   // dev: raw svg in source
+    ];
+    let idx = 0;
+    const tryNext = () => {
+      if (idx >= candidates.length) return;
+      img.onerror = () => { idx++; tryNext(); };
+      img.src = candidates[idx];
+    };
+    // 若第一個路徑載入失敗，依序嘗試
+    img.addEventListener('error', () => {
+      idx = 1; // 已經嘗試了第 0 個
+      tryNext();
+    }, { once: true });
+  } catch(_) {}
+})();
 </script>
 </body>
 </html>

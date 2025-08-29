@@ -10,22 +10,22 @@ const BACKUP_SPEC = Object.freeze({
   groups: [
     {
       key: 'config',
-      label: '全局配置（config.yml）',
+      label: 'config.yml',
       items: ['j2me-launcher/config.yml']
     },
     {
       key: 'database',
-      label: '資料庫（data.db）',
+      label: 'data.db',
       items: ['j2me-launcher/data.db']
     },
     {
       key: 'rms',
-      label: 'RMS 存檔',
+      label: 'RMS',
       items: [] // 由主進程根據 config.yml 動態解析
     },
     {
       key: 'emuConfig',
-      label: '模擬器配置檔',
+      label: 'Emulator Config',
       items: [] // 由主進程根據 config.yml 動態解析
     }
   ]

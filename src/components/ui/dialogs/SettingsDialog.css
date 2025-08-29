@@ -1,0 +1,63 @@
+/* Settings Dialog - Theme & Language Card Styles */
+
+.theme-card,
+.language-card {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.theme-card:hover,
+.language-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+  border-color: var(--accent-color-light) !important;
+}
+
+/* Selected state enhancement */
+.theme-card[data-selected="true"],
+.language-card[data-selected="true"],
+.theme-card.selected,
+.language-card.selected {
+  background: linear-gradient(135deg, var(--accent-color-alpha) 0%, transparent 100%);
+  border-color: var(--accent-color) !important;
+  box-shadow: 0 0 0 2px var(--accent-color-alpha) !important;
+}
+
+.theme-card[data-selected="true"]:hover,
+.language-card[data-selected="true"]:hover,
+.theme-card.selected:hover,
+.language-card.selected:hover {
+  background: linear-gradient(135deg, var(--accent-color-alpha) 0%, var(--accent-color-alpha-light) 100%);
+}
+
+/* Checkmark */
+.theme-card .checkmark,
+.language-card .checkmark {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+  background: var(--accent-color);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  transition: transform 0.25s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.2s ease;
+  transform: scale(0);
+  opacity: 0;
+  z-index: 1;
+}
+
+.theme-card[data-selected="true"] .checkmark,
+.language-card[data-selected="true"] .checkmark,
+.theme-card.selected .checkmark,
+.language-card.selected .checkmark {
+  transform: scale(1);
+  opacity: 1;
+}

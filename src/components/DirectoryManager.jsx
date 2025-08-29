@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './DirectoryManager.css';
 import { ModalWithFooter } from '@ui';
+import { useTranslation } from '@hooks/useTranslation';
 
 function DirectoryManager({ isOpen, onClose, onDirectoriesChanged }) {
+  const { t } = useTranslation();
+
   const [directories, setDirectories] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [scanProgress, setScanProgress] = useState(null);
@@ -94,15 +97,15 @@ function DirectoryManager({ isOpen, onClose, onDirectoriesChanged }) {
   // 執行掃描
   const handleScan = async (forceFullScan = false) => {
     setIsLoading(true);
-    setScanProgress({ message: '正在掃描...', details: '' });
+    setScanProgress({ message: t('directoryManager.state'), details: '' });
     
     try {
       const result = await window.electronAPI.scanDirectories(forceFullScan);
       
       if (result.success) {
         setScanProgress({
-          message: '掃描完成！',
-          details: `找到 ${result.scanResult.summary.totalNewGames} 個新遊戲`
+          message: t('directoryManager.over'),
+          details: t('directoryManager.gain', { count: result.scanResult.summary.totalNewGames })
         });
         
         // 重新載入目錄列表以顯示更新的掃描時間
@@ -115,14 +118,14 @@ function DirectoryManager({ isOpen, onClose, onDirectoriesChanged }) {
         setTimeout(() => setScanProgress(null), 3000);
       } else {
         setScanProgress({
-          message: '掃描失敗',
-          details: result.error || '未知錯誤'
+          message: t('directoryManager.error'),
+          details: result.error || t('directoryManager.log')
         });
       }
     } catch (error) {
       console.error('掃描失敗:', error);
       setScanProgress({
-        message: '掃描失敗',
+        message: t('directoryManager.error'),
         details: error.message
       });
     } finally {
@@ -138,22 +141,22 @@ function DirectoryManager({ isOpen, onClose, onDirectoriesChanged }) {
     <ModalWithFooter
       isOpen={isOpen}
       onClose={onClose}
-      title="ROM 資料夾管理"
+      title={t('directoryManager.title')}
       size="md"
+      className="directory-manager-specific"
       requestCloseRef={requestCloseRef}
       footer={
         <>
           <div className="directory-stats">
             {directories.length > 0 && (
               <span>
-                共 {directories.length} 個資料夾，
-                {directories.filter(d => d.enabled).length} 個已啟用
+                {t('directoryManager.stats', { count: directories.length, enabledCount: directories.filter(d => d.enabled).length })}
               </span>
             )}
           </div>
           <div className="flex gap-8 push-right">
             <button className="btn btn-secondary" onClick={() => requestCloseRef.current && requestCloseRef.current()}>
-              關閉
+              {t('app.close')}
             </button>
           </div>
         </>
@@ -170,7 +173,7 @@ function DirectoryManager({ isOpen, onClose, onDirectoriesChanged }) {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
               </svg>
-              添加資料夾
+              {t('directoryManager.add')}
             </button>
             
             <button 
@@ -181,7 +184,7 @@ function DirectoryManager({ isOpen, onClose, onDirectoriesChanged }) {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
               </svg>
-              增量掃描
+              {t('directoryManager.scan')}
             </button>
             
             <button 
@@ -192,7 +195,7 @@ function DirectoryManager({ isOpen, onClose, onDirectoriesChanged }) {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
               </svg>
-              全量掃描
+              {t('directoryManager.fullScan')}
             </button>
           </div>
 
@@ -211,8 +214,8 @@ function DirectoryManager({ isOpen, onClose, onDirectoriesChanged }) {
             {directories.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-icon">📁</div>
-                <p>尚未配置任何 ROM 資料夾</p>
-                <p className="empty-hint">點擊「添加資料夾」開始配置</p>
+                <p>{t('directoryManager.empty')}</p>
+                <p className="empty-hint">{t('directoryManager.emptyHint')}</p>
               </div>
             ) : (
               directories.map((directory, index) => (
@@ -224,10 +227,10 @@ function DirectoryManager({ isOpen, onClose, onDirectoriesChanged }) {
                     <div className="directory-meta">
                       {directory.lastScanTime ? (
                         <span className="last-scan">
-                          上次掃描: {new Date(directory.lastScanTime).toLocaleString()}
+                          {t('directoryManager.lastScan', { date: new Date(directory.lastScanTime).toLocaleString() })}
                         </span>
                       ) : (
-                        <span className="never-scanned">尚未掃描</span>
+                        <span className="never-scanned">{t('directoryManager.neverScanned')}</span>
                       )}
                     </div>
                   </div>
@@ -263,7 +266,7 @@ function DirectoryManager({ isOpen, onClose, onDirectoriesChanged }) {
     <ModalWithFooter
       isOpen={confirmRemove.isOpen}
       onClose={() => setConfirmRemove({ isOpen: false, directoryPath: null })}
-      title="移除資料夾"
+      title={t('directoryManager.confirmRemove.title')}
       size="sm"
       requestCloseRef={confirmRemoveCloseRef}
       footer={
@@ -274,24 +277,24 @@ function DirectoryManager({ isOpen, onClose, onDirectoriesChanged }) {
               if (confirmRemoveCloseRef.current) confirmRemoveCloseRef.current();
             }}
           >
-            取消
+            {t('app.cancel')}
           </button>
           <button
             className="btn btn-danger"
             onClick={performRemoveDirectory}
           >
-            刪除
+            {t('app.delete')}
           </button>
         </div>
       }
     >
       <div>
-        <p>確定要移除以下資料夾嗎？</p>
+        <p>{t('directoryManager.confirmRemove.message1')}</p>
         {confirmRemove.directoryPath && (
           <p style={{ wordBreak: 'break-all' }}>{confirmRemove.directoryPath}</p>
         )}
         <br />
-        <p>這將在 J2ME Launcher 中移除該資料夾下的所有遊戲。</p>
+        <p>{t('directoryManager.confirmRemove.message2')}</p>
       </div>
     </ModalWithFooter>
     </>

@@ -40,6 +40,14 @@ function getDB() {
       `);
     }
   } catch (_) {}
+  
+  // Initialize SQL cache
+  try {
+    const { getSqlCache } = require('./utils/sql-cache');
+    const sqlCache = getSqlCache();
+    sqlCache.init(db);
+  } catch (_) {}
+  
   return db;
 }
 
@@ -79,7 +87,9 @@ function initSchema() {
       iconPath TEXT,
       mtimeMs INTEGER,
       size INTEGER,
-      manifest TEXT
+      manifest TEXT,
+      customName TEXT,
+      customVendor TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_games_name ON games(gameName);
     CREATE INDEX IF NOT EXISTS idx_games_mtime ON games(mtimeMs);
@@ -132,6 +142,11 @@ function initSchema() {
     -- Helpful indexes for frequent lookups
     CREATE INDEX IF NOT EXISTS idx_folder_games_folder ON folder_games(folderId);
     CREATE INDEX IF NOT EXISTS idx_folder_games_file ON folder_games(filePath);
+    -- 複合索引：批次操作與查詢優化
+    CREATE INDEX IF NOT EXISTS idx_folder_games_composite ON folder_games(folderId, filePath);
+    CREATE INDEX IF NOT EXISTS idx_games_filepath_name ON games(filePath, gameName);
+    -- 關鍵性能優化：為 NOT EXISTS 查詢建立 COLLATE NOCASE 索引
+    CREATE INDEX IF NOT EXISTS idx_folder_games_filepath_nocase ON folder_games(filePath COLLATE NOCASE);
 
     CREATE TABLE IF NOT EXISTS folder_metadata (
       folderId TEXT PRIMARY KEY,

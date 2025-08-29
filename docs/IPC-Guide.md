@@ -1,16 +1,29 @@
-# IPC 與 Preload API 指南（code-derived）
+# IPC 與 Preload API 指南
 
-本文件基於 `src/main/preload.js` 之實際程式碼整理，列出 renderer 可用的 IPC 介面與事件。所有方法皆經由 `contextBridge.exposeInMainWorld('electronAPI', …)` 暴露於 `window.electronAPI`。
+本文件提供 J2ME Launcher 中主進程與渲染進程之間的 IPC 通訊指南，包含序列化安全、錯誤處理和性能優化的最佳實踐。
 
-- 檔案來源：`src/main/preload.js`
-- 使用樣例：
-  ```js
-  const games = await window.electronAPI.getInitialGames();
-  const off = window.electronAPI.onGamesUpdated((list) => console.log(list));
-  off(); // 解除監聽
-  ```
+## 概述
 
-## 分組 API
+### 架構設計
+
+J2ME Launcher 使用 Electron 的 `contextBridge` 安全機制，所有 IPC API 都透過 `window.electronAPI` 暴露給渲染進程。
+
+### 序列化安全
+
+所有 IPC 傳輸的資料必須可序列化，以避免 "An object could not be cloned" 錯誤：
+
+```javascript
+// ✅ 安全的 IPC 調用
+const result = await window.electronAPI.addGameToFolder(
+  String(gameFilePath), 
+  String(folderId)
+);
+
+// ❌ 不安全：傳遞原始物件
+const result = await window.electronAPI.addGameToFolder(gameObject, folderObject);
+```
+
+## API 分組與功能
 
 - __窗口控制__
   - `minimizeWindow()`
@@ -122,7 +135,80 @@
   - `createShortcut(payload)`
   - `onShortcutLaunch(callback)` → channel: `'shortcut-launch'`
 
+## 序列化安全最佳實踐
+
+### 核心原則
+
+1. **所有參數必須可序列化**
+2. **使用字串轉換確保安全**
+3. **避免傳遞函數或循環引用**
+4. **實施錯誤處理和重試機制**
+
+### 安全的 IPC 調用模式
+
+```javascript
+// ✅ 正確的方式
+const safeIpcCall = async (operation, retries = 3) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (error.message.includes('could not be cloned')) {
+        console.error('序列化錯誤:', error.message);
+        throw new Error('資料序列化失敗，請檢查參數格式');
+      }
+      if (i === retries - 1) throw error;
+      await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, i)));
+    }
+  }
+};
+
+// 使用範例
+const addGameSafely = async (gameFilePath, folderId) => {
+  return safeIpcCall(async () => {
+    return await window.electronAPI.addGameToFolder(
+      String(gameFilePath),
+      String(folderId)
+    );
+  });
+};
+```
+
+### 事件監聽管理
+
+```javascript
+// ✅ 正確的事件監聽管理
+class EventManager {
+  constructor() {
+    this.unsubscribers = new Map();
+  }
+  
+  subscribe(eventName, callback) {
+    const unsubscribe = window.electronAPI[`on${eventName}`](callback);
+    this.unsubscribers.set(eventName, unsubscribe);
+    return unsubscribe;
+  }
+  
+  unsubscribe(eventName) {
+    const unsubscribe = this.unsubscribers.get(eventName);
+    if (unsubscribe) {
+      unsubscribe();
+      this.unsubscribers.delete(eventName);
+    }
+  }
+  
+  cleanup() {
+    this.unsubscribers.forEach(unsubscribe => unsubscribe());
+    this.unsubscribers.clear();
+  }
+}
+```
+
 ## 注意事項
-- __退訂（unsubscribe）__: 帶有 `on*` 的監聽方法多數回傳解除監聽函式，或可用 `removeAllListeners(channel)`。
-- __命名即通道__: IPC 通道名以 `invoke/send/on` 中填入之字串為準（已於各條目標註）。
-- 本文件僅摘錄 `preload.js` 暴露之 API；對應的主進程 handler 與具體資料結構請參見 `src/main/main.js` 與相關 `src/main/ipc/*`、`src/main/sql/*`。
+
+- **退訂管理**: 所有 `on*` 方法都會返回 unsubscribe 函數，必須適時調用以避免記憶體洩漏
+- **通道命名**: IPC 通道名與 API 方法名一一對應
+- **錯誤處理**: 所有 IPC 調用都應該包裝在 try-catch 中
+- **性能考量**: 使用批量 API 處理大量資料，避免頻繁的單一調用
+
+更多詳細的實作資訊請參考 `src/main/main.js` 和 `src/main/ipc/*` 目錄下的相關檔案。

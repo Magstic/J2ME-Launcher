@@ -16,6 +16,8 @@ import React from 'react';
  * @param {(e: MouseEvent)=>boolean=} options.isBlankArea - 判斷是否點擊空白（預設: 無 .game-card/.folder-card/.context-menu）
  * @param {string=} options.hitSelector - 命中測試的選擇器（預設: '.game-card'）
  * @param {number=} options.fadeDuration - 淡出時長（預設 180ms）
+ * @param {Array=} options.gamesList - 遊戲列表，用於緩存失效檢測
+ * @param {boolean=} options.enableCachePersistence - 啟用緩存持久化優化（預設: true）
  */
 export default function useSelectionBox({
   rootRef,
@@ -25,6 +27,8 @@ export default function useSelectionBox({
   isBlankArea,
   hitSelector = '.game-card',
   fadeDuration = 180,
+  gamesList = [],
+  enableCachePersistence = true,
 } = {}) {
   const [internalSelected, setInternalSelected] = React.useState(() => new Set());
   const selected = controlled ? (selectedSet || new Set()) : internalSelected;
@@ -58,10 +62,27 @@ export default function useSelectionBox({
   });
   const lastUpdateTsRef = React.useRef(0);
   const cacheBuiltRef = React.useRef(false);
+  // 性能監控
+  const perfStatsRef = React.useRef({ cacheBuilds: 0, lastBuildTime: 0 });
   // 臨時選擇集（拖動期間不提交 React），以及 fp->element 對照表
   const ephemeralSelectedRef = React.useRef(new Set());
   const elementsByFpRef = React.useRef(new Map());
   const lastComputedRef = React.useRef(new Set());
+
+  // 緩存持久化：僅在遊戲列表變更時失效
+  React.useEffect(() => {
+    if (enableCachePersistence) {
+      // 遊戲列表變更時清空緩存，確保位置信息準確
+      cacheBuiltRef.current = false;
+      const cache = selectablesRef.current;
+      cache.items = [];
+      cache.rows = new Map();
+      cache.rowKeys = [];
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[SelectionBox] Cache invalidated due to games list change');
+      }
+    }
+  }, [gamesList, enableCachePersistence]);
 
   const defaultIsBlank = (e) => {
     const el = e.target;
@@ -79,6 +100,15 @@ export default function useSelectionBox({
     const top = Math.min(y1, y2);
     const width = Math.abs(x2 - x1);
     const height = Math.abs(y2 - y1);
+    
+    // 獲取容器滾動偏移量，將視窗坐標轉換為容器內坐標
+    const container = rootRef?.current;
+    let scrollLeft = 0, scrollTop = 0;
+    if (container) {
+      scrollLeft = container.scrollLeft || 0;
+      scrollTop = container.scrollTop || 0;
+    }
+    
     // update selection box style imperatively to avoid rerender
     lastSelRectRef.current = { left, top, width, height };
     const box = selectionBoxRef.current;
@@ -91,13 +121,15 @@ export default function useSelectionBox({
     }
 
     // Build cache lazily after surpassing small drag threshold (more sensitive)
+    // 每次框選都重新構建緩存以確保元素位置準確（考慮滾動偏移）
     if (!cacheBuiltRef.current && Math.max(width, height) >= 2) {
+      const buildStart = performance.now();
       try {
         const cache = selectablesRef.current;
         cache.items = [];
         cache.rows = new Map();
         cache.rowKeys = [];
-        const bucket = cache.bucket || 8;
+        const bucket = cache.bucket || 16; // 增大桶大小減少桶數量
         const container = rootRef?.current || document;
         const nodes = container?.querySelectorAll?.(hitSelector);
         if (nodes) {
@@ -117,11 +149,20 @@ export default function useSelectionBox({
             }
           });
           cache.rowKeys = Array.from(cache.rows.keys()).sort((a, b) => a - b);
+          
+          // 性能監控
+          const buildTime = performance.now() - buildStart;
+          perfStatsRef.current.cacheBuilds++;
+          perfStatsRef.current.lastBuildTime = buildTime;
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`[SelectionBox] Cache built: ${nodes.length} items in ${buildTime.toFixed(1)}ms (build #${perfStatsRef.current.cacheBuilds})`);
+          }
         }
       } catch (_) {}
       cacheBuiltRef.current = true;
     }
 
+    // 創建用於碰撞檢測的矩形，使用視窗坐標系統（與 getBoundingClientRect 一致）
     const rect = new DOMRect(left, top, width, height);
     const next = new Set();
     const cache = selectablesRef.current;
@@ -156,10 +197,10 @@ export default function useSelectionBox({
       }
     }
 
-    // Throttle selected updates to ~60fps
+    // Throttle selected updates to ~30fps for better performance
     const now = (performance.now ? performance.now() : Date.now());
     const since = now - (lastUpdateTsRef.current || 0);
-    if (since < 16) return;
+    if (since < 33) return;
     lastUpdateTsRef.current = now;
 
     // 拖動期間僅以命令式 class 呈現，不提交 React 狀態
@@ -240,11 +281,13 @@ export default function useSelectionBox({
     window.removeEventListener('blur', onWindowLeft);
     document.removeEventListener('mouseout', onDocumentMouseOut, true);
     document.removeEventListener('visibilitychange', onVisibilityChange, true);
-    // clear cache
-    cacheBuiltRef.current = false;
-    const cache = selectablesRef.current; cache.items = []; cache.rows = new Map(); cache.rowKeys = [];
+    // 緩存持久化優化：僅在非持久化模式下清空緩存
+    if (!enableCachePersistence) {
+      cacheBuiltRef.current = false;
+      const cache = selectablesRef.current; cache.items = []; cache.rows = new Map(); cache.rowKeys = [];
+    }
    
-  }, [selectionRect, fadeDuration]);
+  }, [selectionRect, fadeDuration, enableCachePersistence]);
 
   const onGlobalMouseMove = React.useCallback((e) => {
     if (!isSelectingRef.current) return;
@@ -294,9 +337,12 @@ export default function useSelectionBox({
     // 清理臨時樣式
     clearEphemeralSelection();
     didDragRef.current = false;
-    elementsByFpRef.current.clear();
+    // 保留元素緩存以支持後續框選動畫，僅在緩存持久化關閉時清空
+    if (!enableCachePersistence) {
+      elementsByFpRef.current.clear();
+    }
     endSelection();
-  }, [endSelection, setSelected, clearEphemeralSelection]);
+  }, [endSelection, setSelected, clearEphemeralSelection, enableCachePersistence]);
 
   const onWindowLeft = React.useCallback(() => {
     if (!isSelectingRef.current) return;
@@ -352,10 +398,13 @@ export default function useSelectionBox({
       style.height = `0px`;
     }
 
-    // Defer cache build to computeSelection threshold
+    // 每次框選開始時都重新構建緩存，確保滾動後坐標準確
     cacheBuiltRef.current = false;
+    // 緩存持久化優化：僅在非持久化模式下清空元素緩存
+    if (!enableCachePersistence) {
+      elementsByFpRef.current.clear();
+    }
     clearEphemeralSelection();
-    elementsByFpRef.current.clear();
     lastComputedRef.current = new Set();
 
     window.addEventListener('mousemove', onGlobalMouseMove, { passive: true });

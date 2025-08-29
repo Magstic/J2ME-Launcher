@@ -101,11 +101,11 @@ function register({ ipcMain, dialog, DataStore, freej2mePlusAdapter, keAdapter, 
       /** @type {{name:string, extensions:string[]}} */
       let filter;
       if (type === 'soundfont') {
-        // 常見音色庫或 MIDI 容器，放寬允許使用者自行選
-        filter = { name: 'SoundFont/MIDI', extensions: ['sf2', 'dls', 'sfpack', 'zip', 'mid', 'midi', '*'] };
+        // 音源
+        filter = { name: 'SoundFont/MIDI', extensions: ['sf2', '*'] };
       } else if (type === 'textfont') {
-        // 文字字體/位圖等，依實際需求放寬
-        filter = { name: 'Font Files', extensions: ['ttf', 'otf', 'fnt', 'png', 'bmp', 'zip', '*'] };
+        // 字體
+        filter = { name: 'Font Files', extensions: ['ttf', 'otf', 'ttc', '*'] };
       } else {
         filter = { name: 'All Files', extensions: ['*'] };
       }
@@ -130,27 +130,10 @@ function register({ ipcMain, dialog, DataStore, freej2mePlusAdapter, keAdapter, 
       const emus = DataStore.getEmulatorConfig();
       const globalFree = emus?.freej2mePlus || { jarPath: '' };
       let jarPath = globalFree.jarPath || '';
-      // If jarPath is not configured yet, prompt user to pick it now and persist immediately
+      // If jarPath is not configured yet, return error to avoid duplicate dialogs
       if (!jarPath) {
-        try {
-          const { canceled, filePaths } = await dialog.showOpenDialog({
-            properties: ['openFile'],
-            filters: [ { name: 'Java Archive', extensions: ['jar'] }, { name: 'All Files', extensions: ['*'] } ]
-          });
-          if (!canceled && filePaths && filePaths[0]) {
-            jarPath = filePaths[0];
-            // Persist jarPath immediately while keeping other fields
-            const romCache = (typeof globalFree.romCache === 'boolean') ? globalFree.romCache : true;
-            const defaults = globalFree.defaults || {};
-            DataStore.setEmulatorConfig({
-              freej2mePlus: { jarPath, romCache, defaults },
-              ke: emus?.ke || { jarPath: '', romCache: true },
-              libretro: emus?.libretro || { retroarchPath: '', corePath: '', romCache: false }
-            });
-          }
-        } catch (_) {}
+        return { success: false, error: '請先在設定中配置 FreeJ2ME-Plus JAR 路徑' };
       }
-      if (!jarPath) return { success: false, error: '尚未配置 FreeJ2ME-Plus jarPath' };
       if (!fs.existsSync(jarPath)) return { success: false, error: `模擬器 JAR 不存在: ${jarPath}` };
 
       const jarDir = path.dirname(jarPath);

@@ -1,9 +1,18 @@
 import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { FolderWindowApp } from '@components';
+import { I18nProvider } from './contexts/I18nContext';
 import './App.css';
 import './styles/theme.css';
 import './styles/buttons.css';
+
+ReactDOM.createRoot(document.getElementById('folder-root')).render(
+  <React.StrictMode>
+    <I18nProvider>
+      <Root />
+    </I18nProvider>
+  </React.StrictMode>
+);
 
 function Root() {
   // 啟動時應用持久化主題並監聽跨視窗同步
@@ -37,9 +46,3 @@ function Root() {
   }, []);
   return <FolderWindowApp />;
 }
-
-ReactDOM.createRoot(document.getElementById('folder-root')).render(
-  <React.StrictMode>
-    <Root />
-  </React.StrictMode>
-);

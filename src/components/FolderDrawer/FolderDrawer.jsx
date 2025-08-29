@@ -5,18 +5,14 @@ import './FolderDrawer.css';
 
 /**
  * 左側資料夾抽屜（手動開關）
- * - open: 是否展開
  * - width: 抽屜寬度（px），預設 120
  * - folders: 資料夾列表
  * - onOpenFolder: (folder) => void
  * - onCreateFolder: () => void
  * - onEditFolder: (folder) => void
  * - onDeleteFolder: (folder) => void
- * - onToggle: () => void  抽屜開合切換（供把手使用）
- * - handleWidth, handleHeight, handleRadius, handleOverlap: 把手樣式參數
  */
 const FolderDrawer = ({
-  open,
   width = 120,
   topOffset = 0,
   topViewport,
@@ -25,11 +21,6 @@ const FolderDrawer = ({
   onCreateFolder,
   onEditFolder,
   onDeleteFolder,
-  onToggle,
-  handleWidth = 12,
-  handleHeight = '100%',
-  handleRadius = 12,
-  handleOverlap = 6,
 }) => {
   const [hoverFolderId, setHoverFolderId] = React.useState(null);
   const [jiggleFolderId, setJiggleFolderId] = React.useState(null);
@@ -37,7 +28,6 @@ const FolderDrawer = ({
   const [isBtnHover, setIsBtnHover] = React.useState(false);
   const [isBtnActive, setIsBtnActive] = React.useState(false);
   const isCompact = width <= 80;
-  const adaptive = handleHeight === '100%' || handleHeight === 'auto';
   const { ContextMenuElement, openMenu } = useUnifiedContextMenu({
     onOpenFolder: onOpenFolder,
     onEditFolder: onEditFolder,
@@ -146,7 +136,6 @@ const FolderDrawer = ({
       {/* 懸浮新建資料夾按鈕（底部置中） */}
       <button
         type="button"
-        title="新建資料夾"
         onClick={() => onCreateFolder && onCreateFolder()}
         style={{
           position: 'absolute',
@@ -170,7 +159,6 @@ const FolderDrawer = ({
           WebkitAppRegion: 'no-drag',
           zIndex: 1,
         }}
-        aria-label="新建資料夾"
         onMouseEnter={() => setIsBtnHover(true)}
         onMouseLeave={() => { setIsBtnHover(false); setIsBtnActive(false); }}
         onMouseDown={() => setIsBtnActive(true)}

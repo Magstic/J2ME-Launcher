@@ -3,6 +3,7 @@ import { GameLaunchDialog } from '@components';
 import useFlipAnimation from '@shared/hooks/useFlipAnimation';
 import GameInfoDialog from './Desktop/GameInfoDialog';
 import FolderGridUnified from './FolderGrid.Unified';
+import { useGamesByFolder, useSelectedGames, useDragState, useGameActions } from '../hooks/useGameStore';
 // 先載入全域設計代幣，保證元件樣式可引用
 import '../styles/theme.css';
 import './FolderWindowApp.css';
@@ -17,7 +18,6 @@ import '../styles/focus-ring.css';
 
 const FolderWindowApp = () => {
   const [folder, setFolder] = useState(null);
-  const [games, setGames] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   // 為避免極短暫的 loading 畫面閃現，增加一個 120ms 的顯示延遲
   const [showLoadingUI, setShowLoadingUI] = useState(false);
@@ -33,8 +33,13 @@ const FolderWindowApp = () => {
   const [folderId, setFolderId] = useState(null);
   const [gameLaunchDialog, setGameLaunchDialog] = useState({ isOpen: false, game: null, configureOnly: false });
   const [externalDragActive, setExternalDragActive] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
   const gridRef = useRef(null);
+
+  // Use unified state management
+  const games = useGamesByFolder(folderId);
+  const [selectedGames, setSelectedGames] = useSelectedGames();
+  const [dragState, setDragState] = useDragState();
+  const gameActions = useGameActions();
 
   // 啟動遊戲（首次彈窗）
   const handleGameLaunch = useCallback(async (game) => {
@@ -49,9 +54,10 @@ const FolderWindowApp = () => {
       console.error('啟動遊戲失敗:', e);
     }
   }, []);
-  const [selected, setSelected] = useState(() => new Set());
+  // Convert Set to Array for compatibility with existing code
+  const selected = selectedGames;
   const selectedRef = useRef(new Set());
-  useEffect(() => { selectedRef.current = selected; }, [selected]);
+  useEffect(() => { selectedRef.current = selectedGames; }, [selectedGames]);
   const [boxSelecting, setBoxSelecting] = useState(false);
   const [selectionFading, setSelectionFading] = useState(false);
   const isSelectingRef = useRef(false);
@@ -59,31 +65,11 @@ const FolderWindowApp = () => {
   const pendingPosRef = useRef(null);
   const leftWindowRef = useRef(false);
   const fadeTimerRef = useRef(0);
-  // 透過引用保持未變更項目的物件身份，避免整體重繪
-  const gamesByIdRef = useRef(new Map());
-  const shallowEqualGame = (a, b) => {
-    return a && b &&
-      a.filePath === b.filePath &&
-      a.gameName === b.gameName &&
-      a.vendor === b.vendor &&
-      a.version === b.version &&
-      a.iconUrl === b.iconUrl;
-  };
-  const reconcileGames = (incoming) => {
-    const prevMap = gamesByIdRef.current;
-    const nextArr = (incoming || []).map(g => {
-      const old = prevMap.get(g.filePath);
-      return old && shallowEqualGame(old, g) ? old : g;
-    });
-    const nextMap = new Map();
-    nextArr.forEach(g => nextMap.set(g.filePath, g));
-    gamesByIdRef.current = nextMap;
-    setGames(nextArr);
-  };
+  // Remove manual object reconciliation - now handled by unified store
   // FLIP：只對移位的卡片做動畫
   const flipKeys = React.useMemo(() => games.map(g => `game:${g.filePath}`), [games]);
   useFlipAnimation(gridRef, flipKeys, {
-    disabled: boxSelecting || isDragging,
+    disabled: boxSelecting || dragState.isDragging,
     duration: 180, // 與卡片過渡時長保持一致
     easing: 'ease-out'
   });
@@ -120,17 +106,15 @@ const FolderWindowApp = () => {
     setBoxSelecting(false);
     const isSelected = selectedRef.current.has(game.filePath);
     if (e.ctrlKey || e.metaKey) {
-      setSelected(prev => {
-        const next = new Set(prev);
-        if (next.has(game.filePath)) next.delete(game.filePath); else next.add(game.filePath);
-        return next;
-      });
+      const next = new Set(selectedGames);
+      if (next.has(game.filePath)) next.delete(game.filePath); else next.add(game.filePath);
+      setSelectedGames(next);
     } else {
       // 若點擊的是已選中項且已有多選，保持當前多選不變
       if (isSelected && selectedRef.current.size > 1) {
         return;
       }
-      setSelected(new Set([game.filePath]));
+      setSelectedGames(new Set([game.filePath]));
     }
   }, []);
 
@@ -160,7 +144,7 @@ const FolderWindowApp = () => {
         }
       });
     }
-    setSelected(next);
+    setSelectedGames(next);
   }, []);
 
   const endSelection = useCallback((opts = { fadeToEdge: false }) => {
@@ -258,7 +242,7 @@ const FolderWindowApp = () => {
   const onGridMouseDown = useCallback((e) => {
     if (e.target.closest && e.target.closest('.game-card')) return;
     if (e.button !== 0) return;
-    setSelected(new Set());
+    setSelectedGames(new Set());
     setBoxSelecting(true);
     setSelectionFading(false);
     leftWindowRef.current = false;
@@ -290,18 +274,26 @@ const FolderWindowApp = () => {
     try {
       const result = await window.electronAPI.getFolderContents(folderId);
       setFolder(result.folder);
-      reconcileGames(result.games || []);
+      // Load games and sync folder membership
+      const games = result.games || [];
+      gameActions.loadGames(games);
+      
+      // Sync folder membership for all games in this folder
+      if (games.length > 0) {
+        const filePaths = games.map(game => game.filePath);
+        gameActions.folderMembershipChanged(filePaths, folderId, 'add');
+      }
     } catch (error) {
       console.error('載入資料夾內容失敗:', error);
       setFolder(null);
-      setGames([]);
+      gameActions.loadGames([]);
     } finally {
       if (!hasLoadedRef.current) {
         setIsLoading(false);
         hasLoadedRef.current = true;
       }
     }
-  }, [folderId]);
+  }, [folderId, gameActions]);
 
   useEffect(() => {
     loadFolderContents();
@@ -460,31 +452,41 @@ const FolderWindowApp = () => {
             onGameLaunch={(game) => handleGameLaunch(game)}
             onGameConfigure={(game) => setGameLaunchDialog({ isOpen: true, game, configureOnly: true })}
             onRemoveFromFolder={async (game) => {
-              if (!folderId) return;
+              if (!folderId || !game) return;
               try {
-                const res = await window.electronAPI?.removeGameFromFolder?.(game.filePath, folderId);
-                if (res?.success) {
+                // UnifiedGrid 會在 targetItem 上附帶 selectedFilePaths（若右鍵於選集內）
+                const batchList = Array.isArray(game.selectedFilePaths) && game.selectedFilePaths.length > 0
+                  ? game.selectedFilePaths
+                  : [game.filePath];
+
+                // 使用新的批次移除 API，避免多次 IPC 調用與全量刷新
+                const result = await window.electronAPI?.batchRemoveGamesFromFolder?.(batchList, folderId);
+                
+                if (result?.success) {
+                  // 重新載入內容
                   await loadFolderContents();
+                } else {
+                  console.error('批次移除失敗:', result?.error);
                 }
               } catch (err) {
                 console.error('從資料夾移除失敗:', err);
               }
             }}
             onGameInfo={(game) => setGameInfoDialog({ isOpen: true, game })}
-            onDragStart={() => setIsDragging(true)}
+            onDragStart={() => setDragState({ isDragging: true, draggedItems: [] })}
             onDragEnd={() => {
-              setIsDragging(false);
+              setDragState({ isDragging: false, draggedItems: [] });
               try { window.electronAPI?.endDragSession?.(); } catch (e) {}
             }}
-            dragState={{ isDragging, draggedItem: null, draggedType: 'game' }}
+            dragState={dragState}
             externalDragActive={externalDragActive}
             isLoading={showLoadingUI && isLoading}
             selectedSet={selected}
-            onSelectedChange={setSelected}
+            onSelectedChange={setSelectedGames}
             externalSelectionRect={selectionRect}
             externalBoxSelecting={boxSelecting}
             externalSelectionFading={selectionFading}
-            disableFlip={boxSelecting || isDragging}
+            disableFlip={boxSelecting || dragState.isDragging}
           />
         )}
       </div>

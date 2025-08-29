@@ -2,9 +2,11 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import GameCard from '../GameCard';
 import useControllerContextMenu from './useControllerContextMenu';
 import useGamepad from '@hooks/useGamepad';
+import { useTranslation } from '@hooks/useTranslation';
 
 function GameGrid({ games, isLoading, onGameLaunch, onAddToFolder, onGameInfo, controllerModeEnabled = false, onToggleViewMode }) {
   // 先宣告 hook，避免在不同渲染分支中條件性呼叫 hook（違反 Hooks 規則）
+  const { t } = useTranslation();
   const infoCb = onGameInfo || ((game) => {
     window.dispatchEvent(new CustomEvent('open-game-info', { detail: game }));
   });
@@ -304,7 +306,7 @@ function GameGrid({ games, isLoading, onGameLaunch, onAddToFolder, onGameInfo, c
     return (
       <div className="loading-container">
         <div className="loading-spinner"></div>
-        <p>載入中...</p>
+        <p>{t('app.loading')}</p>
       </div>
     );
   }
@@ -314,9 +316,9 @@ function GameGrid({ games, isLoading, onGameLaunch, onAddToFolder, onGameInfo, c
       <div className="game-grid empty">
         <div className="empty-state">
           <div className="empty-icon">🎮</div>
-          <h3>控制器模式</h3>
-          <p>這是控制器模式，開發中……</p>
-          <p>請使用鍵盤或手把進行操作</p>
+          <h3>{t('controller.empty.title')}</h3>
+          <p>{t('controller.empty.description')}</p>
+          <p>{t('controller.empty.hint')}</p>
         </div>
         {ContextMenuElement}
       </div>

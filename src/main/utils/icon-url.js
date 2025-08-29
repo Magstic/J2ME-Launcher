@@ -16,10 +16,44 @@ function toIconUrl(iconPath) {
 }
 
 function addUrlToGames(games) {
-  return games.map(game => ({
-    ...game,
-    iconUrl: toIconUrl(game.iconPath)
-  }));
+  // 確保返回可序列化的物件，移除任何不可序列化的屬性
+  return games.map(game => {
+    if (!game || typeof game !== 'object') return game;
+    
+    // 創建純淨的可序列化物件
+    const cleanGame = {};
+    
+    // 只複製基本類型和可序列化的屬性
+    for (const [key, value] of Object.entries(game)) {
+      if (value === null || value === undefined) {
+        cleanGame[key] = value;
+      } else if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+        cleanGame[key] = value;
+      } else if (Array.isArray(value)) {
+        // 確保陣列內容也是可序列化的
+        cleanGame[key] = value.filter(item => 
+          item === null || item === undefined || 
+          typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean'
+        );
+      } else if (typeof value === 'object' && value.constructor === Object) {
+        // 只處理純物件，避免特殊物件類型
+        try {
+          JSON.stringify(value); // 測試是否可序列化
+          cleanGame[key] = value;
+        } catch (e) {
+          console.warn(`[addUrlToGames] Skipping non-serializable property: ${key}`);
+        }
+      }
+      // 跳過函式、Symbol、特殊物件等不可序列化的屬性
+    }
+    
+    // 添加 iconUrl
+    if (!cleanGame.iconUrl) {
+      cleanGame.iconUrl = toIconUrl(cleanGame.iconPath);
+    }
+    
+    return cleanGame;
+  });
 }
 
 module.exports = { registerProtocols, toIconUrl, addUrlToGames };

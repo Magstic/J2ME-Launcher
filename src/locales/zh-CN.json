@@ -1,0 +1,376 @@
+{
+  "app": {
+    "title": "J2ME Launcher",
+    "loading": "加载中……",
+    "cancel": "取消",
+    "close": "关闭",
+    "create": "创建",
+    "save": "保存",
+    "add": "保存并启动",
+    "delete": "删除",
+    "edit": "编辑",
+    "back": "返回",
+    "select": "选择",
+    "warning": "注意",
+    "load": "载入",
+    "next": "下一步",
+    "previous": "上一步",
+    "skip": "跳过",
+    "later": "稍后设置",
+    "startUsing": "开始使用"
+  },
+  "searchPlaceholder": "搜索游戏名称、开发商……",
+  "welcome": {
+    "title": "欢迎使用 J2ME Launcher",
+    "subtitle": "现代化的 J2ME 前端",
+    "description": "若想快速上手，只需花几分钟进行基本设置",
+    "language": "Language",
+    "guide": {
+      "title": "快速设置指南"
+    },
+    "steps": {
+      "welcome": {
+        "title": "欢迎使用 J2ME Launcher"
+      },
+      "theme": {
+        "title": "主题布景",
+        "description": "选择适合您的视觉偏好",
+        "notice": "喜欢哪种风格？",
+        "darkMode": "暗色",
+        "darkModeDesc": "深色拥抱黑夜",
+        "lightMode": "亮色",
+        "lightModeDesc": "浅色承载阳光"
+      },
+      "emulator": {
+        "title": "模拟器",
+        "description": "下载并配置 J2ME 模拟器",
+        "notice": "因 Lisence 不相容，本程序不提供模拟器，请自行下载：",
+        "freej2me": {
+          "name": "FreeJ2ME-Plus",
+          "description": "J2ME EMU 的后起之秀。不仅与多种 J2ME 规范兼容，而且同时提供了 AWT 前端和 Libretro 核心。"
+        },
+        "kemulator": {
+          "name": "KEmulator nnmod",
+          "description": "老牌模拟器 KEmulator 的逆向工程，在进行诸多优化的同时，也提供了多桌面平台的支持。"
+        },
+        "configureNow": "立即配置模拟器"
+      },
+      "roms": {
+        "title": "ROM 路径",
+        "description": "选择游戏文件存放位置",
+        "subtitle": "配置 ROM 文件夹",
+        "supportedFormats": "支持的 J2ME 规范：",
+        "midp": {
+          "name": "J2ME-MIDP",
+          "description": "流行的 J2ME 标准规范，其 ROM 文件的后缀为 .jar。"
+        },
+        "configureFolder": "配置 ROM 文件夹"
+      },
+      "cloud": {
+        "title": "云端同步",
+        "description": "保护您的软件配置和游戏存档",
+        "subtitle": "云端同步",
+        "services": {
+          "dropbox": {
+            "name": "Dropbox",
+            "description": "轻松简易，即登即用。"
+          },
+          "webdav": {
+            "name": "WebDAV",
+            "description": "数据传输的通用协议。"
+          },
+          "s3": {
+            "name": "S3 API",
+            "description": "S3 API 兼容服务，支持 AWS S3、Cloudflare R2 等。"
+          }
+        },
+        "configureBackup": "配置云端备份"
+      },
+      "tutorial": {
+        "title": "基本操作",
+        "actions": {
+          "launch": {
+            "title": "启动游戏",
+            "description": "双击游戏卡片即可启动"
+          },
+          "organize": {
+            "title": "整理游戏",
+            "description": "拖拽游戏到左侧文件夹进行分类"
+          },
+          "search": {
+            "title": "搜索游戏",
+            "description": "使用顶部搜索栏快速找到游戏"
+          },
+          "settings": {
+            "title": "游戏设置",
+            "description": "右键游戏卡片可进行个别设置"
+          }
+        }
+      },
+      "complete": {
+        "title": "在 J2ME 的海洋中遨游吧",
+        "subtitle": "设置完成",
+        "message": "J2ME Launcher 已就绪",
+        "submessage": "现在可以通过该程序管理您的 J2ME 收藏",
+        "startUsing": "开始使用 J2ME Launcher"
+      }
+    }
+  },
+  "settings": {
+    "title": "软件配置",
+    "theme": {
+      "title": "主题",
+      "light": {
+        "name": "亮色",
+        "description": "浅色承载阳光"
+      },
+      "dark": {
+        "name": "暗色",
+        "description": "深色拥抱黑夜"
+      }
+    },
+    "language": {
+      "title": "语言",
+      "description": "选择界面语言"
+    }
+  },
+  "contextMenu": {
+    "launch": "启动",
+    "like": "加入",
+    "shortcut": "捷径",
+    "config": "配置",
+    "delete": "移除",
+    "info": "信息",
+    "open": "打开"
+  },
+  "fabMenu": {
+    "roms": "ROM 文件夹",
+    "emulator": "模拟器配置",
+    "settings": "软件配置",
+    "backup": "云端同步",
+    "about": "关于我们"
+  },
+  "desktopManager": {
+    "label": "正在加入文件夹……",
+    "common": {
+      "game": "游戏",
+      "unknownError": "未知错误"
+    },
+    "folderSelect": {
+      "title": "选择文件夹",
+      "multi": "已选取 {{count}} 个游戏，请选择要加入的文件夹：",
+      "single": "请选择要加入「{{name}}」的文件夹："
+    },
+    "noFolder": {
+      "title": "加入文件夹",
+      "message": "现无文件夹，请新建。",
+      "createButton": "新建文件夹"
+    },
+    "confirmDelete": {
+      "title": "删除文件夹",
+      "message": "确定要删除文件夹『{{name}}』吗？\n文件夹删除后，其中的游戏将释放到桌面。",
+      "confirm": "删除",
+      "cancel": "取消"
+    },
+    "info": {
+      "deleteFolder": {
+        "fail": "删除文件夹失败",
+        "apiUnavailable": "deleteFolder API 不可用",
+        "failWithReason": "删除文件夹失败: {{reason}}"
+      },
+      "addToFolder": {
+        "fail": "加入文件夹失败",
+        "failWithReason": "加入文件夹失败: {{reason}}"
+      },
+      "removeFromFolder": {
+        "fail": "移除游戏失败",
+        "failWithReason": "移除游戏失败: {{reason}}"
+      },
+      "moveGame": {
+        "fail": "移动游戏失败",
+        "failWithReason": "移动游戏失败: {{reason}}"
+      }
+    },
+    "addToFolder": {
+      "title": "加入文件夹"
+    },
+    "removeFromFolder": {
+      "title": "移除游戏"
+    },
+    "moveGame": {
+      "title": "移动游戏"
+    },
+    "bulk": {
+      "processing": "正在处理…"
+    }
+  },
+  "directoryManager": {
+    "title": "ROM 文件夹管理",
+    "state": "正在扫描……",
+    "over": "扫描完成！",
+    "gain": "找到 {{count}} 个新游戏",
+    "error": "扫描失败",
+    "log": "未知错误",
+    "stats": "共 {{count}} 个文件夹，{{enabledCount}} 个已启用",
+    "add": "添加文件夹",
+    "scan": "增量扫描",
+    "fullScan": "全量扫描",
+    "empty": "尚未配置任何 ROM 文件夹",
+    "emptyHint": "点击『添加文件夹』开始配置",
+    "lastScan": "上次扫描: {{date}}",
+    "neverScanned": "尚未扫描",
+    "confirmRemove": {
+      "title": "移除文件夹",
+      "message1": "确定要移除以下文件夹吗？",
+      "message2": "这将在 J2ME Launcher 中移除该文件夹下的所有游戏。"
+    }
+  },
+  "emulatorConfig": {
+    "title": "模拟器配置",
+    "romCache": "ROM 缓存模式",
+    "romCacheHint": "推荐在『非 UTF-8』系统下启用，以避免游戏因编码问题而无法启动。",
+    "gameConfig": "游戏配置",
+    "firstConfig": "首次启动配置",
+    "name": "游戏名",
+    "emulator": "模拟器",
+    "params": "参数设置",
+    "default": "默认",
+    "custom": "自定义",
+    "emuParams": "参数",
+    "saveHint": "保存后，未来启动该游戏时将自动套用此配置。",
+    "freej2mePlus": {
+      "name": "FreeJ2ME-Plus(AWT)",
+      "jarPath": "执行文件（freej2me.jar）",
+      "placeholder": "尚未配置，请选择 freej2me.jar",
+      "hint": "默认启动参数。首次启动某款游戏时，可自定义并覆盖该参数（字体和音源除外）",
+      "hint2": "音源和字体为全局参数，请前往『模拟器设置』配置。",
+      "resolution": "分辨率（resolution）",
+      "scale": "缩放（scale）",
+      "framerate": "帧率（framerate）",
+      "keyLayout": "按键布局（keyLayout）",
+      "backlightcolor": "背光颜色（backlightcolor）",
+      "bgcolor": {
+        "disabled": "禁用",
+        "green": "绿色",
+        "cyan": "青色",
+        "orange": "橙色",
+        "violet": "紫色",
+        "red": "红色"
+      },
+      "fontoffset": "字体尺寸（fontoffset）",
+      "rotate": "屏幕旋转（rotate）",
+      "fpshack": "FPS HACK（fpshack）",
+      "sf2": "音源",
+      "font": "字体",
+      "compatfantasyzonefix": "Fantasy Zone 修复",
+      "compatimmediaterepaints": "即时处理画布重绘调用",
+      "compatoverrideplatchecks": "覆盖移动平台检查",
+      "compatsiemensfriendlydrawing": "西门子友好绘图",
+      "compattranstooriginonreset": "图形重设时平移至原点",
+      "sound": "模拟手机声音",
+      "spdhacknoalpha": "无 Alpha 空白影像",
+      "fullscreen": "全屏模式"
+    },
+    "kemulator": {
+      "name": "KEmulator nnmod",
+      "jarPath": "可执行文件（KEmulator.jar）",
+      "placeholder": "尚未配置，请选择 KEmulator.jar",
+      "hint": "Kemnnx 暂不支持自定义参数启动，请在其 GUI 内设置。"
+    },
+    "libretroFJP": {
+      "name": "Libretro(FreeJ2ME-Plus)",
+      "retroarchPath": "可执行文件（retroarch.exe）",
+      "retroarchPlaceholder": "尚未配置，请选择 retroarch.exe",
+      "corePath": "核心（freej2me_libretro.dll）",
+      "corePlaceholder": "尚未配置，请选择 freej2me_libretro.dll",
+      "hint": "Libretro Core 暂不支持自定义参数启动，请在其 GUI 内设置。"
+    },
+    "warn": {
+      "pathChange1": "您正修改『模拟器执行文件』的路径。",
+      "pathChange2": "若更改路径，可能致使备份和恢复的路径存在偏差。",
+      "pathChange3": "是否仍要保存这次变更？",
+      "rmsOn": "已启用『RMS 存档』备份",
+      "emuCfgOn": "已启用『模拟器配置文件』备份"
+    }
+  },
+  "sync": {
+    "title": "云端同步",
+    "lastTime": "上次备份时间：",
+    "full": "全量备份",
+    "incremental": "增量备份",
+    "restore": "云端恢复",
+    "restoreDone": "恢复完成。若涉及数据库，ICON 将于扫描后重建。",
+    "restoreFailed": "恢复失败：",
+    "service": "服务选择",
+    "content": "备份内容",
+    "progress": "同步进度",
+    "status": "状态：",
+    "phase": {
+      "planning": "准备中",
+      "uploading": "上传中",
+      "deleting": "删除中",
+      "finalizing": "收尾中",
+      "done": "完成",
+      "error": "错误",
+      "idle": "待命"
+    },
+    "count": "{{done}} / {{total}} 文件",
+    "current": "目前：",
+    "s3": {
+      "title": "S3 设置",
+      "prefix": "使备份内容放置在 bucket 的指定的文件夹下，如可填写『J2ME/』"
+    },
+    "dropbox": {
+      "title": "Dropbox 设置",
+      "prefix": "Dropbox 自动创建『J2ME Launcher』文件夹，因此留空即可。",
+      "nameless": "Dropbox 用户",
+      "notLinked": "尚未连接账户",
+      "linked": "Dropbox 已连接",
+      "linkedFailed": "Dropbox 授权失败",
+      "linkedFailedMessage": "Dropbox 授权出错：",
+      "unlink": "解除连接",
+      "connect": "连接账户"
+    },
+    "webdav": {
+      "title": "WebDAV 设置",
+      "prefix": "可选，放置在 Base URL 下的子文件夹，如『J2ME/』",
+      "username": "Username，若使用 Bearer Token 可留空",
+      "password": "Password，若使用 Bearer Token 可留空",
+      "bearerToken": "可选，用于部分服务器的 Token 验证",
+      "note": "若同时提供 Username/Password 与 Bearer Token，将优先使用 Bearer Token。"
+    }
+  },
+  "about": {
+    "description": "現代化 Java ME 游戏前端",
+    "notice": "如果没有模拟器，那么 J2ME Launcher 将是一具空壳。\n本软件为 MIT 许可证，因此，它并不会包含许可冲突的模拟器，您需要自行下载。",
+    "maintainer": "主维护：",
+    "freej2mePlusDescription": "J2ME EMU 的后起之秀。不仅与多种 J2ME 规范相容，而且同时提供了 AWT 前端和 Libretro 核心。",
+    "kemulatorDescription": "老牌模拟器 KEmulator 的逆向工程，在进行诸多优化的同时，也提供了多桌面平台的支持。"
+  },
+  "gameInfo": {
+    "title": "游戏信息",
+    "fileSection": "文件信息",
+    "detailSection": "游戏信息",
+    "size": "大小",
+    "path": "路径",
+    "ver": "版本",
+    "vendor": "厂商"
+  },
+  "folder": {
+    "create": "创建文件夹",
+    "edit": "编辑文件夹",
+    "newFolder": "新文件夹",
+    "name": "名称",
+    "description": "描述",
+    "color": "颜色",
+    "icon": "图标",
+    "nameHint": "请输入文件夹名称",
+    "nameError": "文件夹名称格式不正确",
+    "descHint": "请输入文件夹描述（可选）"
+  },
+  "NotificationBubble": {
+    "success": "快捷方式已创建",
+    "failure": "快捷方式创建失败",
+    "partialFailure": "部分快捷方式创建失败"
+  }
+}

@@ -26,6 +26,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // return unsubscribe like other listeners
     return () => ipcRenderer.removeListener('games-updated', handler);
   },
+  
+  // 增量更新事件監聽
+  onGamesIncrementalUpdate: (callback) => {
+    const handler = (event, updateData) => callback(updateData);
+    ipcRenderer.on('games-incremental-update', handler);
+    return () => ipcRenderer.removeListener('games-incremental-update', handler);
+  },
   onAutoScanCompleted: (callback) => {
     ipcRenderer.on('auto-scan-completed', (event, result) => callback(result));
   },
@@ -34,6 +41,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
   removeAllListeners: (channel) => {
     ipcRenderer.removeAllListeners(channel);
   },
+
+  // ==================== 自定義名稱管理 API ====================
+  
+  // 更新遊戲自定義名稱
+  updateCustomName: (filePath, customName) => ipcRenderer.invoke('update-custom-name', filePath, customName),
+  
+  // 更新遊戲自定義開發商
+  updateCustomVendor: (filePath, customVendor) => ipcRenderer.invoke('update-custom-vendor', filePath, customVendor),
+  
+  // 批量更新自定義數據
+  updateCustomData: (filePath, customData) => ipcRenderer.invoke('update-custom-data', filePath, customData),
+  
+  // 重置自定義名稱
+  resetCustomNames: (filePath) => ipcRenderer.invoke('reset-custom-names', filePath),
 
   // ==================== 資料夾管理 API ====================
   
@@ -59,11 +80,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
   addGameToFolder: (gameId, folderId) => ipcRenderer.invoke('add-game-to-folder', gameId, folderId),
   // 批次將遊戲加入資料夾（批末一次廣播）
   addGamesToFolderBatch: (gameIdsOrPaths, folderId, options) => ipcRenderer.invoke('add-games-to-folder-batch', gameIdsOrPaths, folderId, options),
+  // 統一的批次處理 API（支援進度回調）
+  batchAddGamesToFolder: (filePaths, folderId, options) => ipcRenderer.invoke('batch-add-games-to-folder', filePaths, folderId, options),
   emitFolderBatchUpdates: (folderId) => ipcRenderer.invoke('emit-folder-batch-updates', folderId),
   
   // 從資料夾中移除遊戲
   removeGameFromFolder: (gameId, folderId) => 
     ipcRenderer.invoke('remove-game-from-folder', gameId, folderId),
+  
+  // 批次移除遊戲從資料夾（避免多次 IPC 調用）
+  batchRemoveGamesFromFolder: (filePaths, folderId) => 
+    ipcRenderer.invoke('batch-remove-games-from-folder', filePaths, folderId),
   
   // 在資料夾間移動遊戲
   moveGameBetweenFolders: (gameId, fromFolderId, toFolderId) => 
@@ -76,6 +103,30 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getUncategorizedGames: () => ipcRenderer.invoke('get-uncategorized-games'),
   // 取得屬於任一資料夾的遊戲 filePath（用於顯示徽章）
   getGamesInAnyFolder: () => ipcRenderer.invoke('get-games-in-any-folder'),
+
+  // ==================== 批次操作事件監聽 ====================
+  
+  // 監聽批次操作開始事件
+  onBulkOperationStart: (callback) => {
+    ipcRenderer.on('bulk-operation-start', (event, data) => callback(data));
+    return () => ipcRenderer.removeAllListeners('bulk-operation-start');
+  },
+  
+  // 監聽批次操作結束事件
+  onBulkOperationEnd: (callback) => {
+    ipcRenderer.on('bulk-operation-end', (event, data) => callback(data));
+    return () => ipcRenderer.removeAllListeners('bulk-operation-end');
+  },
+  
+  // 移除批次操作開始事件監聽器
+  offBulkOperationStart: (callback) => {
+    ipcRenderer.removeListener('bulk-operation-start', callback);
+  },
+  
+  // 移除批次操作結束事件監聽器
+  offBulkOperationEnd: (callback) => {
+    ipcRenderer.removeListener('bulk-operation-end', callback);
+  },
 
   // ==================== 桌面數據 API ====================
   

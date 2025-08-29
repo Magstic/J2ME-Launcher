@@ -12,7 +12,7 @@
     "build:prod": "set NODE_ENV=production&& vite build",
     "start": "electron .",
     "electron": "electron .",
-    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
+"electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron . --no-sandbox\"",
     "lint": "eslint . --ext .js,.jsx",
     "lint:fix": "eslint . --ext .js,.jsx --fix",
     "stylelint": "stylelint \"src/**/*.{css,scss}\"",
@@ -69,8 +69,8 @@
       "publisherName": "Magstic",
       "legalTrademarks": "Magstic",
       "signAndEditExecutable": true,
-      "certificateFile": "build/xxxxx.pfx",
-      "certificatePassword": "xxxxxxxxxxxxxx"
+      "certificateFile": "build/Magstic.pfx",
+      "certificatePassword": "xxxxxxxxxxxxx"
     },
     "nsis": {
       "artifactName": "${productName}-${version}-${os}-${arch}-nsis.${ext}",
@@ -106,10 +106,9 @@
   },
   "keywords": [
     "J2ME",
-    "Games",
+    "Frontend",
     "Launcher",
-    "GUI",
-    "Manager"
+    "GUI"
   ],
   "author": "Magstic",
   "license": "MIT",
@@ -146,6 +145,7 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-window": "^1.8.11",
+    "react-window-infinite-loader": "^1.0.10",
     "yauzl": "^3.2.0"
   }
 }

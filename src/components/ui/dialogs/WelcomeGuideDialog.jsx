@@ -1,346 +1,578 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ModalWithFooter, Card } from '@ui';
+import { useTranslation } from '@hooks/useTranslation';
+import { useI18n } from '../../../contexts/I18nContext';
+import { S3Svg, WebdavSvg, DropboxSvg } from '@/assets/icons';
 
 const WelcomeGuideDialog = ({ isOpen, onClose, onComplete }) => {
+  const { t } = useTranslation();
+  const { currentLanguage, changeLanguage, supportedLanguages } = useI18n();
   const [currentStep, setCurrentStep] = useState(0);
+  
+  // 動態響應主題變化
+  const [currentTheme, setCurrentTheme] = useState(() => {
+    // 組件初始化時獲取當前主題
+    const theme = document.body?.dataset?.theme || 'dark';
+    console.log('WelcomeGuideDialog init theme:', theme);
+    return theme;
+  });
+  const svgFilter = currentTheme === 'light' ? 'none' : 'brightness(0) invert(1)';
+
+  // 監聽主題變化事件
+  useEffect(() => {
+    const handleThemeChangeEvent = (event) => {
+      console.log('Theme change event received:', event.detail);
+      setCurrentTheme(event.detail);
+    };
+    
+    window.addEventListener('theme-change', handleThemeChangeEvent);
+    
+    return () => {
+      window.removeEventListener('theme-change', handleThemeChangeEvent);
+    };
+  }, []);
+
+  // 監聽步驟變化，同步當前主題狀態
+  useEffect(() => {
+    if (currentStep === 2) { // 主題選擇步驟
+      const actualTheme = document.body?.dataset?.theme || 'dark';
+      console.log('Entering theme step, actual theme:', actualTheme, 'current state:', currentTheme);
+      if (actualTheme !== currentTheme) {
+        setCurrentTheme(actualTheme);
+      }
+    }
+  }, [currentStep, currentTheme]);
   const [completedSteps, setCompletedSteps] = useState(new Set());
 
-  const steps = [
+  const steps = useMemo(() => [
     {
       id: 'welcome',
-      title: '歡迎使用 J2ME Launcher',
+      title: t('welcome.title'),
       icon: '☕',
       content: (
-        <div style={{ textAlign: 'center', padding: '20px 0' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>☕</div>
-          <p style={{ margin: '0 0 24px 0', fontSize: '16px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-            現代化的 J2ME 前端（Front-end）<br/>
-            讓我們花幾分鐘進行基本設定，從而快速上手
-          </p>
-          <div style={{ 
-            padding: '16px', 
-            backgroundColor: 'var(--overlay-on-light-05)',
-            borderRadius: '8px',
-            border: '1px solid var(--overlay-on-light-12)'
-          }}>
-            <p style={{ margin: '0', fontSize: '14px', color: 'var(--text-secondary)' }}>
-              💡 所有設定都是可選的，您可以隨時跳過或稍後配置
+        <div style={{ padding: '20px 0' }}>
+          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+            <div style={{ fontSize: '64px', marginBottom: '24px' }}>☕</div>
+            <h3 style={{
+              margin: '0 0 16px 0',
+              fontSize: '20px',
+              fontWeight: '600',
+              color: 'var(--text-primary)'
+            }}>
+              {t('welcome.subtitle')}
+            </h3>
+            <p style={{
+              margin: '0 0 24px 0',
+              fontSize: '14px',
+              color: 'var(--text-secondary)',
+              lineHeight: '1.6'
+            }}>
+              {t('welcome.description')}
             </p>
+          </div>
+
+          {/* 語言選擇器 */}
+          <div style={{
+            marginBottom: '24px',
+            padding: '20px',
+            backgroundColor: 'var(--overlay-on-light-03)',
+            borderRadius: '8px',
+            border: '1px solid var(--overlay-on-light-08)'
+          }}>
+            <label style={{
+              display: 'block',
+              fontSize: '14px',
+              fontWeight: '600',
+              color: 'var(--text-primary)',
+              marginBottom: '12px',
+              textAlign: 'center'
+            }}>
+              {t('welcome.language')}
+            </label>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              {[
+                { value: 'zh-TW', label: '繁體中文' },
+                { value: 'zh-CN', label: '简体中文' },
+                { value: 'en-US', label: 'English' }
+              ].map((option) => (
+                <button
+                  key={option.value}
+                  className={`btn ${currentLanguage === option.value ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => changeLanguage(option.value)}
+                  style={{ minWidth: '80px' }}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'theme',
+      title: t('welcome.steps.theme.title'),
+      icon: '🎨',
+      description: t('welcome.steps.theme.description'),
+      content: (
+        <div style={{ padding: '20px 0' }}>
+          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+            <div style={{ fontSize: '64px', marginBottom: '24px' }}>🎨</div>
+            <p style={{
+              margin: '0 0 24px 0',
+              fontSize: '14px',
+              color: 'var(--text-secondary)',
+              lineHeight: '1.6'
+            }}>
+              {t('welcome.steps.theme.notice')}
+            </p>
+          </div>
+
+          {/* 主題選擇器 */}
+          <div style={{
+            display: 'grid',
+            gap: '12px',
+            gridTemplateColumns: '1fr 1fr'
+          }}>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              padding: '16px', 
+              border: '1px solid',
+              borderColor: currentTheme === 'dark' ? 'var(--accent-color)' : 'var(--overlay-on-light-12)',
+              borderRadius: '8px', 
+              backgroundColor: 'var(--overlay-on-light-05)', 
+              cursor: 'pointer',
+            }} onClick={() => window.dispatchEvent(new CustomEvent('theme-change', { detail: 'dark' }))}>
+              <span style={{ fontSize: '24px', marginRight: '16px' }}>🌙</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>
+                  {t('welcome.steps.theme.darkMode')}
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  {t('welcome.steps.theme.darkModeDesc')}
+                </div>
+              </div>
+            </div>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              padding: '16px', 
+              border: '1px solid',
+              borderColor: currentTheme === 'light' ? 'var(--accent-color)' : 'var(--overlay-on-light-12)',
+              borderRadius: '8px', 
+              backgroundColor: 'var(--overlay-on-light-05)', 
+              cursor: 'pointer',
+            }} onClick={() => window.dispatchEvent(new CustomEvent('theme-change', { detail: 'light' }))}>
+              <span style={{ fontSize: '24px', marginRight: '16px' }}>☀️</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>
+                  {t('welcome.steps.theme.lightMode')}
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  {t('welcome.steps.theme.lightModeDesc')}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )
     },
     {
       id: 'emulator',
-      title: '模擬器配置',
+      title: t('welcome.steps.emulator.title'),
       icon: '⚙️',
-      description: '設定 J2ME 模擬器路徑',
+      description: t('welcome.steps.emulator.description'),
       content: (
         <div style={{ padding: '20px 0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
-            <span style={{ fontSize: '32px', marginRight: '12px' }}>⚙️</span>
-            <div>
-              <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: '600' }}>模擬器配置</h3>
-              <p style={{ margin: '0', fontSize: '14px', color: 'var(--text-secondary)' }}>
-                因 Lisence 的不相容，本程式不提供模擬器，請自行下載：
-              </p>
-            </div>
+          <div style={{ marginBottom: '24px' }}>
+            <p style={{ margin: '0 0 16px 0', fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+              {t('welcome.steps.emulator.notice')}
+            </p>
           </div>
-          
-          <div style={{ marginBottom: '16px' }}>
-            <div style={{ display: 'grid', gap: '8px' }}>
-              <Card style={{ padding: '12px', cursor: 'pointer' }} onClick={() => window.electronAPI?.openExternal?.('https://github.com/TASEmulators/freej2me-plus')}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--overlay-on-light-12)', borderRadius: '8px', padding: '12px' }}>
-                  <div>
-                    <div style={{ fontWeight: '600', fontSize: '14px' }}>FreeJ2ME-Plus</div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>J2ME EMU 的後起之秀。不僅與多種 J2ME 規範相容，而且同時提供了 AWT 前端和 Libretro 核心。</div>
-                  </div>
-                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>↗</span>
+
+          <div style={{ display: 'grid', gap: '12px' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '16px',
+                border: '1px solid var(--overlay-on-light-12)',
+                borderRadius: '8px',
+                backgroundColor: 'var(--overlay-on-light-03)',
+                cursor: 'pointer'
+              }}
+              onClick={() => window.electronAPI?.openExternal?.('https://github.com/TASEmulators/freej2me-plus')}
+            >
+              <span style={{ fontSize: '24px', marginRight: '16px' }}>🎮</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px' }}>
+                  {t('welcome.steps.emulator.freej2me.name')}
                 </div>
-              </Card>
-              <Card style={{ padding: '12px', cursor: 'pointer' }} onClick={() => window.electronAPI?.openExternal?.('https://github.com/shinovon/KEmulator')}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--overlay-on-light-12)', borderRadius: '8px', padding: '12px' }}>
-                  <div>
-                    <div style={{ fontWeight: '600', fontSize: '14px' }}>KEmulator nnmod</div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>老牌模擬器 KEmulator 的逆向工程，在進行諸多優化的同時，也提供了多桌面平台的支援。</div>
-                  </div>
-                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>↗</span>
+                <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                  {t('welcome.steps.emulator.freej2me.description')}
                 </div>
-              </Card>
+              </div>
+              <span style={{ fontSize: '16px', color: 'var(--text-secondary)' }}>↗</span>
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '16px',
+                border: '1px solid var(--overlay-on-light-12)',
+                borderRadius: '8px',
+                backgroundColor: 'var(--overlay-on-light-03)',
+                cursor: 'pointer'
+              }}
+              onClick={() => window.electronAPI?.openExternal?.('https://github.com/shinovon/KEmulator')}
+            >
+              <span style={{ fontSize: '24px', marginRight: '16px' }}>📱</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px' }}>
+                  {t('welcome.steps.emulator.kemulator.name')}
+                </div>
+                <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                  {t('welcome.steps.emulator.kemulator.description')}
+                </div>
+              </div>
+              <span style={{ fontSize: '16px', color: 'var(--text-secondary)' }}>↗</span>
             </div>
           </div>
 
-          <button 
-            style={{
-              width: '100%',
-              padding: '12px',
-              backgroundColor: 'var(--accent-color)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: 'pointer'
-            }}
-            onClick={() => {
-              // 觸發模擬器配置，但不關閉引導
-              window.dispatchEvent(new CustomEvent('open-emulator-config-from-guide'));
-              // 標記此步驟為已完成並進入下一步
-              setCompletedSteps(prev => new Set([...prev, 'emulator']));
-              nextStep();
-            }}
-          >
-            立即配置模擬器
-          </button>
+          <div style={{
+            marginTop: '20px',
+            textAlign: 'center'
+          }}>
+            <button
+              style={{
+                padding: '8px 16px',
+                backgroundColor: 'var(--accent-color)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('open-emulator-config-from-guide'));
+              }}
+            >
+              {t('welcome.steps.emulator.configureNow')}
+            </button>
+          </div>
         </div>
       )
     },
     {
       id: 'roms',
-      title: 'ROM 目錄',
+      title: t('welcome.steps.roms.title'),
       icon: '📁',
-      description: '選擇遊戲檔案存放位置',
+      description: t('welcome.steps.roms.description'),
       content: (
         <div style={{ padding: '20px 0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
-            <span style={{ fontSize: '32px', marginRight: '12px' }}>📁</span>
-            <div>
-              <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: '600' }}>配置 ROM 資料夾</h3>
-              <p style={{ margin: '0', fontSize: '14px', color: 'var(--text-secondary)' }}>
-                選擇包含 J2ME 遊戲檔案的資料夾
-              </p>
-            </div>
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600' }}>支援的 J2ME 規範：</h4>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '12px',
-                borderRadius: '12px',
-                padding: '12px', 
-                border: '1px solid var(--overlay-on-light-12)',
-                backgroundColor: 'var(--overlay-on-light-05)'
-              }}>
-                <span style={{ fontSize: '20px' }}>📱</span>
-                <div>
-                  <div style={{ fontWeight: '600', fontSize: '14px' }}>J2ME-MIDP</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>流行的 J2ME 標準規範，其 ROM 檔的後綴為 <code>.jar</code>。</div>
+          <div style={{ marginBottom: '20px' }}>
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600' }}>
+              {t('welcome.steps.roms.supportedFormats')}
+            </h4>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px',
+              borderRadius: '8px',
+              padding: '16px',
+              border: '1px solid var(--overlay-on-light-12)',
+              backgroundColor: 'var(--overlay-on-light-03)'
+            }}>
+              <span style={{ fontSize: '32px' }}>📱</span>
+              <div>
+                <div style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px' }}>
+                  {t('welcome.steps.roms.midp.name')}
+                </div>
+                <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                  {t('welcome.steps.roms.midp.description')}
                 </div>
               </div>
             </div>
           </div>
 
-          <button 
-            style={{
-              width: '100%',
-              padding: '12px',
-              backgroundColor: 'var(--accent-color)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: 'pointer'
-            }}
-            onClick={() => {
-              // 觸發目錄管理器，但不關閉引導
-              window.dispatchEvent(new CustomEvent('open-directory-manager-from-guide'));
-              // 標記此步驟為已完成並進入下一步
-              setCompletedSteps(prev => new Set([...prev, 'roms']));
-              nextStep();
-            }}
-          >
-            配置 ROM 資料夾
-          </button>
+          <div style={{
+            marginTop: '16px',
+            textAlign: 'center'
+          }}>
+            <button
+              style={{
+                padding: '8px 16px',
+                backgroundColor: 'var(--accent-color)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('open-directory-manager-from-guide'));
+              }}
+            >
+              {t('welcome.steps.roms.configureFolder')}
+            </button>
+          </div>
         </div>
       )
     },
     {
       id: 'cloud',
-      title: '雲端備份',
+      title: t('welcome.steps.cloud.title'),
       icon: '☁️',
-      description: '配置雲端同步服務（可選）',
+      description: t('welcome.steps.cloud.description'),
       content: (
         <div style={{ padding: '20px 0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
-            <span style={{ fontSize: '32px', marginRight: '12px' }}>☁️</span>
-            <div>
-              <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: '600' }}>雲端備份</h3>
-              <p style={{ margin: '0', fontSize: '14px', color: 'var(--text-secondary)' }}>
-                保護您的軟體配置和遊戲存檔
-              </p>
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ display: 'grid', gap: '12px' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                borderRadius: '8px',
+                padding: '16px',
+                border: '1px solid var(--overlay-on-light-12)',
+                backgroundColor: 'var(--overlay-on-light-03)'
+              }}>
+                <img
+                  src={DropboxSvg}
+                  alt="Dropbox"
+                  style={{
+                    height: '24px',
+                    opacity: 0.9,
+                    filter: svgFilter,
+                  }}
+                />
+                <div>
+                  <div style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px' }}>
+                    {t('welcome.steps.cloud.services.dropbox.name')}
+                  </div>
+                  <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                    {t('welcome.steps.cloud.services.dropbox.description')}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                borderRadius: '8px',
+                padding: '16px',
+                border: '1px solid var(--overlay-on-light-12)',
+                backgroundColor: 'var(--overlay-on-light-03)'
+              }}>
+                <img
+                  src={WebdavSvg}
+                  alt="Webdav"
+                  style={{
+                    height: '24px',
+                    opacity: 0.9,
+                    filter: svgFilter,
+                  }}
+                />
+                <div>
+                  <div style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px' }}>
+                    {t('welcome.steps.cloud.services.webdav.name')}
+                  </div>
+                  <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                    {t('welcome.steps.cloud.services.webdav.description')}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                borderRadius: '8px',
+                padding: '16px',
+                border: '1px solid var(--overlay-on-light-12)',
+                backgroundColor: 'var(--overlay-on-light-03)'
+              }}>
+                <img
+                  src={S3Svg}
+                  alt="S3"
+                  style={{
+                    height: '24px',
+                    opacity: 0.9,
+                    filter: svgFilter,
+                  }}
+                />
+                <div>
+                  <div style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px' }}>
+                    {t('welcome.steps.cloud.services.s3.name')}
+                  </div>
+                  <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                    {t('welcome.steps.cloud.services.s3.description')}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div style={{ marginBottom: '16px' }}>
-            <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600' }}>支援的雲端服務：</h4>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '8px',
-                borderRadius: '12px',
-                padding: '12px', 
-                border: '1px solid var(--overlay-on-light-12)',
-                backgroundColor: 'var(--overlay-on-light-05)'
-              }}>
-                <span style={{ fontSize: '16px' }}>📦</span>
-                <div>
-                  <div style={{ fontWeight: '600', fontSize: '12px' }}>Dropbox</div>
-                  <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>簡單易用</div>
-                </div>
-              </div>
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '8px',
-                borderRadius: '12px',
-                padding: '12px', 
-                border: '1px solid var(--overlay-on-light-12)',
-                backgroundColor: 'var(--overlay-on-light-05)'
-              }}>
-                <span style={{ fontSize: '16px' }}>🌐</span>
-                <div>
-                  <div style={{ fontWeight: '600', fontSize: '12px' }}>WebDAV</div>
-                  <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>通用協議</div>
-                </div>
-              </div>
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '8px',
-                borderRadius: '12px',
-                padding: '12px', 
-                border: '1px solid var(--overlay-on-light-12)',
-                backgroundColor: 'var(--overlay-on-light-05)'
-              }}>
-                <span style={{ fontSize: '16px' }}>☁️</span>
-                <div>
-                  <div style={{ fontWeight: '600', fontSize: '12px' }}>S3 API</div>
-                  <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>相容服務</div>
-                </div>
-              </div>
-            </div>
+          <div style={{
+            marginTop: '20px',
+            textAlign: 'center'
+          }}>
+            <button
+              style={{
+                padding: '8px 16px',
+                backgroundColor: 'var(--accent-color)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('open-backup-config-from-guide'));
+              }}
+            >
+              {t('welcome.steps.cloud.configureBackup')}
+            </button>
           </div>
-
-          <button 
-            style={{
-              width: '100%',
-              padding: '12px',
-              backgroundColor: 'var(--accent-color)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: 'pointer'
-            }}
-            onClick={() => {
-              // 觸發備份配置，但不關閉引導
-              window.dispatchEvent(new CustomEvent('open-backup-config-from-guide'));
-              // 標記此步驟為已完成並進入下一步
-              setCompletedSteps(prev => new Set([...prev, 'cloud']));
-              nextStep();
-            }}
-          >
-            配置雲端備份
-          </button>
         </div>
       )
     },
     {
       id: 'tutorial',
-      title: '基本操作',
+      title: t('welcome.steps.tutorial.title'),
       icon: '🎯',
-      description: '基本使用方式',
       content: (
         <div style={{ padding: '20px 0' }}>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <Card style={{ padding: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '24px',borderRadius: '12px',padding: '12px', border: '1px solid var(--overlay-on-light-12)' }}>
-                <span style={{ fontSize: '20px' }}>⚔️</span>
-                <div>
-                  <div style={{ fontWeight: '600', fontSize: '14px', marginBottom: '2px' }}>啟動遊戲</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>雙擊遊戲卡片即可啟動</div>
+          <div style={{ display: 'grid', gap: '12px' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px',
+              borderRadius: '8px',
+              padding: '16px',
+              border: '1px solid var(--overlay-on-light-12)',
+              backgroundColor: 'var(--overlay-on-light-03)'
+            }}>
+              <span style={{ fontSize: '24px' }}>⚔️</span>
+              <div>
+                <div style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px' }}>
+                  {t('welcome.steps.tutorial.actions.launch.title')}
+                </div>
+                <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                  {t('welcome.steps.tutorial.actions.launch.description')}
                 </div>
               </div>
-            </Card>
+            </div>
 
-            <Card style={{ padding: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '24px',borderRadius: '12px',padding: '12px', border: '1px solid var(--overlay-on-light-12)' }}>
-                <span style={{ fontSize: '20px' }}>📁</span>
-                <div>
-                  <div style={{ fontWeight: '600', fontSize: '14px', marginBottom: '2px' }}>整理遊戲</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>拖拽遊戲到左側資料夾進行分類</div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px',
+              borderRadius: '8px',
+              padding: '16px',
+              border: '1px solid var(--overlay-on-light-12)',
+              backgroundColor: 'var(--overlay-on-light-03)'
+            }}>
+              <span style={{ fontSize: '24px' }}>📁</span>
+              <div>
+                <div style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px' }}>
+                  {t('welcome.steps.tutorial.actions.organize.title')}
+                </div>
+                <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                  {t('welcome.steps.tutorial.actions.organize.description')}
                 </div>
               </div>
-            </Card>
+            </div>
 
-            <Card style={{ padding: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '24px',borderRadius: '12px',padding: '12px', border: '1px solid var(--overlay-on-light-12)' }}>
-                <span style={{ fontSize: '20px' }}>🔍</span>
-                <div>
-                  <div style={{ fontWeight: '600', fontSize: '14px', marginBottom: '2px' }}>搜尋遊戲</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>使用頂部搜尋列快速找到遊戲</div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px',
+              borderRadius: '8px',
+              padding: '16px',
+              border: '1px solid var(--overlay-on-light-12)',
+              backgroundColor: 'var(--overlay-on-light-03)'
+            }}>
+              <span style={{ fontSize: '24px' }}>🔍</span>
+              <div>
+                <div style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px' }}>
+                  {t('welcome.steps.tutorial.actions.search.title')}
+                </div>
+                <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                  {t('welcome.steps.tutorial.actions.search.description')}
                 </div>
               </div>
-            </Card>
+            </div>
 
-            <Card style={{ padding: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '24px',borderRadius: '12px',padding: '12px', border: '1px solid var(--overlay-on-light-12)' }}>
-                <span style={{ fontSize: '20px' }}>⚙️</span>
-                <div>
-                  <div style={{ fontWeight: '600', fontSize: '14px', marginBottom: '2px' }}>遊戲設定</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>右鍵遊戲卡片可進行個別設定</div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px',
+              borderRadius: '8px',
+              padding: '16px',
+              border: '1px solid var(--overlay-on-light-12)',
+              backgroundColor: 'var(--overlay-on-light-03)'
+            }}>
+              <span style={{ fontSize: '24px' }}>⚙️</span>
+              <div>
+                <div style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px' }}>
+                  {t('welcome.steps.tutorial.actions.settings.title')}
+                </div>
+                <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                  {t('welcome.steps.tutorial.actions.settings.description')}
                 </div>
               </div>
-            </Card>
+            </div>
           </div>
         </div>
       )
     },
     {
       id: 'complete',
-      title: '設定完成',
+      title: t('welcome.steps.complete.title'),
       icon: '✅',
-      description: '在 J2ME 的海洋中遨游吧',
       content: (
-        <div style={{ textAlign: 'center', padding: '20px 0' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎉</div>
-          <h2 style={{ margin: '0 0 12px 0', fontSize: '24px', fontWeight: '600' }}>
-            設定完成
+        <div style={{
+          padding: '40px 0',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          textAlign: 'center',
+          minHeight: '300px'
+        }}>
+          <div style={{ fontSize: '96px', marginBottom: '32px' }}>🎉</div>
+          <h2 style={{
+            margin: '0 0 24px 0',
+            fontSize: '32px',
+            fontWeight: '700',
+            color: 'var(--text-primary)'
+          }}>
+            {t('welcome.steps.complete.subtitle')}
           </h2>
-          <p style={{ margin: '0 0 24px 0', fontSize: '16px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-            您已經準備好開始使用 J2ME Launcher<br/>
-            現在可以透過該程式管理您的 J2ME 收藏了！
+          <p style={{
+            margin: '0',
+            fontSize: '18px',
+            color: 'var(--text-secondary)',
+            lineHeight: '1.6',
+            maxWidth: '400px'
+          }}>
+            {t('welcome.steps.complete.message')}<br />
+            {t('welcome.steps.complete.submessage')}
           </p>
-
-          <button 
-            style={{
-              padding: '12px 24px',
-              backgroundColor: 'var(--accent-color)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '16px',
-              fontWeight: '600',
-              cursor: 'pointer'
-            }}
-            onClick={() => {
-              onComplete();
-              onClose();
-            }}
-          >
-            開始使用 J2ME Launcher
-          </button>
         </div>
       )
     }
-  ];
+  ], [t, svgFilter]);
 
   const nextStep = () => {
     if (currentStep < steps.length - 1) {
@@ -354,137 +586,139 @@ const WelcomeGuideDialog = ({ isOpen, onClose, onComplete }) => {
     }
   };
 
-  const skipStep = () => {
-    setCompletedSteps(prev => new Set([...prev, steps[currentStep].id]));
-    nextStep();
-  };
-
   const currentStepData = steps[currentStep];
 
   // Define footer actions based on current step
   const getFooterActions = () => {
     const actions = [];
-    
+
     // Previous button
     if (currentStep > 0) {
       actions.push({
         key: 'prev',
-        label: '上一步',
+        label: t('app.previous'),
         variant: 'secondary',
         onClick: prevStep
       });
     }
-    
-    // Skip button (only show for middle steps)
-    if (currentStep > 0 && currentStep < steps.length - 1) {
-      actions.push({
-        key: 'skip',
-        label: '跳過',
-        variant: 'secondary',
-        onClick: skipStep
-      });
-    }
-    
+
+
     // Next/Complete button
     if (currentStep < steps.length - 1) {
       actions.push({
         key: 'next',
-        label: '下一步',
+        label: t('app.next'),
         variant: 'primary',
         onClick: nextStep
       });
     } else {
       actions.push({
-        key: 'later',
-        label: '稍後設定',
-        variant: 'secondary',
-        onClick: onClose
+        key: 'start',
+        label: t('app.startUsing'),
+        variant: 'primary',
+        onClick: () => {
+          onComplete();
+          onClose();
+        }
       });
     }
-    
+
     return actions;
   };
 
   return (
     <div style={{ zIndex: 9999 }}>
-      <ModalWithFooter 
-        isOpen={isOpen} 
-        onClose={onClose} 
-        title="快速設定指南" 
-        size="lg"
+      <ModalWithFooter
+        isOpen={isOpen}
+        onClose={onClose}
+        title="快速設定指南"
+        size="md"
         actions={getFooterActions()}
         bodyClassName="welcome-guide-body"
       >
-        <div style={{ 
-          padding: '0',  
-          display: 'flex',
-          flexDirection: 'column',
-          height: '100%',
-          justifyContent: 'space-between'
+        <div style={{
+          padding: '0',
+          display: 'flex'
         }}>
-        {/* Progress Bar */}
-        <div style={{ 
-          padding: '20px 24px 0 24px',
-          borderBottom: '1px solid var(--overlay-on-light-10)',
-          flexShrink: 0
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
-            {steps.map((step, index) => (
-              <React.Fragment key={step.id}>
-                <div style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
+          {/* Left Sidebar - Windows Installer Style */}
+          <div style={{
+            width: '120px',
+            backgroundColor: 'var(--overlay-on-light-03)',
+            borderRight: '1px solid var(--overlay-on-light-10)',
+            padding: '24px 16px',
+            flexShrink: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-start',
+            alignItems: 'center',
+            minHeight: '400px'
+          }}>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              marginTop: '60px',
+              alignItems: 'center'
+            }}>
+              {steps.map((step, index) => (
+                <div key={step.id} style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '16px',
-                  backgroundColor: index <= currentStep ? 'var(--accent-color)' : 'var(--overlay-on-light-10)',
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '50%',
+                  backgroundColor: index === currentStep ? 'var(--accent-color)' : (index < currentStep ? 'var(--accent-color)' : 'var(--overlay-on-light-10)'),
                   color: index <= currentStep ? 'white' : 'var(--text-secondary)',
-                  fontWeight: '600'
+                  fontSize: '20px',
+                  fontWeight: '600',
+                  transition: 'all 0.2s ease',
+                  border: index === currentStep ? '3px solid var(--accent-color-alpha)' : '3px solid transparent'
                 }}>
                   {index < currentStep ? '✓' : step.icon}
                 </div>
-                {index < steps.length - 1 && (
-                  <div style={{
-                    flex: 1,
-                    height: '2px',
-                    backgroundColor: index < currentStep ? 'var(--accent-color)' : 'var(--overlay-on-light-10)',
-                    margin: '0 8px'
-                  }} />
-                )}
-              </React.Fragment>
-            ))}
+              ))}
+            </div>
           </div>
-          <div style={{ textAlign: 'center', paddingBottom: '16px' }}>
-            <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: '600' }}>
-              {currentStepData.title}
-            </h3>
-            <p style={{ margin: '0', fontSize: '14px', color: 'var(--text-secondary)' }}>
-              {currentStepData.description}
-            </p>
-          </div>
-        </div>
 
-        {/* Step Content */}
-        <div style={{ 
-          padding: '0 24px', 
-          flex: 1, 
-          display: 'flex', 
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'stretch'
-        }}>
-          <div style={{ 
-            display: 'flex', 
+          {/* Right Content Area */}
+          <div style={{
+            flex: 1,
+            display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'center',
-            minHeight: '300px'
+            minHeight: 0
           }}>
-            {currentStepData.content}
+            {/* Header */}
+            <div style={{
+              padding: '24px 32px 16px 32px',
+              borderBottom: '1px solid var(--overlay-on-light-08)',
+              flexShrink: 0
+            }}>
+              <h2 style={{ margin: '0 0 8px 0', fontSize: '24px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                {currentStepData.title}
+              </h2>
+              {currentStepData.description && (
+                <p style={{ margin: '0', fontSize: '16px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                  {currentStepData.description}
+                </p>
+              )}
+            </div>
+
+            {/* Content */}
+            <div
+              className="welcome-guide-content-scroll"
+              style={{
+                padding: '24px 32px',
+                overflowY: 'scroll',
+                flex: 1,
+                minHeight: 0,
+                maxHeight: 'calc(75vh - 200px)'
+              }}
+            >
+              {currentStepData.content}
+            </div>
           </div>
         </div>
-      </div>
       </ModalWithFooter>
     </div>
   );

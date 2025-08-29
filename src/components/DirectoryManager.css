@@ -148,9 +148,17 @@
 /* 讓目錄管理彈窗的 body 使用彈性佈局，
    以便 .directory-list 能佔滿剩餘高度，
    讓空狀態可在容器內做垂直置中 */
-.directory-manager .modal-body {
+.modal-content.directory-manager-specific .modal-body {
   display: flex;
   flex-direction: column;
+}
+
+/* DirectoryManager 專用：modal-body 的直接子元素需要彈性佈局 */
+.modal-content.directory-manager-specific.has-actions .modal-body > div:first-child {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 /* 歡迎引導彈窗的 body：使用更高特異性覆蓋預設樣式 */
@@ -159,7 +167,33 @@
   flex-direction: column;
   overflow-y: visible;
   padding: 0;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
+}
+
+/* 歡迎引導彈窗內容滾動區域 */
+.welcome-guide-content-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--dialog-border) var(--dialog-bg);
+  overflow-y: scroll !important;
+}
+
+.welcome-guide-content-scroll::-webkit-scrollbar {
+  width: 12px;
+}
+
+.welcome-guide-content-scroll::-webkit-scrollbar-track {
+  background: var(--dialog-bg);
+}
+
+.welcome-guide-content-scroll::-webkit-scrollbar-thumb {
+  background: var(--dialog-border);
+  border-radius: 6px;
+  border: 2px solid var(--dialog-bg);
+}
+
+.welcome-guide-content-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
 }
 
 /* 僅對含有動作按鈕的彈窗，強制內部滾動並始終預留滾動條寬度，避免寬度跳動 */
@@ -576,7 +610,8 @@ input[type="number"].form-input {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 160px;
+  /* 佔滿剩餘空間，在彈性容器中真正居中 */
+  flex: 1;
 }
 
 .directory-item {
@@ -657,6 +692,13 @@ input[type="number"].form-input {
   border-radius: 24px;
   border: 1px solid var(--border-color);
 }
+
+/* 在 .modal-body 內的 Select 按鈕外觀，與對話框容器一致 */
+.modal-body .select-button {
+  border-color: var(--dialog-border);
+  background: var(--dialog-bg);
+}
+
 
 /* 對話框上下文：僅在彈窗內將切換開關邊框對齊對話框邊界色 */
 .modal-body .toggle-slider {

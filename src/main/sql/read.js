@@ -8,13 +8,18 @@ function rowToGame(row) {
   const manifest = row.manifest ? JSON.parse(row.manifest) : null;
   const base = {
     filePath: row.filePath,
-    gameName: row.gameName,
-    vendor: row.vendor,
+    gameName: row.customName || row.gameName, // 優先使用自定義名稱
+    vendor: row.customVendor || row.vendor,   // 優先使用自定義開發商
     version: row.version,
     md5: row.md5,
     iconPath: row.iconPath,
     mtimeMs: row.mtimeMs,
-    size: row.size
+    size: row.size,
+    // 保留原始數據供編輯時使用
+    originalName: row.gameName,
+    originalVendor: row.vendor,
+    customName: row.customName,
+    customVendor: row.customVendor
   };
   return manifest ? { ...base, ...manifest } : base;
 }

@@ -43,7 +43,7 @@ html, body, #root {
   transition: none;
 
   /* 確保右鍵菜單覆蓋整個區域，但不影響子元素 */
-  min-height: calc(100vh - 100px);
+  min-height: calc(100vh - 36px - 16px - 24px);
 
   /* 防止瀏覽器滾動錨點在列表異動（例如拖拽插入/刪除，且發生在視口外）時導致視圖跳動 */
   overflow-anchor: none;
@@ -72,7 +72,7 @@ html, body, #root {
   width: 100%;
 
   /* 讓網格至少撐滿視圖高度，便於在空白區域開始框選（與 .desktop-view 對齊） */
-  min-height: calc(100vh - 100px);
+  min-height: calc(100vh - 36px - 16px - 24px);
 
   /* 與容器一致，避免滾動錨點影響網格重排時的視口位置 */
   overflow-anchor: none;
@@ -186,7 +186,7 @@ html, body, #root {
   justify-content: center;
 
   /* 與 game-grid.empty 對齊視口高度基準，確保垂直居中一致 */
-  min-height: calc(100vh - 32px);
+  min-height: calc(100vh - 36px - 16px - 24px);
 }
 
 .empty-state {

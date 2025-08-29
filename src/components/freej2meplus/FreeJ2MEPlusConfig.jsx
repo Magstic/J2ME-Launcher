@@ -1,5 +1,6 @@
 import React from 'react';
 import { Card, RomCacheSwitch, Select } from '@ui';
+import { useTranslation } from '@hooks/useTranslation';
 
 // FreeJ2ME-Plus configuration block used by both EmulatorConfig and GameLaunch dialogs.
 // Renders exactly three cards (selects, assets, toggles) following the layout in EmulatorConfigDialog.
@@ -12,6 +13,8 @@ import { Card, RomCacheSwitch, Select } from '@ui';
 export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, values = {}, onChange, disabled = false, romCache, onRomCacheChange, romCacheDisabled = false }) {
   const supportsAssets = Array.isArray(caps?.supportsAssets) ? caps.supportsAssets : [];
   const isEmu = context === 'emulator';
+
+  const { t } = useTranslation();
 
   const RES_OPTIONS = [
     '96x65','101x64','101x80','128x128','130x130','120x160','128x160','132x176','176x208','176x220','220x176','208x208','180x320','320x180','208x320','240x320','320x240','240x400','400x240','240x432','240x480','360x360','352x416','360x640','640x360','640x480','480x800','800x480'
@@ -34,7 +37,7 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
         <div className="grid-2">
           {/* 解析度（合併 width/height） */}
           <div className="form-row">
-            <label className="form-label">解析度</label>
+            <label className="form-label">{t('emulatorConfig.freej2mePlus.resolution')}</label>
             <Select
               value={getResValue()}
               onChange={setResValue}
@@ -45,7 +48,7 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
           </div>
           {/* 縮放 scale */}
           <div className="form-row">
-            <label className="form-label">縮放（scale）</label>
+            <label className="form-label">{t('emulatorConfig.freej2mePlus.scale')}</label>
             <Select
               value={values.scale ?? 2}
               onChange={(v) => setVal('scale', parseInt(v, 10))}
@@ -56,7 +59,7 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
           </div>
           {/* 幀率 framerate */}
           <div className="form-row">
-            <label className="form-label">幀率（framerate）</label>
+            <label className="form-label">{t('emulatorConfig.freej2mePlus.framerate')}</label>
             <Select
               value={values.framerate ?? 60}
               onChange={(v) => setVal('framerate', parseInt(v, 10))}
@@ -67,7 +70,7 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
           </div>
           {/* 鍵位佈局 keyLayout */}
           <div className="form-row">
-            <label className="form-label">鍵位佈局（keyLayout）</label>
+            <label className="form-label">{t('emulatorConfig.freej2mePlus.keyLayout')}</label>
             <Select
               value={values.keyLayout ?? 0}
               onChange={(v) => setVal('keyLayout', parseInt(v, 10))}
@@ -90,25 +93,25 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
           </div>
           {/* 背光顔色 backlightcolor */}
           <div className="form-row">
-            <label className="form-label">背光顏色（backlightcolor）</label>
+            <label className="form-label">{t('emulatorConfig.freej2mePlus.backlightcolor')}</label>
             <Select
               value={values.backlightcolor ?? 'Disabled'}
               onChange={(v) => setVal('backlightcolor', v)}
               disabled={disabled}
               options={[
-                { value: 'Disabled', label: '禁用' },
-                { value: 'Green', label: '綠色' },
-                { value: 'Cyan', label: '青色' },
-                { value: 'Orange', label: '橘色' },
-                { value: 'Violet', label: '紫色' },
-                { value: 'Red', label: '紅色' },
+                { value: 'Disabled', label: t('emulatorConfig.freej2mePlus.bgcolor.disabled') },
+                { value: 'Green', label: t('emulatorConfig.freej2mePlus.bgcolor.green') },
+                { value: 'Cyan', label: t('emulatorConfig.freej2mePlus.bgcolor.cyan') },
+                { value: 'Orange', label: t('emulatorConfig.freej2mePlus.bgcolor.orange') },
+                { value: 'Violet', label: t('emulatorConfig.freej2mePlus.bgcolor.violet') },
+                { value: 'Red', label: t('emulatorConfig.freej2mePlus.bgcolor.red') },
               ]}
               placeholder="選擇背光顏色"
             />
           </div>
           {/* 字體尺寸 fontoffset */}
           <div className="form-row">
-            <label className="form-label">字體尺寸（fontoffset）</label>
+            <label className="form-label">{t('emulatorConfig.freej2mePlus.fontoffset')}</label>
             <Select
               value={values.fontoffset ?? '-2'}
               onChange={(v) => setVal('fontoffset', v)}
@@ -119,7 +122,7 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
           </div>
           {/* 螢幕旋轉 rotate */}
           <div className="form-row">
-            <label className="form-label">螢幕旋轉（rotate）</label>
+            <label className="form-label">{t('emulatorConfig.freej2mePlus.rotate')}</label>
             <Select
               value={values.rotate ?? '0'}
               onChange={(v) => setVal('rotate', v)}
@@ -135,7 +138,7 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
           </div>
           {/* FPS HACK */}
           <div className="form-row">
-            <label className="form-label">FPS HACK（fpshack）</label>
+            <label className="form-label">{t('emulatorConfig.freej2mePlus.fpshack')}</label>
             <Select
               value={values.fpshack ?? 'Disabled'}
               onChange={(v) => setVal('fpshack', v)}
@@ -153,13 +156,12 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
       </Card>
 
       {/* Assets container: emulator shows controls if supported; game shows note only */}
-      {isEmu ? (
-        supportsAssets.length > 0 ? (
+      {isEmu && supportsAssets.length > 0 ? (
           <Card className="assets p-12 mb-12" variant="muted">
             <div className="grid-2">
               {supportsAssets.includes('soundfont') && (
                 <div className="form-row">
-                  <label className="form-label">音源</label>
+                  <label className="form-label">{t('emulatorConfig.freej2mePlus.sf2')}</label>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', flex: '1 1 auto' }}>
                     <label className="toggle-switch" title="使用自訂音源">
                       <input
@@ -184,13 +186,13 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
                           console.warn('選擇/匯入音色庫發生錯誤:', e);
                         }
                       }}
-                    >載入</button>
+                    >{t('app.load')}</button>
                   </div>
                 </div>
               )}
               {supportsAssets.includes('textfont') && (
                 <div className="form-row">
-                  <label className="form-label">字體</label>
+                  <label className="form-label">{t('emulatorConfig.freej2mePlus.font')}</label>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', flex: '1 1 auto' }}>
                     <label className="toggle-switch" title="使用自訂字體">
                       <input
@@ -215,7 +217,7 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
                           console.warn('選擇/匯入文字字體發生錯誤:', e);
                         }
                       }}
-                    >載入</button>
+                    >{t('app.load')}</button>
                   </div>
                 </div>
               )}
@@ -224,24 +226,17 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
         ) : (
           <Card className="assets p-12 mb-12" variant="muted">
             <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
-              音源和字體為全局參數，請前往『模擬器設定』配置。
+              {t('emulatorConfig.freej2mePlus.hint2')}
             </p>
           </Card>
-        )
-      ) : (
-        <Card className="assets p-12 mb-12" variant="muted">
-          <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
-            音源和字體為全局參數，請前往『模擬器設定』配置。
-          </p>
-        </Card>
-      )}
+        )}
 
       {/* Toggles container */}
       <Card className="toggles p-12 mb-12" variant="muted">
         <div className="grid-2">
           {/* 相容性選項 */}
           <div className="form-row">
-            <label className="form-label">Fantasy Zone 修復</label>
+            <label className="form-label">{t('emulatorConfig.freej2mePlus.compatfantasyzonefix')}</label>
             <label className="toggle-switch" title="compatfantasyzonefix">
               <input
                 type="checkbox"
@@ -253,7 +248,7 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
             </label>
           </div>
           <div className="form-row">
-            <label className="form-label">即時處理畫布重繪呼叫</label>
+            <label className="form-label">{t('emulatorConfig.freej2mePlus.compatimmediaterepaints')}</label>
             <label className="toggle-switch" title="compatimmediaterepaints">
               <input
                 type="checkbox"
@@ -265,7 +260,7 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
             </label>
           </div>
           <div className="form-row">
-            <label className="form-label">覆寫行動平臺檢查</label>
+            <label className="form-label">{t('emulatorConfig.freej2mePlus.compatoverrideplatchecks')}</label>
             <label className="toggle-switch" title="compatoverrideplatchecks">
               <input
                 type="checkbox"
@@ -277,7 +272,7 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
             </label>
           </div>
           <div className="form-row">
-            <label className="form-label">Siemens 友好繪圖</label>
+            <label className="form-label">{t('emulatorConfig.freej2mePlus.compatsiemensfriendlydrawing')}</label>
             <label className="toggle-switch" title="compatsiemensfriendlydrawing">
               <input
                 type="checkbox"
@@ -289,7 +284,7 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
             </label>
           </div>
           <div className="form-row">
-            <label className="form-label">圖像重設時平移至原點</label>
+            <label className="form-label">{t('emulatorConfig.freej2mePlus.compattranstooriginonreset')}</label>
             <label className="toggle-switch" title="compattranstooriginonreset">
               <input
                 type="checkbox"
@@ -302,7 +297,7 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
           </div>
           {/* 模擬手機聲音 sound */}
           <div className="form-row">
-            <label className="form-label">模擬手機聲音（sound）</label>
+            <label className="form-label">{t('emulatorConfig.freej2mePlus.sound')}</label>
             <label className="toggle-switch" title="sound">
               <input
                 type="checkbox"
@@ -315,7 +310,7 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
           </div>
           {/* 無 Alpha 空白影像 spdhacknoalpha */}
           <div className="form-row">
-            <label className="form-label">無 Alpha 空白影像</label>
+            <label className="form-label">{t('emulatorConfig.freej2mePlus.spdhacknoalpha')}</label>
             <label className="toggle-switch" title="spdhacknoalpha">
               <input
                 type="checkbox"
@@ -328,7 +323,7 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
           </div>
           {/* 全螢幕 fullscreen */}
           <div className="form-row">
-            <label className="form-label">全螢幕（fullscreen）</label>
+            <label className="form-label">{t('emulatorConfig.freej2mePlus.fullscreen')}</label>
             <label className="toggle-switch" title="fullscreen">
               <input
                 type="checkbox"

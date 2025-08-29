@@ -31,8 +31,8 @@ function upsertGames(gamesArray) {
     INSERT INTO games (filePath, gameName, vendor, version, md5, iconPath, mtimeMs, size, manifest)
     VALUES (@filePath, @gameName, @vendor, @version, @md5, @iconPath, @mtimeMs, @size, @manifest)
     ON CONFLICT(filePath) DO UPDATE SET
-      gameName=excluded.gameName,
-      vendor=excluded.vendor,
+      gameName=CASE WHEN customName IS NULL THEN excluded.gameName ELSE gameName END,
+      vendor=CASE WHEN customVendor IS NULL THEN excluded.vendor ELSE vendor END,
       version=excluded.version,
       md5=excluded.md5,
       iconPath=excluded.iconPath,

@@ -64,6 +64,8 @@ const UnifiedGrid = ({
     },
     hitSelector: '.game-card',
     fadeDuration: FLIP_DURATION,
+    gamesList: games, // 傳入遊戲列表用於緩存失效檢測
+    enableCachePersistence: true, // 啟用緩存持久化優化
   });
 
   // 對外提供 selectedRef（拖拽需要）
@@ -247,7 +249,7 @@ const UnifiedGrid = ({
     return (
       <div className="desktop-grid loading">
         <div className="loading-spinner">
-          <span>載入中...</span>
+          <span>LOADING</span>
         </div>
       </div>
     );
@@ -259,8 +261,6 @@ const UnifiedGrid = ({
       <div className="desktop-grid empty">
         <div className="empty-state">
           <div className="empty-icon">📁</div>
-          <h3>沒有內容</h3>
-          <p>使用左側抽屜下方「+」按鈕建立資料夾，或掃描目錄添加遊戲</p>
         </div>
       </div>
     );
@@ -390,7 +390,7 @@ const UnifiedGrid = ({
           } else {
             const game = games[idx - folders.length];
             if (!game || !game.filePath) {
-              console.warn(`Skipping invalid game at index ${idx - folders.length} in games array`, game);
+              // 靜默跳過無效遊戲，避免控制台警告
               continue; // Skip this item but keep rendering others
             }
             const extra = (typeof gameCardExtraProps === 'function') ? (gameCardExtraProps(game) || {}) : (gameCardExtraProps || {});

@@ -5,41 +5,8 @@
   box-sizing: border-box;
 }
 
-/* 追加：控制器模式聚焦動畫與平滑滾動 */
 
-.game-card-wrapper.focused .game-card {
-  /* 聚焦時輕微放大，並啟用硬體加速層 */
-  transform: translateZ(0) scale(1.03);
-  border-color: var(--accent-color);
 
-  /* 焦點外環（原: rgba(0, 123, 255, 0.15)） */
-  box-shadow: 0 0 0 4px var(--focus-ring-weak);
-}
-
-/* 視圖分層：同時渲染 Desktop 與 Grid，避免卸載導致閃爍
- * 使用 visibility/pointer-events 控制顯示，以保留每個視圖自己的滾動位置
- */
-
- 
-.view-layer {
-  position: absolute;
-  inset: 0;
-  overflow: hidden auto; /* 各視圖獨立滾動 */ /* 防止抽屜/平移導致橫向滾動條 */
-
-  /* 穩定滾動條凹槽，避免在顯示/隱藏時造成布局左右跳動 */
-  scrollbar-gutter: stable both-edges;
-  padding: inherit; /* 保留 content-area 的內邊距 */
-}
-
-.view-hidden {
-  visibility: hidden;
-  pointer-events: none;
-}
-
-.view-active {
-  visibility: visible;
-  pointer-events: auto;
-}
 
 /* 應用程式容器，包含標題欄和主體 */
 .app-container {
@@ -142,10 +109,6 @@ body {
   padding-left: 120px;
 }
 
-/* 控制器模式不需要抽屜空間，重置為 0 */
-.grid-mode .main-content {
-  padding-left: 0;
-}
 
 /* 內容區域，包含兩個視圖層（各自可滾動） */
 .content-area {
@@ -420,12 +383,6 @@ body.any-modal-open .fab-menu.open {
   scroll-behavior: smooth; /* 讓連續移動時滾動有動畫 */
 }
 
-/* 控制器模式：穩定滾動條凹槽並水平置中網格 */
-.game-grid.controller-mode {
-  /* 因控制器模式自身作為滾動容器，這裡需要自行預留雙側凹槽，避免右偏 */
-  scrollbar-gutter: stable both-edges;
-  justify-content: center; /* 將網格軌道在可用寬度中居中 */
-}
 
 /* 讓桌面網格同樣填滿可用高度 */
 .content-area > .desktop-grid {
@@ -551,14 +508,6 @@ body.any-modal-open .fab-menu.open {
   color: var(--text-secondary);
 }
 
-/* 控制器模式：廠商名稱單行省略，與遊戲名一致的邏輯 */
-.game-grid.controller-mode .game-card .game-vendor {
-  display: block;
-  max-width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 
 .game-version {
   /* 次要文字（原: #8a8886） */

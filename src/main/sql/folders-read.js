@@ -173,10 +173,10 @@ function getGamesInAnyFolder() {
 module.exports = {
   getFolders,
   getFolderById,
+  getFolderGameCount,
   getGamesByFolder,
   getUncategorizedGames,
   getFolderStats,
   getGameFolders,
-  getFolderGameCount,
-  getGamesInAnyFolder,
+  getGamesInAnyFolder
 };

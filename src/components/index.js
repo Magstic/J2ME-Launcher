@@ -11,8 +11,6 @@ export { default as GameInfoDialog } from './Desktop/GameInfoDialog';
 export { default as EmulatorConfigDialog } from './EmulatorConfigDialog';
 export { default as FolderWindowApp } from './FolderWindowApp';
 
-// Controller mode
-export { default as GameGridController } from './controller/GameGridController';
 
 // UI Dialogs (sub-namespace style)
 export * as ui from './ui/index.js';

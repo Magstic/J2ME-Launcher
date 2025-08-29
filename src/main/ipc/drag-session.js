@@ -5,6 +5,8 @@ const path = require('path');
 const { addGameToFolder: sqlAddGameToFolder, removeGameFromFolder: sqlRemoveGameFromFolder } = require('../sql/folders-write');
 const { getFolderById: sqlGetFolderById } = require('../sql/folders-read');
 const { getDB } = require('../db');
+const { batchAddGamesToFolder } = require('../utils/batch-operations');
+const { getGameStateCache } = require('../utils/game-state-cache');
 
 function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWindow }) {
   const looksLikePath = (s) => typeof s === 'string' && (s.includes('\\') || s.includes('/') || /\.(jar|jad)$/i.test(s));
@@ -29,6 +31,30 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWi
     } catch {}
     return probeCanonicalPath(normalizePath(gameIdOrPath));
   };
+
+  // Shared batch operation functions
+  const createBatchOperations = () => ({
+    addGameToFolder: (filePath, folderId) => {
+      try { 
+        sqlAddGameToFolder(folderId, resolveFilePath(filePath), {}); 
+        return { success: true }; 
+      } catch (e) { 
+        console.warn('[SQL write] addGameToFolder failed:', e.message); 
+        throw e; 
+      }
+    },
+    addGamesToFolderBatch: async (filePaths, folderId, options = {}) => {
+      try {
+        for (const fp of filePaths) {
+          sqlAddGameToFolder(folderId, resolveFilePath(fp), {});
+        }
+        return { success: true };
+      } catch (e) {
+        console.warn('[SQL write] addGamesToFolderBatch failed:', e.message);
+        throw e;
+      }
+    }
+  });
   // Local session state (module-scoped)
   let dragSession = {
     active: false,
@@ -72,7 +98,7 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWi
     }
   });
 
-  ipcMain.handle('drag-session:drop', (event, target) => {
+  ipcMain.handle('drag-session:drop', async (event, target) => {
     try {
       // If an end has been scheduled, cancel it because we have a real drop
       if (endTimer) { clearTimeout(endTimer); endTimer = null; }
@@ -86,43 +112,179 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWi
       const targetType = target?.type;
       const targetId = target?.id || null;
 
+      const { addGameToFolder, addGamesToFolderBatch } = createBatchOperations();
+
       let allOk = true;
-      for (const item of items) {
-        const gameId = item.gameId || item.filePath || item.id; // 兼容不同字段
-        if (!gameId) continue;
-        let ok = false;
-        if (source.type === 'desktop' && targetType === 'folder' && targetId) {
-          // SQL: add to folder
-          try { sqlAddGameToFolder(targetId, resolveFilePath(gameId), {}); ok = true; } catch (e) { console.warn('[SQL write] drag addGameToFolder failed:', e.message); ok = false; }
-        } else if (source.type === 'folder' && targetType === 'folder' && source.id && targetId) {
-          if (source.id === targetId) { ok = true; }
-          else {
-            // SQL move: remove from old, add to new
-            const fp = resolveFilePath(gameId);
-            try { sqlRemoveGameFromFolder(source.id, fp); } catch (e) { console.warn('[SQL write] drag move remove failed:', e.message); }
-            try { sqlAddGameToFolder(targetId, fp, {}); ok = true; } catch (e) { console.warn('[SQL write] drag move add failed:', e.message); ok = false; }
+      
+      // 按操作類型分組處理
+      const addToFolderItems = items.filter(item => 
+        source.type === 'desktop' && targetType === 'folder' && targetId && (item.gameId || item.filePath || item.id)
+      );
+      const moveItems = items.filter(item => 
+        source.type === 'folder' && targetType === 'folder' && source.id && targetId && source.id !== targetId && (item.gameId || item.filePath || item.id)
+      );
+      const removeItems = items.filter(item => 
+        source.type === 'folder' && targetType === 'desktop' && source.id && (item.gameId || item.filePath || item.id)
+      );
+
+      // 批次加入資料夾
+      if (addToFolderItems.length > 0) {
+        try {
+          const filePaths = addToFolderItems.map(item => resolveFilePath(item.gameId || item.filePath || item.id));
+          
+          // 如果數量較多，廣播進度開始事件
+          if (filePaths.length > 30) {
+            broadcastToAll('bulk-operation-start', { 
+              type: 'add-to-folder', 
+              total: filePaths.length, 
+              folderId: targetId 
+            });
           }
-        } else if (source.type === 'folder' && targetType === 'desktop' && source.id) {
-          // SQL: remove from folder
-          try { sqlRemoveGameFromFolder(source.id, resolveFilePath(gameId)); ok = true; } catch (e) { console.warn('[SQL write] drag removeGameFromFolder failed:', e.message); ok = false; }
-        } else {
-          // 不支持的目標類型
-          ok = false;
+          
+          const result = await batchAddGamesToFolder(filePaths, targetId, { 
+            quiet: filePaths.length <= 30,
+            threshold: 30,
+            chunkSize: 50,
+            addGameToFolder,
+            addGamesToFolderBatch
+          });
+          
+          // 廣播進度完成事件
+          if (filePaths.length > 30) {
+            broadcastToAll('bulk-operation-end', { 
+              type: 'add-to-folder', 
+              success: result.success,
+              processed: result.processed 
+            });
+          }
+          
+          if (!result.success) allOk = false;
+        } catch (e) {
+          console.warn('[batch] add to folder failed:', e.message);
+          // 廣播錯誤事件
+          broadcastToAll('bulk-operation-end', { 
+            type: 'add-to-folder', 
+            success: false,
+            error: e.message 
+          });
+          allOk = false;
         }
-        allOk = allOk && !!ok;
       }
 
-      // 廣播數據變更（優先 SQL）
-      try {
-        let sqlGames = null;
-        try { sqlGames = require('../sql/read').getAllGamesFromSql(); } catch (_) {}
-        if (sqlGames) {
-          broadcastToAll('games-updated', addUrlToGames(sqlGames));
-        } else {
-          const games = DataStore.getAllGames ? DataStore.getAllGames() : [];
-          broadcastToAll('games-updated', addUrlToGames(games || []));
+      // 批次移動（先移除再加入）
+      if (moveItems.length > 0) {
+        try {
+          const filePaths = moveItems.map(item => resolveFilePath(item.gameId || item.filePath || item.id));
+          
+          // 如果數量較多，廣播進度開始事件
+          if (filePaths.length > 30) {
+            broadcastToAll('bulk-operation-start', { 
+              type: 'move-between-folders', 
+              total: filePaths.length, 
+              fromFolderId: source.id,
+              toFolderId: targetId 
+            });
+          }
+          
+          // 先批次移除
+          for (const item of moveItems) {
+            const fp = resolveFilePath(item.gameId || item.filePath || item.id);
+            try { sqlRemoveGameFromFolder(source.id, fp); } 
+            catch (e) { console.warn('[SQL write] move remove failed:', e.message); }
+          }
+          
+          // 再批次加入
+          const result = await batchAddGamesToFolder(filePaths, targetId, { 
+            quiet: filePaths.length <= 30,
+            threshold: 30,
+            chunkSize: 50,
+            addGameToFolder,
+            addGamesToFolderBatch
+          });
+          
+          // 廣播進度完成事件
+          if (filePaths.length > 30) {
+            broadcastToAll('bulk-operation-end', { 
+              type: 'move-between-folders', 
+              success: result.success,
+              processed: result.processed 
+            });
+          }
+          
+          if (!result.success) allOk = false;
+        } catch (e) {
+          console.warn('[batch] move failed:', e.message);
+          // 廣播錯誤事件
+          if (moveItems.length > 30) {
+            broadcastToAll('bulk-operation-end', { 
+              type: 'move-between-folders', 
+              success: false,
+              error: e.message 
+            });
+          }
+          allOk = false;
         }
-      } catch (_) {}
+      }
+
+      // 批次移除
+      if (removeItems.length > 0) {
+        try {
+          for (const item of removeItems) {
+            const fp = resolveFilePath(item.gameId || item.filePath || item.id);
+            try { sqlRemoveGameFromFolder(source.id, fp); } 
+            catch (e) { console.warn('[SQL write] remove failed:', e.message); allOk = false; }
+          }
+        } catch (e) {
+          console.warn('[batch] remove failed:', e.message);
+          allOk = false;
+        }
+      }
+
+      // 處理同資料夾內移動（無操作）
+      const sameFolder = items.filter(item => 
+        source.type === 'folder' && targetType === 'folder' && source.id === targetId
+      );
+      if (sameFolder.length > 0) {
+        // 同資料夾內移動，視為成功
+      }
+
+      // 增量廣播：僅傳遞受影響的遊戲
+      const cache = getGameStateCache();
+      let affectedGames = [];
+      
+      // 收集所有受影響的遊戲路徑
+      if (addToFolderItems.length > 0) {
+        const filePaths = addToFolderItems.map(item => resolveFilePath(item.gameId || item.filePath || item.id));
+        const changes = cache.updateFolderMembership(filePaths, targetId, 'add');
+        affectedGames.push(...changes.updated);
+      }
+      
+      if (moveItems.length > 0) {
+        const filePaths = moveItems.map(item => resolveFilePath(item.gameId || item.filePath || item.id));
+        const changes = cache.moveGamesBetweenFolders(filePaths, source.id, targetId);
+        affectedGames.push(...changes.updated);
+      }
+      
+      if (removeItems.length > 0) {
+        const filePaths = removeItems.map(item => resolveFilePath(item.gameId || item.filePath || item.id));
+        const changes = cache.updateFolderMembership(filePaths, source.id, 'remove');
+        affectedGames.push(...changes.updated);
+      }
+      
+      // 增量廣播變更
+      if (affectedGames.length > 0) {
+        broadcastToAll('games-incremental-update', {
+          action: 'drag-drop-completed',
+          affectedGames: [...new Set(affectedGames)], // 去重
+          sourceFolder: source.id,
+          targetFolder: targetId,
+          operations: {
+            added: addToFolderItems.length,
+            moved: moveItems.length,
+            removed: removeItems.length
+          }
+        });
+      }
 
       // 發送資料夾變更（簡化為通用事件）
       broadcastToAll('folder-changed');

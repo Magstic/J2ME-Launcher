@@ -13,6 +13,7 @@ const libretroAdapter = require('./emulators/libretro.js');
 const { resolveJavaCommand } = require('./utils/java.js');
 const { getConfigGameName } = require('./utils/jar-manifest.js');
 const { toIconUrl, addUrlToGames } = require('./utils/icon-url.js');
+const { getGameStateCache } = require('./utils/game-state-cache.js');
 // IPC modules
 const { register: registerEmulatorIpc } = require('./ipc/emulator.js');
 const { register: registerFoldersIpc } = require('./ipc/folders.js');
@@ -27,6 +28,7 @@ const { gameHashFromPath } = require('./utils/hash');
 // Optional: SQLite-backed IPC (non-invasive)
 const { register: registerSqlGamesIpc } = require('./ipc/sql-games.js');
 // Cloud backup IPC (S3/WebDAV) scaffold
+const { register: registerCustomNamesIpc } = require('./ipc/custom-names.js');
 const { register: registerBackupIpc } = require('./ipc/backup.js');
 
 // 解析 Java 可執行檔 -> moved to ./utils/java.js
@@ -73,6 +75,12 @@ registerDragSessionIpc({
   addUrlToGames,
   broadcastToAll,
   BrowserWindow
+});
+
+// Register custom names IPC handlers
+registerCustomNamesIpc({
+  ipcMain,
+  broadcastToAll
 });
 
 // Register directories/scanning IPC handlers
@@ -146,6 +154,9 @@ let splashWindow; // 加載卡片窗口
 let splashShownAt = 0; // 記錄展示時間以保證最少顯示 5 秒
 let folderWindows = new Map(); // 存儲所有打開的資料夾窗口
 let pendingLaunchHash = null; // 透過捷徑帶入的啟動參數
+// DB 就緒信號：用於控制啟動畫面的淡出時機（需在 DB 完成後延遲 2 秒）
+let resolveDbReadyOnce = null;
+const dbReadyPromise = new Promise((resolve) => { resolveDbReadyOnce = resolve; });
 
 function extractLaunchHash(argv) {
   try {
@@ -190,12 +201,44 @@ try {
 // drag-session state moved into ./ipc/drag-session.js
 
 function broadcastToAll(channel, payload, excludeWindowId = null) {
+  // 確保 payload 是可序列化的
+  let serializedPayload;
+  try {
+    // 測試序列化並清理不可序列化的屬性
+    serializedPayload = JSON.parse(JSON.stringify(payload));
+  } catch (e) {
+    console.warn(`[broadcastToAll] Payload serialization failed for channel ${channel}:`, e.message);
+    
+    // 嘗試創建安全的 payload
+    if (payload && typeof payload === 'object') {
+      serializedPayload = {};
+      for (const [key, value] of Object.entries(payload)) {
+        try {
+          JSON.stringify(value);
+          serializedPayload[key] = value;
+        } catch (err) {
+          console.warn(`[broadcastToAll] Skipping non-serializable property: ${key}`);
+        }
+      }
+    } else {
+      serializedPayload = payload;
+    }
+  }
+
   if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents && mainWindow.id !== excludeWindowId) {
-    try { mainWindow.webContents.send(channel, payload); } catch (_) {}
+    try { 
+      mainWindow.webContents.send(channel, serializedPayload); 
+    } catch (e) {
+      console.error(`[broadcastToAll] Failed to send to main window:`, e.message);
+    }
   }
   folderWindows.forEach(win => {
     if (win && !win.isDestroyed() && win.webContents && win.id !== excludeWindowId) {
-      try { win.webContents.send(channel, payload); } catch (_) {}
+      try { 
+        win.webContents.send(channel, serializedPayload); 
+      } catch (e) {
+        console.error(`[broadcastToAll] Failed to send to folder window:`, e.message);
+      }
     }
   });
 }
@@ -298,12 +341,17 @@ function createWindow() {
   // 等待內容真正載入完成後 + 保證 splash 至少顯示 5 秒，再顯示主窗口並做淡入
   mainWindow.webContents.once('did-finish-load', async () => {
     try {
+      // 等待兩個條件：
+      // 1) 啟動畫面最短顯示 5000ms
+      // 2) 數據庫處理完成後再延遲 2000ms
       const minDuration = 5000;
       const elapsed = splashShownAt ? (Date.now() - splashShownAt) : 0;
-      const waitMs = Math.max(0, minDuration - elapsed);
-      if (waitMs > 0) await new Promise(r => setTimeout(r, waitMs));
+      const waitMinDuration = Math.max(0, minDuration - elapsed);
+      const waitForMinDuration = waitMinDuration > 0 ? new Promise(r => setTimeout(r, waitMinDuration)) : Promise.resolve();
+      const waitForDbThenDelay = (async () => { try { await dbReadyPromise; } catch(_) {} await new Promise(r => setTimeout(r, 2000)); })();
+      await Promise.all([waitForMinDuration, waitForDbThenDelay]);
 
-      // 通知加載卡片淡出
+      // 通知加載卡片淡出（僅在兩個條件都滿足後）
       if (splashWindow && !splashWindow.isDestroyed()) {
         try {
           await splashWindow.webContents.executeJavaScript("window.postMessage('fade-out','*')");
@@ -537,8 +585,18 @@ app.whenReady().then(async () => {
       if (scanResult.success && scanResult.summary.totalNewGames > 0) {
         // 如果发现新游戏，通知前端更新
         const games = DataStore.getAllGames();
-        try { require('./sql/sync').upsertGames(games); } catch (e) { console.warn('[SQL sync] auto-scan upsert failed:', e.message); }
-        // 優先從 SQL 讀取，以保證啟用目錄過濾與規範化路徑
+        try { 
+          const { upsertGames } = require('./sql/write'); 
+          upsertGames(games); 
+        } catch (e) { 
+          console.warn('[SQL sync] initial upsert failed:', e.message); 
+        }
+        
+        // 初始化遊戲狀態快取
+        const cache = getGameStateCache();
+        await cache.initialize();
+        console.log('[Cache] Game state cache initialized');
+        
         let payloadGames = null;
         try { payloadGames = require('./sql/read').getAllGamesFromSql(); } catch (_) {}
         const gamesWithUrl = addUrlToGames(payloadGames || games);
@@ -551,8 +609,12 @@ app.whenReady().then(async () => {
           });
         }
       }
+      // 無論是否有新增或發生錯誤，只要自動掃描結束，即視為「數據庫處理完成」
+      try { if (typeof resolveDbReadyOnce === 'function') { resolveDbReadyOnce(); resolveDbReadyOnce = null; } } catch(_) {}
     } catch (error) {
       console.error('自动扫描失败:', error);
+      // 失敗亦視為流程已結束，避免卡住淡出
+      try { if (typeof resolveDbReadyOnce === 'function') { resolveDbReadyOnce(); resolveDbReadyOnce = null; } } catch(_) {}
     }
   }, 3000); // 3秒延迟，等待界面初始化完成
 });

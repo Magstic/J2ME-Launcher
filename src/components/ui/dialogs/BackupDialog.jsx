@@ -2,13 +2,14 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import '../../DirectoryManager.css';
 import { ModalWithFooter, Select, ToggleSwitch, ModalHeaderOnly } from '@ui';
 import ConflictResolveDialog from './ConflictResolveDialog.jsx';
+import { useTranslation } from '@hooks/useTranslation';
 
 // 以最低耦合的方式：調用 preload 提供的 API
 const api = typeof window !== 'undefined' && window.electronAPI ? window.electronAPI : null;
 
 const PROVIDERS = [
-  { value: 's3', label: 'S3 API' },
   { value: 'dropbox', label: 'Dropbox' },
+  { value: 's3', label: 'S3 API' },
   { value: 'webdav', label: 'WebDAV' }
 ];
 
@@ -16,7 +17,8 @@ const PROVIDERS = [
 const DROPBOX_APP_KEY = 'xxxxxxxxxxxxxxxx'; // TODO: 換成自己的 App Key
 
 export default function BackupDialog({ isOpen, onClose }) {
-  const [provider, setProvider] = useState('s3');
+  const { t } = useTranslation();
+  const [provider, setProvider] = useState('dropbox');
   const [spec, setSpec] = useState({ groups: [] });
   const [selectedGroups, setSelectedGroups] = useState({ config: true, database: true });
   const [params, setParams] = useState({}); // 各 provider 參數容器（暫留；稍後依 provider 顯示對應表單）
@@ -170,12 +172,12 @@ export default function BackupDialog({ isOpen, onClose }) {
   const footer = (
     <>
       {/* 左側文本：共用 DirectoryManager.css 的樣式 */}
-      <div className="directory-stats">上次備份時間：{formattedLastTime}</div>
+      <div className="directory-stats">{t('sync.lastTime')}{formattedLastTime}</div>
       {/* 右側按鈕群：沿用 push-right 靠右對齊 */}
       <div className="flex gap-8 push-right">
-        <button className="btn soft-hover" disabled={busy} onClick={() => runRestore()}>雲端恢復</button>
-        <button className="btn btn-secondary" disabled={busy} onClick={() => runBackup('full')}>全量備份</button>
-        <button className="btn btn-primary" disabled={busy} onClick={() => runBackup('incremental')}>增量備份</button>
+        <button className="btn soft-hover" disabled={busy} onClick={() => runRestore()}>{t('sync.restore')}</button>
+        <button className="btn btn-secondary" disabled={busy} onClick={() => runBackup('full')}>{t('sync.full')}</button>
+        <button className="btn btn-primary" disabled={busy} onClick={() => runBackup('incremental')}>{t('sync.incremental')}</button>
       </div>
     </>
   );
@@ -215,10 +217,10 @@ export default function BackupDialog({ isOpen, onClose }) {
         return; // 等待使用者在對話框中決定
       }
       await api.backupRestoreRun({ provider, params: params[provider] || {}, groups, force: false });
-      setInfoDialog({ isOpen: true, title: '雲端恢復', message: '恢復完成。若涉及資料庫，圖示將於掃描後重建。' });
+      setInfoDialog({ isOpen: true, title: t('sync.restore'), message: t('sync.restoreDone') });
     } catch (e) {
       console.error('restore failed:', e);
-      setInfoDialog({ isOpen: true, title: '雲端恢復', message: '恢復失敗：' + (e && e.message ? e.message : String(e)) });
+      setInfoDialog({ isOpen: true, title: t('sync.restore'), message: t('sync.restoreFailed') + (e && e.message ? e.message : String(e)) });
     } finally {
       setBusy(false);
       setTimeout(() => setProgress((p) => (p.done > 0 || p.total > 0) ? { ...p, phase: 'done' } : p), 50);
@@ -237,10 +239,10 @@ export default function BackupDialog({ isOpen, onClose }) {
       });
       setConflictOpen(false);
       setConflictPlan(null);
-      setInfoDialog({ isOpen: true, title: '雲端恢復', message: '恢復完成。若涉及資料庫，圖示將於掃描後重建。' });
+      setInfoDialog({ isOpen: true, title: t('sync.restore'), message: t('sync.restoreDone') });
     } catch (e) {
       console.error('restore (force) failed:', e);
-      setInfoDialog({ isOpen: true, title: '雲端恢復', message: '恢復失敗：' + (e && e.message ? e.message : String(e)) });
+      setInfoDialog({ isOpen: true, title: t('sync.restore'), message: t('sync.restoreFailed') + (e && e.message ? e.message : String(e)) });
     }
   };
 
@@ -257,7 +259,7 @@ export default function BackupDialog({ isOpen, onClose }) {
       };
       return (
         <div className="card card-muted p-12">
-          <div className="card-title">S3 設定</div>
+          <div className="card-title">{t('sync.s3.title')}</div>
           <div className="form-row">
             <label className="form-label">Region</label>
             <input className="form-input" type="text" value={p.region || ''} onChange={(e) => setP('region', e.target.value)} placeholder="us-east-1" />
@@ -280,7 +282,7 @@ export default function BackupDialog({ isOpen, onClose }) {
           </div>
           <div className="form-row">
             <label className="form-label">Prefix</label>
-            <input className="form-input" type="text" value={p.prefix || ''} onChange={(e) => setP('prefix', e.target.value)} placeholder="使備份内容放置在 bucket 的指定的資料夾下，如可填寫『J2ME/』" />
+            <input className="form-input" type="text" value={p.prefix || ''} onChange={(e) => setP('prefix', e.target.value)} placeholder={t('sync.s3.prefix')} />
           </div>
           <div className="form-row">
             <ToggleSwitch checked={p.forcePathStyle ?? true} onChange={(v) => setP('forcePathStyle', !!v)} label="Force Path Style" />
@@ -299,29 +301,69 @@ export default function BackupDialog({ isOpen, onClose }) {
       };
       const handleConnect = async () => {
         if (!api) return;
+        
+        // 先關閉任何現有的 InfoDialog
+        setInfoDialog({ isOpen: false, title: '', message: '' });
+        
+        // 先清理可能存在的 OAuth 服務器
         try {
-          const res = await api.dropboxOAuthStart({ clientId: DROPBOX_APP_KEY, port: 53789 });
-          if (res && res.ok) {
-            const auth = await api.dropboxGetAuth();
-            setDropboxAuth(auth || { linked: true });
-            try {
-              const acct = await api.dropboxGetAccount();
-              setDropboxAccount(acct || null);
-              if (acct && acct.profile_photo_url) {
-                const dataUrl = await api.dropboxGetAccountPhoto(acct.profile_photo_url);
-                setDropboxAvatar(dataUrl || null);
-              } else {
-                setDropboxAvatar(null);
-              }
-            } catch (_) { setDropboxAvatar(null); }
-            setInfoDialog({ isOpen: true, title: 'Dropbox', message: 'Dropbox 已連結' });
-          } else {
-            setInfoDialog({ isOpen: true, title: 'Dropbox', message: 'Dropbox 授權失敗' });
+          await api.dropboxOAuthStop();
+        } catch (_) {}
+        
+        // 嘗試多個端口
+        const tryPorts = [53789, 53790, 53791, 53792, 53793];
+        let lastError = null;
+        
+        for (const port of tryPorts) {
+          try {
+            const res = await api.dropboxOAuthStart({ clientId: DROPBOX_APP_KEY, port });
+            if (res && res.ok) {
+              const auth = await api.dropboxGetAuth();
+              setDropboxAuth(auth || { linked: true });
+              try {
+                const acct = await api.dropboxGetAccount();
+                setDropboxAccount(acct || null);
+                if (acct && acct.profile_photo_url) {
+                  const dataUrl = await api.dropboxGetAccountPhoto(acct.profile_photo_url);
+                  setDropboxAvatar(dataUrl || null);
+                } else {
+                  setDropboxAvatar(null);
+                }
+              } catch (_) { setDropboxAvatar(null); }
+              setInfoDialog({ isOpen: true, title: 'Dropbox', message: t('sync.dropbox.linked') });
+              return; // 成功，退出函數
+            } else {
+              // OAuth 返回失敗，嘗試下一個端口
+              lastError = new Error('OAuth failed');
+              continue;
+            }
+          } catch (e) {
+            lastError = e;
+            // 如果是端口被佔用錯誤，嘗試下一個端口
+            if (e.message && e.message.includes('EADDRINUSE')) {
+              continue;
+            } else {
+              // 其他錯誤，直接退出
+              break;
+            }
           }
-        } catch (e) {
-          console.error('dropbox oauth error', e);
-          setInfoDialog({ isOpen: true, title: 'Dropbox', message: 'Dropbox 授權出錯：' + (e && e.message ? e.message : String(e)) });
         }
+        
+        // 所有端口都失敗了
+        console.error('dropbox oauth error', lastError);
+        // 發生錯誤時清理狀態
+        try {
+          await api.dropboxUnlink();
+          await api.dropboxOAuthStop();
+        } catch (_) {}
+        setDropboxAuth({ linked: false });
+        setDropboxAccount(null);
+        setDropboxAvatar(null);
+        setInfoDialog({ 
+          isOpen: true, 
+          title: 'Dropbox', 
+          message: t('sync.dropbox.linkedFailedMessage') + (lastError && lastError.message ? lastError.message : String(lastError)) 
+        });
       };
       const handleUnlink = async () => {
         if (!api) return;
@@ -334,7 +376,7 @@ export default function BackupDialog({ isOpen, onClose }) {
       // 邊界圓角容器 + 使用者卡片
       return (
         <div className="card card-muted p-12">
-          <div className="card-title">Dropbox 設定</div>
+          <div className="card-title">{t('sync.dropbox.title')}</div>
           <div style={{ border: '1px solid var(--overlay-on-light-16)', borderRadius: 8, padding: 12, marginTop: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               {/* Avatar */}
@@ -348,23 +390,23 @@ export default function BackupDialog({ isOpen, onClose }) {
               {/* Info */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {dropboxAccount && dropboxAccount.name ? (dropboxAccount.name.display_name || 'Dropbox 使用者') : 'Dropbox 使用者'}
+                  {dropboxAccount && dropboxAccount.name ? (dropboxAccount.name.display_name || t('sync.dropbox.nameless')) : t('sync.dropbox.nameless')}
                 </div>
                 <div style={{ opacity: 0.8, fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {dropboxAccount && dropboxAccount.email ? dropboxAccount.email : (dropboxAuth?.linked ? '—' : '尚未連結帳戶')}
+                  {dropboxAccount && dropboxAccount.email ? dropboxAccount.email : (dropboxAuth?.linked ? '—' : t('sync.dropbox.notLinked'))}
                 </div>
               </div>
               {/* Action */}
               {dropboxAuth?.linked ? (
-                <button className="btn btn-secondary" onClick={handleUnlink}>解除連結</button>
+                <button className="btn btn-secondary" onClick={handleUnlink}>{t('sync.dropbox.unlink')}</button>
               ) : (
-                <button className="btn btn-primary" onClick={handleConnect}>連結帳戶</button>
+                <button className="btn btn-primary" onClick={handleConnect}>{t('sync.dropbox.connect')}</button>
               )}
             </div>
           </div>
           <div className="form-row">
             <label className="form-label">Prefix</label>
-            <input className="form-input" type="text" value={p.prefix || ''} onChange={(e) => setP('prefix', e.target.value)} placeholder="Dropbox 自動創建『J2ME Launcher』資料夾，因此留空即可。" />
+            <input className="form-input" type="text" value={p.prefix || ''} onChange={(e) => setP('prefix', e.target.value)} placeholder={t('sync.dropbox.prefix')} />
           </div>
         </div>
       );
@@ -388,22 +430,22 @@ export default function BackupDialog({ isOpen, onClose }) {
           </div>
           <div className="form-row">
             <label className="form-label">Prefix</label>
-            <input className="form-input" type="text" value={p.prefix || ''} onChange={(e) => setP('prefix', e.target.value)} placeholder="可選，放置在 Base URL 下的子資料夾，如 'J2ME/'" />
+            <input className="form-input" type="text" value={p.prefix || ''} onChange={(e) => setP('prefix', e.target.value)} placeholder={t('sync.webdav.prefix')} />
           </div>
           <div className="form-row">
             <label className="form-label">Username</label>
-            <input className="form-input" type="text" value={p.username || ''} onChange={(e) => setP('username', e.target.value)} placeholder="若使用 Bearer Token 可留空" />
+            <input className="form-input" type="text" value={p.username || ''} onChange={(e) => setP('username', e.target.value)} placeholder={t('sync.webdav.username')} />
           </div>
           <div className="form-row">
             <label className="form-label">Password</label>
-            <input className="form-input" type="password" value={p.password || ''} onChange={(e) => setP('password', e.target.value)} placeholder="若使用 Bearer Token 可留空" />
+            <input className="form-input" type="password" value={p.password || ''} onChange={(e) => setP('password', e.target.value)} placeholder={t('sync.webdav.password')} />
           </div>
           <div className="form-row">
             <label className="form-label">Bearer Token</label>
-            <input className="form-input" type="password" value={p.bearerToken || ''} onChange={(e) => setP('bearerToken', e.target.value)} placeholder="可選，用於部份伺服器的 Token 驗證" />
+            <input className="form-input" type="password" value={p.bearerToken || ''} onChange={(e) => setP('bearerToken', e.target.value)} placeholder={t('sync.webdav.bearerToken')} />
           </div>
           <div className="form-row" style={{ opacity: 0.8, fontSize: 12 }}>
-            若同時提供 Username/Password 與 Bearer Token，將優先使用 Bearer Token。
+            {t('sync.webdav.note')}
           </div>
         </div>
       );
@@ -416,7 +458,7 @@ export default function BackupDialog({ isOpen, onClose }) {
     <ModalWithFooter
       isOpen={isOpen}
       onClose={onClose}
-      title={<span>雲端備份</span>}
+      title={<span>{t('sync.title')}</span>}
       size="md"
       initialFocusRef={nameRef}
       footer={footer}
@@ -424,12 +466,11 @@ export default function BackupDialog({ isOpen, onClose }) {
       {/* 選擇備份服務 */}
       <div className="card card-muted p-12 mb-12">
         <div className="form-row">
-          <label className="form-label">服務選擇</label>
+          <label className="form-label">{t('sync.service')}</label>
           <Select
             options={PROVIDERS}
             value={provider}
             onChange={(v) => setProvider(v)}
-            aria-label="選擇雲端備份服務"
           />
         </div>
       </div>
@@ -441,7 +482,7 @@ export default function BackupDialog({ isOpen, onClose }) {
 
       {/* 內容選擇（開關） */}
       <div className="card card-muted p-12">
-        <div className="card-title">備份的內容</div>
+        <div className="card-title">{t('sync.content')}</div>
         {spec.groups.map(g => (
           <div key={g.key} className="mb-8">
             <ToggleSwitch
@@ -455,7 +496,7 @@ export default function BackupDialog({ isOpen, onClose }) {
 
       {/* 進度條容器（預設顯示，初始為待命狀態） */}
       <div className="card card-muted p-12  mb-12">
-          <div className="card-title">同步進度</div>
+          <div className="card-title">{t('sync.progress')}</div>
           {/* 外框 */}
           <div style={{ position: 'relative', height: 8, borderRadius: 6, background: 'var(--overlay-on-light-12)', overflow: 'hidden' }}>
             {(() => {
@@ -484,15 +525,15 @@ export default function BackupDialog({ isOpen, onClose }) {
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 12, opacity: 0.9 }}>
             <div>
-              狀態：{progress.phase === 'planning' ? '準備中' : progress.phase === 'uploading' ? '上載中' : progress.phase === 'deleting' ? '刪除中' : progress.phase === 'finalizing' ? '收尾中' : progress.phase === 'done' ? '完成' : progress.phase === 'error' ? '錯誤' : '待命'}
+              {t('sync.status')}{t(`sync.phase.${progress.phase || 'idle'}`)}
             </div>
             <div>
-              {Number(progress.done || 0)} / {Number(progress.total || 0)} 檔案
+              {t('sync.count', { done: Number(progress.done || 0), total: Number(progress.total || 0) })}
             </div>
           </div>
           {progress.current ? (
             <div style={{ marginTop: 6, fontSize: 12, opacity: 0.8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              目前：{progress.current}
+              {t('sync.current')}{progress.current}
             </div>
           ) : null}
         </div>

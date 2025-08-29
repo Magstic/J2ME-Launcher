@@ -1,203 +1,248 @@
-│   App.css
-│   App.jsx
-│   folder-main.jsx
-│   main.jsx
+```
+│  App.css
+│  App.jsx
+│  folder-main.jsx
+│  main.jsx
 │
-├───assets
-│   ├───avatars
-│   │       index.js
-│   │       xxx.png
-│   │
-│   └───icons
-│           icon.ico
-│           icon.png
-│           icon.svg
+├─assets
+│  ├─avatars
+│  │      index.js
+│  │      lavinia.png
+│  │      magstic.png
+│  │      marisa.png
+│  │
+│  └─icons
+│          dropbox.svg
+│          icon.ico
+│          icon.png
+│          icon.svg
+│          index.js
+│          License_MIT.svg
+│          s3.svg
+│          webdav.svg
 │
-├───components
-│   │   DesktopManager.jsx
-│   │   DirectoryManager.css
-│   │   DirectoryManager.jsx
-│   │   EmulatorConfigDialog.jsx
-│   │   FolderGrid.Unified.jsx
-│   │   FolderWindowApp.css
-│   │   FolderWindowApp.jsx
-│   │   GameCard.jsx
-│   │   index.js
-│   │   SearchBar.jsx
-│   │   TitleBar.jsx
-│   │
-│   ├───Common
-│   │       ConfirmDialog.jsx
-│   │       useContextMenu.jsx
-│   │
-│   ├───controller
-│   │       GameGridController.jsx
-│   │       useControllerContextMenu.js
-│   │
-│   ├───Desktop
-│   │       ContextMenu.jsx
-│   │       Desktop.css
-│   │       DesktopGrid.Unified.jsx
-│   │       DesktopView.jsx
-│   │       GameInfoDialog.css
-│   │       GameInfoDialog.jsx
-│   │
-│   ├───DragDrop
-│   │       DragProvider.jsx
-│   │
-│   ├───Folder
-│   │       CreateFolderDialog.jsx
-│   │       Folder.css
-│   │       FolderCard.jsx
-│   │
-│   ├───FolderDrawer
-│   │       FolderDrawer.css
-│   │       FolderDrawer.jsx
-│   │       NeonStrip.jsx
-│   │
-│   ├───freej2meplus
-│   │       FreeJ2MEPlusConfig.jsx
-│   │
-│   ├───kemulator
-│   │       KEmulator.jsx
-│   │
-│   ├───libretro
-│   │       LibretroFJPlus.jsx
-│   │
-│   ├───shared
-│   │   │   index.js
-│   │   │   UnifiedGrid.jsx
-│   │   │
-│   │   └───hooks
-│   │           index.js
-│   │           useDragSession.js
-│   │           useFlipAnimation.js
-│   │           useFlipWithWhitelist.js
-│   │           useSelectionBox.js
-│   │           useUnifiedContextMenu.js
-│   │           useVirtualizedGrid.js
-│   │
-│   ├───ui
-│   │   │   AboutNetworkCard.jsx
-│   │   │   Card.jsx
-│   │   │   Collapsible.jsx
-│   │   │   index.js
-│   │   │   ModalHeaderOnly.jsx
-│   │   │   ModalWithFooter.jsx
-│   │   │   RomCacheSwitch.jsx
-│   │   │   Select.css
-│   │   │   Select.jsx
-│   │   │   ToggleSwitch.jsx
-│   │   │
-│   │   └───dialogs
-│   │           AboutDialog.jsx
-│   │           BackupDialog.jsx
-│   │           ConflictResolveDialog.jsx
-│   │           FolderSelectDialog.css
-│   │           FolderSelectDialog.jsx
-│   │           GameLaunchDialog.jsx
-│   │           SettingsDialog.jsx
-│   │
-│   └───_shared
-│           FormRenderer.jsx
+├─components
+│  │  DesktopManager.jsx
+│  │  DirectoryManager.css
+│  │  DirectoryManager.jsx
+│  │  EmulatorConfigDialog.jsx
+│  │  FolderGrid.Unified.jsx
+│  │  FolderWindowApp.css
+│  │  FolderWindowApp.jsx
+│  │  GameCard.jsx
+│  │  index.js
+│  │  SearchBar.jsx
+│  │  TitleBar.jsx
+│  │  VirtualizedGameGrid.css
+│  │  VirtualizedGameGrid.jsx
+│  │
+│  ├─Common
+│  │      ConfirmDialog.jsx
+│  │      useContextMenu.jsx
+│  │
+│  ├─controller
+│  │      GameGridController.jsx
+│  │      useControllerContextMenu.js
+│  │
+│  ├─Desktop
+│  │      ContextMenu.jsx
+│  │      Desktop.css
+│  │      DesktopGrid.Unified.jsx
+│  │      DesktopView.jsx
+│  │      GameInfoDialog.css
+│  │      GameInfoDialog.jsx
+│  │
+│  ├─DragDrop
+│  │      DragProvider.jsx
+│  │
+│  ├─Folder
+│  │      CreateFolderDialog.jsx
+│  │      Folder.css
+│  │      FolderCard.jsx
+│  │
+│  ├─FolderDrawer
+│  │      FolderDrawer.css
+│  │      FolderDrawer.jsx
+│  │      NeonStrip.jsx
+│  │
+│  ├─freej2meplus
+│  │      FreeJ2MEPlusConfig.jsx
+│  │
+│  ├─kemulator
+│  │      KEmulator.jsx
+│  │
+│  ├─libretro
+│  │      LibretroFJPlus.jsx
+│  │
+│  ├─shared
+│  │  │  index.js
+│  │  │  UnifiedGrid.jsx
+│  │  │
+│  │  └─hooks
+│  │          index.js
+│  │          useDragSession.js
+│  │          useFlipAnimation.js
+│  │          useFlipWithWhitelist.js
+│  │          useSelectionBox.js
+│  │          useUnifiedContextMenu.js
+│  │          useVirtualizedGrid.js
+│  │
+│  ├─ui
+│  │  │  AboutNetworkCard.jsx
+│  │  │  Card.jsx
+│  │  │  Collapsible.jsx
+│  │  │  index.js
+│  │  │  ModalHeaderOnly.jsx
+│  │  │  ModalWithFooter.jsx
+│  │  │  NotificationBubble.css
+│  │  │  NotificationBubble.jsx
+│  │  │  RomCacheSwitch.jsx
+│  │  │  Select.css
+│  │  │  Select.jsx
+│  │  │  ToggleSwitch.jsx
+│  │  │
+│  │  └─dialogs
+│  │          AboutDialog.jsx
+│  │          BackupDialog.jsx
+│  │          ConflictResolveDialog.jsx
+│  │          FolderSelectDialog.css
+│  │          FolderSelectDialog.jsx
+│  │          GameLaunchDialog.jsx
+│  │          SettingsDialog.css
+│  │          SettingsDialog.jsx
+│  │          WelcomeGuideDialog.jsx
+│  │
+│  └─_shared
+│          FormRenderer.jsx
 │
-├───config
-│       controllerBindings.js
-│       perf.js
+├─config
+│      controllerBindings.js
+│      perf.js
 │
-├───hooks
-│       useGamepad.js
+├─contexts
+│      I18nContext.jsx
 │
-├───main
-│   │   data-store.js
-│   │   db.js
-│   │   jar-parser.js
-│   │   main.js
-│   │   migrateFromJson.js
-│   │   preload.js
-│   │   shortcuts.js
-│   │
-│   ├───backup
-│   │   │   core.js
-│   │   │
-│   │   └───providers
-│   │           dropbox.js
-│   │           s3.js
-│   │           webdav.js
-│   │
-│   ├───config
-│   │       yaml-config.js
-│   │
-│   ├───emulators
-│   │       freej2mePlus.js
-│   │       ke.js
-│   │       libretro.js
-│   │
-│   ├───ipc
-│   │       backup.js
-│   │       desktop.js
-│   │       directories.js
-│   │       drag-session.js
-│   │       emulator.js
-│   │       folder-windows.js
-│   │       folders.js
-│   │       README.md
-│   │       shortcuts.js
-│   │       sql-games.js
-│   │       stats.js
-│   │       window-controls.js
-│   │
-│   ├───parsers
-│   │       icon-cache.js
-│   │       manifest.js
-│   │       md5.js
-│   │       zip-entry.js
-│   │
-│   ├───readers
-│   │       factory.js
-│   │       raw-fallback.js
-│   │       system-extract.js
-│   │       yauzl-reader.js
-│   │
-│   ├───services
-│   │       emulator-service.js
-│   │
-│   ├───sql
-│   │       directories.js
-│   │       emulator-configs.js
-│   │       folders-read.js
-│   │       folders-write.js
-│   │       read.js
-│   │       settings.js
-│   │       sync.js
-│   │
-│   └───utils
-│           game-conf.js
-│           hash.js
-│           icon-url.js
-│           jar-cache.js
-│           jar-manifest.js
-│           java.js
-│           png-to-ico.js
+├─hooks
+│      useGamepad.js
+│      useGameStore.js
+│      useTranslation.js
 │
-├───shared
-│   └───backup
-│           indexTSV.js
-│           spec.js
+├─locales
+│      en-US.json
+│      zh-CN.json
+│      zh-TW.json
 │
-└───styles
-        buttons.css
-        dialog.css
-        focus-ring.css
-        theme.css
-        tokens.css
-        utility.css
+├─main
+│  │  data-store.js
+│  │  db.js
+│  │  jar-parser.js
+│  │  main.js
+│  │  migrateFromJson.js
+│  │  preload.js
+│  │  shortcuts.js
+│  │  store-bridge.js
+│  │
+│  ├─backup
+│  │  │  core.js
+│  │  │
+│  │  └─providers
+│  │          dropbox.js
+│  │          s3.js
+│  │          webdav.js
+│  │
+│  ├─config
+│  │      yaml-config.js
+│  │
+│  ├─emulators
+│  │      freej2mePlus.js
+│  │      ke.js
+│  │      libretro.js
+│  │
+│  ├─ipc
+│  │      backup.js
+│  │      custom-names.js
+│  │      desktop.js
+│  │      directories.js
+│  │      drag-session.js
+│  │      emulator.js
+│  │      folder-windows.js
+│  │      folders.js
+│  │      incremental-updates.js
+│  │      README.md
+│  │      shortcuts.js
+│  │      sql-games.js
+│  │      stats.js
+│  │      unified-events.js
+│  │      window-controls.js
+│  │
+│  ├─parsers
+│  │      icon-cache.js
+│  │      manifest.js
+│  │      md5.js
+│  │      zip-entry.js
+│  │
+│  ├─readers
+│  │      factory.js
+│  │      raw-fallback.js
+│  │      system-extract.js
+│  │      yauzl-reader.js
+│  │
+│  ├─services
+│  │      emulator-service.js
+│  │
+│  ├─sql
+│  │      custom-names.js
+│  │      directories.js
+│  │      emulator-configs.js
+│  │      folders-read.js
+│  │      folders-write.js
+│  │      optimized-read.js
+│  │      read.js
+│  │      settings.js
+│  │      sharded-queries.js
+│  │      sync.js
+│  │
+│  └─utils
+│          batch-folder-operations.js
+│          batch-operations.js
+│          game-conf.js
+│          game-state-cache.js
+│          hash.js
+│          icon-url.js
+│          jar-cache.js
+│          jar-manifest.js
+│          java.js
+│          png-to-ico.js
+│          sql-cache.js
+│          unified-cache.js
+│
+├─shared
+│  └─backup
+│          indexTSV.js
+│          spec.js
+│
+├─store
+│      GameStore.js
+│
+├─styles
+│      buttons.css
+│      dialog.css
+│      focus-ring.css
+│      theme.css
+│      tokens.css
+│      utility.css
+│
+└─utils
+        i18n.js
+        memory-pool.js
+```
 
 ## 附註說明（Annotated Tree）
 
 以下為每個目錄與關鍵檔案的用途簡述，方便後續維護與導覽。
 
-請注意：該附註說明會定期更新以反映當前專案狀態，但仍可能存在滯後，請以程式碼為準。最後更新：2025-08-24。
+> **重要提醒**：該附註說明會定期更新以反映當前專案狀態，但仍可能存在滯後，請以實際程式碼為準。  
+> **最後更新**：2025-08-29（包含國際化系統、性能優化、統一狀態管理與增量更新機制）
 
 - __根目錄（src/）__
   - `App.jsx`：Renderer 主頁（桌面視圖）入口，掛載應用、註冊全域樣式與路由/狀態。
@@ -207,7 +252,7 @@
   - Vite 多入口（源自 `vite.config.js` → `build.rollupOptions.input`）：
     - `main: index.html`（桌面頁面）
     - `folder: folder.html`（資料夾窗口頁面）
-    - 相關別名：`resolve.alias` 包含 `@components`、`@ui`、`@shared`、`@hooks`、`@config`。
+    - 相關別名：`resolve.alias` 包含 `@`、`@components`、`@ui`、`@shared`、`@hooks`、`@config`。
 
 - __`components/`（Renderer UI 組件）__
   - `DesktopManager.jsx`：協調桌面場景，管理桌面/資料夾對話框與全域操作。
@@ -218,13 +263,16 @@
   - `GameCard.jsx`：遊戲卡片元件（桌面/資料夾共用樣式與選取覆蓋）。
   - `SearchBar.jsx`：搜尋列元件。
   - `TitleBar.jsx`：視窗標題列（最小化/關閉等）。
+  - `VirtualizedGameGrid.jsx` / `VirtualizedGameGrid.css`：虛擬化遊戲網格（支援大量遊戲的高效渲染）。
   - `index.js`：`@components` barrel 匯出。
 
   - `Common/ConfirmDialog.jsx`：通用確認對話框。
   - `Common/useContextMenu.jsx`：通用右鍵選單 hook（桌面/資料夾上下文共享基礎）。
 
-  - `controller/GameGridController.jsx`：網格控制器（選取、右鍵、拖拽等行為協調）。
-  - `controller/useControllerContextMenu.js`：控制器對應的 context menu 邏輯。
+  - `controller/`：**已廢棄的控制器模組**（檔案仍存在但未使用）：
+    - `GameGridController.jsx`：舊版手把控制器實現（已停用）。
+    - `useControllerContextMenu.js`：手把專用右鍵選單 hook（已停用）。
+
 
   - `Desktop/ContextMenu.jsx`：桌面專用右鍵選單。
   - `Desktop/Desktop.css`：桌面視圖樣式。
@@ -269,37 +317,54 @@
     - `ToggleSwitch.jsx`：通用開關元件（受控/非受控皆可，供表單或偏好設定使用）。
     - `AboutNetworkCard.jsx`：貢獻者網絡卡片（頭像可點擊，透過 `electronAPI.openExternal` 在外部瀏覽器開啟連結）。
     - `Select.jsx` / `Select.css`：下拉選單元件與樣式。
+    - `NotificationBubble.jsx` / `NotificationBubble.css`：通知氣泡元件（用於操作反饋）。
     - `ui/dialogs/GameLaunchDialog.jsx`：啟動前設定表單（schema-driven，IPC 取得 emulator schema）。
     - `ui/dialogs/FolderSelectDialog.jsx`：資料夾選擇。
     - `ui/dialogs/BackupDialog.jsx`：備份設定與進度對話框（串接 `backup.js` IPC 與 `shared/backup/spec`）。
     - `ui/dialogs/ConflictResolveDialog.jsx`：還原時的衝突處理 UI。
     - `ui/dialogs/AboutDialog.jsx`：關於對話框（應用資訊、模擬器介紹、貢獻者網絡卡片，支援外部鏈接）。
-    - `ui/dialogs/SettingsDialog.jsx`：軟體配置對話框（主題切換等設定選項）。
+    - `ui/dialogs/SettingsDialog.jsx` / `SettingsDialog.css`：軟體配置對話框（主題切換等設定選項）。
+    - `ui/dialogs/WelcomeGuideDialog.jsx`：歡迎引導對話框（首次使用設定向導，支援多語言與主題預覽）。
 
   - `_shared/FormRenderer.jsx`：通用 Schema 表單渲染器（選項標籤/型別註冊，服務於對話框）。支援多種欄位類型（文字、數字、布林、選項等），用於模擬器設定與其他表單對話框。
 
 - __`config/`__
-  - `controllerBindings.js`：控制器按鍵對應設定。
+  - `controllerBindings.js`：手把按鍵對應設定（僅用於桌面模式的手把支援）。
   - `perf.js`：效能相關常數/參數。
 
+- __`contexts/`__
+  - `I18nContext.jsx`：國際化上下文提供者（支援繁中、簡中、英文，含熱重載與自動語言檢測）。
+
 - __`hooks/`__
-  - `useGamepad.js`：手把輸入 Hook。
+  - `useGamepad.js`：手把輸入 Hook（通用 Gamepad 輪詢，支援方向移動與動作按鍵回調）。
+  - `useGameStore.js`：遊戲狀態管理 Hook（連接統一狀態管理系統）。
+  - `useTranslation.js`：翻譯 Hook（提供 `t()` 函數與語言切換功能）。
+
+- __`locales/`（國際化資源）__
+  - `en-US.json`：英文翻譯資源。
+  - `zh-CN.json`：簡體中文翻譯資源。
+  - `zh-TW.json`：繁體中文翻譯資源。
+  - 支援嵌套鍵值結構與參數替換（`{{param}}` 語法）。
 
 - __`assets/`__
   - `avatars/`：貢獻者頭像資產
     - `index.js`：集中式頭像載入器（`import.meta.glob`），提供 `getAvatar(name)` 與 `listAvatars()`。
-    - `xxx.png`：各貢獻者頭像檔案。
-  - `icons/`：應用圖示資產
+    - `lavinia.png` / `magstic.png` / `marisa.png`：各貢獻者頭像檔案。
+  - `icons/`：應用圖示與服務圖示資產
     - `icon.ico` / `icon.png` / `icon.svg`：應用圖示（用於窗口圖示與安裝包）。
+    - `dropbox.svg` / `s3.svg` / `webdav.svg`：雲端服務圖示。
+    - `License_MIT.svg`：MIT 授權圖示。
+    - `index.js`：icons 彙總出口（barrel）。用法：`import { AppIconSvg, MitLicenseSvg } from '@/assets/icons';`
 
 - __`main/`（Electron 主進程）__
   - `main.js`：主進程入口，建立窗口、註冊 IPC。
-  - `preload.js`：Preload 腳本，暴露 IPC API 給 Renderer。
+  - `preload.js`：Preload 腳本，暴露 IPC API 給 Renderer（包含完整的資料夾管理、自定義名稱、雲端備份等 API）。
   - `data-store.js`：資料存取門面（SQL-first，委派至 `sql/` 與 `db.js`）。
-  - `db.js`：SQLite 初始化與索引（如 `folder_games`）。
+  - `db.js`：SQLite 初始化與索引（如 `folder_games`），包含自動清理與壓縮功能。
   - `migrateFromJson.js`：舊 JSON 遷移工具（只在遷移期使用）。
   - `jar-parser.js`：JAR 解析（透過 `readers/factory.js` 決定解讀路徑：yauzl → system-extract → raw-fallback）。
-  - `shortcuts.js`：桌面捷徑與圖示處理（打包時生成/確保 ICO 與捷徑）。
+  - `shortcuts.js`：桌面捷徑與圖示處理（支援中文檔名、PNG 轉 ICO、hash-based 啟動參數）。
+  - `store-bridge.js`：主進程與渲染進程狀態同步橋接。
 
   - `config/yaml-config.js`：YAML 設定存取（首啟用完整預設、讀寫自我修復）。
 
@@ -307,6 +372,8 @@
 
   - `ipc/*.js`：各功能域 IPC handler：
     - `desktop.js`、`directories.js`、`drag-session.js`、`emulator.js`、`folder-windows.js`、`folders.js`、`sql-games.js`、`stats.js`、`window-controls.js`、`shortcuts.js`。
+    - `custom-names.js`：自定義遊戲名稱與開發商管理。
+    - `incremental-updates.js`：增量更新機制（Linus-style 最小化更新）。
     - `backup.js`：備份/還原與 Dropbox OAuth（PKCE）流程之 IPC 端點。
     - `README.md`：IPC 說明文件。
 
@@ -318,15 +385,22 @@
 
   - `sql/`：SQL 存取層：
     - `read.js`、`sync.js`、`settings.js`、`directories.js`、`folders-read.js`、`folders-write.js`、`emulator-configs.js`。
+    - `custom-names.js`：自定義名稱 SQL 操作。
+    - `optimized-read.js`：優化的讀取查詢（支援分頁與批次操作）。
 
   - `utils/`：主進程工具集合：
     - `game-conf.js`：遊戲配置檔案處理。
     - `hash.js`：檔案雜湊計算工具。
-    - `icon-url.js`：註冊並使用 `safe-file://` 協議（`protocol.registerSchemesAsPrivileged`），將本地圖示以 `safe-file://<name>` 暴露給渲染端；未提供圖示時回退 `safe-file://default-ico.svg`。CSP 允許（見 `vite.config.js`）：`img-src 'self' data: safe-file:`。
+    - `icon-url.js`：註冊並使用 `safe-file://` 協議，將本地圖示暴露給渲染端。
     - `jar-cache.js`：JAR 檔案快取管理。
     - `jar-manifest.js`：JAR manifest 解析。
     - `java.js`：Java 環境檢測與工具。
     - `png-to-ico.js`：PNG 轉 ICO 圖示格式轉換。
+    - `batch-operations.js`：批次操作工具（支援進度回調）。
+    - `batch-folder-operations.js`：資料夾批次操作（Linus-style 高效能）。
+    - `game-state-cache.js`：遊戲狀態快取管理。
+    - `sql-cache.js`：SQL 查詢結果快取。
+    - `unified-cache.js`：統一快取系統（支援 10k+ 遊戲）。
 
  - __備份子系統__
   - `main/backup/core.js`：備份/還原核心流程（規劃、分組與進度回報）。
@@ -337,6 +411,14 @@
   - `main/ipc/backup.js`：提供 `backup:*` 與 `dropbox:*` IPC。
   - `shared/backup/spec.js`：與渲染端共享之備份規格（群組、預設路徑）；`shared/backup/indexTSV.js`：索引序列化工具。
 
+- __`shared/`（跨進程共享模組）__
+  - `backup/`：備份子系統共享模組：
+    - `spec.js`：備份規格定義（群組、預設路徑等）。
+    - `indexTSV.js`：索引序列化工具（TSV 格式）。
+
+- __`store/`（統一狀態管理）__
+  - `GameStore.js`：Linus-style 統一狀態管理（簡單、可預測、高效能）。
+
 - __`styles/`（全域樣式系統）__
   - `theme.css`：主題變數與設計代幣定義。
   - `tokens.css`：設計系統代幣（顏色、間距、字體等）。
@@ -345,3 +427,30 @@
   - `buttons.css`：按鈕樣式系統。
   - `focus-ring.css`：焦點環與無障礙樣式。
   - 所有樣式檔案於 `App.jsx` 等處引入，提供全域樣式基礎。
+
+- __`utils/`（渲染進程工具）__
+  - `i18n.js`：國際化工具函數。
+  - `memory-pool.js`：記憶體池管理（用於大量遊戲的記憶體優化）。
+
+## 架構特色與設計理念
+
+### 性能優化策略
+- **虛擬化渲染**：`VirtualizedGameGrid` 支援 10k+ 遊戲的流暢渲染
+- **增量更新**：`incremental-updates.js` 實現 Linus-style 最小化更新
+- **統一快取**：`unified-cache.js` 提供單一真實來源的快取系統
+- **批次操作**：`batch-folder-operations.js` 優化大量資料夾操作
+
+### 國際化系統
+- **完整 i18n 支援**：繁中、簡中、英文三語言
+- **熱重載**：開發時支援翻譯資源熱重載
+- **自動檢測**：根據系統語言自動選擇預設語言
+
+### 狀態管理
+- **統一狀態**：`GameStore.js` 提供 Redux-like 但更簡潔的狀態管理
+- **增量同步**：主進程與渲染進程間的高效狀態同步
+- **快取一致性**：多層快取確保資料一致性
+
+### 模組化架構
+- **IPC 分離**：各功能域獨立的 IPC 處理器
+- **SQL 分層**：讀寫分離的 SQL 操作層
+- **組件復用**：高度模組化的 UI 組件系統

@@ -1,5 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useI18n } from '../../contexts/I18nContext';
 
 /**
  * 右鍵菜單組件
@@ -25,6 +26,7 @@ const ContextMenu = ({
   onClose
 }) => {
   const menuRef = useRef(null);
+  const { t } = useI18n();
 
   // 調整菜單位置，確保不會超出屏幕邊界
   useLayoutEffect(() => {
@@ -133,39 +135,33 @@ const ContextMenu = ({
   // 根據菜單類型渲染不同的菜單項
   const renderMenuItems = () => {
     switch (menuType) {
-      case 'desktop':
-        return [
-          renderMenuItem('新建資料夾', 'create-folder', '📁'),
-          renderMenuItem('刷新', 'refresh', '🔄'),
-        ];
-
       case 'folder':
         return [
-          renderMenuItem('打開', 'open-folder', '📂'),
-          renderMenuItem('設定', 'edit-folder', '⚙️'),
-          renderMenuItem('刪除', 'delete-folder', '🗑️'),
+          renderMenuItem(t('contextMenu.open'), 'open-folder', '📂'),
+          renderMenuItem(t('contextMenu.config'), 'edit-folder', '⚙️'),
+          renderMenuItem(t('contextMenu.delete'), 'delete-folder', '🗑️'),
         ];
 
       case 'game':
       case 'game-folder':
       case 'game-grid': {
         const isPlainGame = menuType === 'game';
-        const list = [renderMenuItem('啟動', 'launch-game', '⚔️')];
+        const list = [renderMenuItem(t('contextMenu.launch'), 'launch-game', '⚔️')];
         const middle = [];
         if (isPlainGame) {
-          const add = renderMenuItem('加入', 'add-to-folder', '📁');
+          const add = renderMenuItem(t('contextMenu.like'), 'add-to-folder', '📁');
           add && middle.push(add);
         }
         if (targetItem?.folderInfo) {
-          middle.push(renderMenuItem('移除', 'remove-from-folder', '📤'));
+          middle.push(renderMenuItem(t('contextMenu.delete'), 'remove-from-folder', '📤'));
         }
         if (middle.length > 0) {
           list.push(...middle);
         }
         // 捷徑建立
-        list.push(renderMenuItem('捷徑', 'create-shortcut', '🔗'));
-        list.push(renderMenuItem('配置', 'game-config', '⚙️'));
-        list.push(renderMenuItem('資訊', 'game-info', 'ℹ️'));
+        list.push(renderMenuItem(t('contextMenu.shortcut'), 'create-shortcut', '🔗'));
+        list.push(renderMenuItem(t('contextMenu.config'), 'game-config', '⚙️'));
+        list.push(renderMenuItem(t('contextMenu.info'), 'game-info', 'ℹ️'));
         return list.filter(Boolean);
       }
 

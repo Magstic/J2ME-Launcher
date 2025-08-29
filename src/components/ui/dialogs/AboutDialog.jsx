@@ -1,8 +1,11 @@
 import React from 'react';
 import { ModalHeaderOnly, AboutNetworkCard } from '@ui';
 import { getAvatar } from '../../../assets/avatars';
+import { useTranslation } from '@hooks/useTranslation';
+import { AppIconSvg, MitLicenseSvg } from '@/assets/icons';
 
 export default function AboutDialog({ isOpen, onClose }) {
+  const { t } = useTranslation();
   return (
     <ModalHeaderOnly isOpen={isOpen} onClose={onClose} title="J2ME Launcher" size="md">
       <div style={{ padding: '16px', maxHeight: '70vh', overflowY: 'auto' }}>
@@ -40,7 +43,7 @@ export default function AboutDialog({ isOpen, onClose }) {
             }}
           >
             <img 
-              src="./src/assets/icons/icon.svg" 
+              src={AppIconSvg} 
               alt="J2ME Launcher Icon" 
               style={{ 
                 width: '48px', 
@@ -64,7 +67,7 @@ export default function AboutDialog({ isOpen, onClose }) {
                 color: 'var(--text-secondary)',
                 fontWeight: '400'
               }}>
-                Java ME 遊戲啟動器與管理工具
+                {t('about.description')}
               </p>
             </div>
           </div>
@@ -89,7 +92,7 @@ export default function AboutDialog({ isOpen, onClose }) {
             }}
           >
             <img 
-              src="./src/assets/icons/License_MIT.svg" 
+              src={MitLicenseSvg} 
               alt="MIT License" 
               style={{ 
                 height: '56px',
@@ -133,10 +136,10 @@ export default function AboutDialog({ isOpen, onClose }) {
                 margin: '0', 
                 fontSize: '13px', 
                 lineHeight: '1.5', 
-                color: 'var(--text-secondary)' 
+                color: 'var(--text-secondary)',
+                whiteSpace: 'pre-line'
               }}>
-                如果沒有模擬器，那麼 J2ME Launcher 將是一具空殼。<br/>
-                本軟體為 MIT 許可證，因此，它並不會包含許可證衝突的模擬器，您需要自行下載。
+                {t('about.notice')}
               </p>
             </div>
           </div>
@@ -170,9 +173,9 @@ export default function AboutDialog({ isOpen, onClose }) {
               <h5 style={{ margin: '0', fontSize: '15px', fontWeight: '600', color: 'var(--text-accent)' }}>FreeJ2ME-Plus</h5>
               <span style={{ fontSize: '12px', color: '#888', marginLeft: '8px' }}>↗</span>
             </div>
-            <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: 'var(--text-primary)' }}>主維護：AShiningRay</p>
+            <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: 'var(--text-primary)' }}>{t('about.maintainer') + 'AShiningRay'}</p>
             <p style={{ margin: '0', fontSize: '13px', lineHeight: '1.4', color: 'var(--text-secondary)' }}>
-              J2ME EMU 的後起之秀。不僅與多種 J2ME 規範相容，而且同時提供了 AWT 前端和 Libretro 核心。
+              {t('about.freej2mePlusDescription')}
             </p>
           </div>
 
@@ -201,9 +204,9 @@ export default function AboutDialog({ isOpen, onClose }) {
               <h5 style={{ margin: '0', fontSize: '15px', fontWeight: '600', color: 'var(--text-accent)' }}>KEmulator nnmod</h5>
               <span style={{ fontSize: '12px', color: '#888', marginLeft: '8px' }}>↗</span>
             </div>
-            <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: 'var(--text-primary)' }}>主維護：shinovon</p>
+            <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: 'var(--text-primary)' }}>{t('about.maintainer') + 'shinovon'}</p>
             <p style={{ margin: '0', fontSize: '13px', lineHeight: '1.4', color: 'var(--text-secondary)' }}>
-              老牌模擬器 KEmulator 的逆向工程，在進行諸多優化的同時，也提供了多桌面平台的支援。
+              {t('about.kemulatorDescription')}
             </p>
           </div>
         </div>

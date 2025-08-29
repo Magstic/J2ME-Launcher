@@ -1,12 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import '../../DirectoryManager.css';
-import useGamepad from '@hooks/useGamepad';
 import { Card, Collapsible, ModalWithFooter, Select } from '@ui';
 import { FreeJ2MEPlusConfig, KEmulator, LibretroFJPlus } from '@components';
+import { useTranslation } from '@hooks/useTranslation'
 
 // 首次啟動彈窗：選擇使用全局預設或自定義當前遊戲參數
 function GameLaunchDialog({ isOpen, game, onClose, onSavedAndLaunch, configureOnly = false }) {
   const [loading, setLoading] = useState(false);
+  const { t } = useTranslation();
+  // 自定義名稱狀態
+  const [customName, setCustomName] = useState('');
+  const [customVendor, setCustomVendor] = useState('');
   const [useGlobal, setUseGlobal] = useState(true);
   const [params, setParams] = useState({
     fullscreen: 0,
@@ -49,9 +53,9 @@ function GameLaunchDialog({ isOpen, game, onClose, onSavedAndLaunch, configureOn
   const [schema, setSchema] = useState(null);
   const emulatorOptions = useMemo(() => (
     (emulatorList && emulatorList.length ? emulatorList : [
-      { id: 'freej2mePlus', name: 'FreeJ2ME-Plus（AWT）' },
+      { id: 'freej2mePlus', name: 'FreeJ2ME-Plus(AWT)' },
       { id: 'ke', name: 'KEmulator nnmod' },
-      { id: 'libretro', name: 'Libretro Core（FreeJ2ME-Plus）' },
+      { id: 'libretro', name: 'Libretro Core(FreeJ2ME-Plus)' },
     ]).map(opt => ({ value: opt.id, label: opt.name }))
   ), [emulatorList]);
 
@@ -77,6 +81,7 @@ function GameLaunchDialog({ isOpen, game, onClose, onSavedAndLaunch, configureOn
   const RES_OPTIONS = useMemo(() => [
     '96x65','101x64','101x80','128x128','130x130','120x160','128x160','132x176','176x208','176x220','220x176','208x208','180x320','320x180','208x320','240x320','320x240','240x400','400x240','240x432','240x480','360x360','352x416','360x640','640x360','640x480','480x800','800x480'
   ], []);
+  
   const SCALE_OPTIONS = [1,2,3,4,5];
   const FPS_OPTIONS = [60,55,50,45,40,35,30,25,20,15,10];
 
@@ -121,6 +126,14 @@ function GameLaunchDialog({ isOpen, game, onClose, onSavedAndLaunch, configureOn
     if (!isOpen) return;
     rebuildFocusables();
   }, [isOpen, freeOpen, useGlobal, emulator]);
+
+  // 初始化自定義名稱
+  useEffect(() => {
+    if (isOpen && game) {
+      setCustomName(game.customName || '');
+      setCustomVendor(game.customVendor || '');
+    }
+  }, [isOpen, game]);
 
   useEffect(() => {
     if (isOpen) {
@@ -199,27 +212,8 @@ function GameLaunchDialog({ isOpen, game, onClose, onSavedAndLaunch, configureOn
     setTimeout(() => {
       rebuildFocusables();
     }, 0);
-  }, [freeOpen, useGlobal, emulator, isOpen]);
+  }, [freeOpen, useGlobal, emulator, isOpen, activeIndex]);
 
-  // 控制器支援：方向鍵導航；B 取消，A 保存/保存並啟動/激活
-  // 注意：Hook 必須在任何條件 return 之前呼叫，以保持 hooks 順序穩定
-  useGamepad({
-    enabled: !!isOpen,
-    onMove: (dir) => {
-      const list = focusablesRef.current;
-      if (!list || !list.length) return;
-      if (dir === 'up') focusAt(activeIndex - 1);
-      else if (dir === 'down') focusAt(activeIndex + 1);
-    },
-    onPress: (action) => {
-      if (!isOpen) return;
-      if (action === 'back') {
-        if (!loading && requestCloseRef.current) requestCloseRef.current();
-      } else if (action === 'launch') {
-        activateCurrent();
-      }
-    },
-  });
 
   if (!isOpen) return null;
 
@@ -311,12 +305,34 @@ function GameLaunchDialog({ isOpen, game, onClose, onSavedAndLaunch, configureOn
 
   
 
-  // 已不再使用自由輸入數值，改為下拉選擇
+  // 保存自定義名稱
+  const handleSaveCustomNames = async () => {
+    if (!game) return;
+    try {
+      const customData = {};
+      if (customName !== (game.customName || '')) {
+        customData.customName = customName || null;
+      }
+      if (customVendor !== (game.customVendor || '')) {
+        customData.customVendor = customVendor || null;
+      }
+      
+      if (Object.keys(customData).length > 0) {
+        await window.electronAPI.updateCustomData(game.filePath, customData);
+      }
+    } catch (error) {
+      console.error('保存自定義名稱失敗:', error);
+    }
+  };
 
   const handleSaveAndLaunch = async () => {
     if (!game) return;
     try {
       setLoading(true);
+      
+      // 先保存自定義名稱
+      await handleSaveCustomNames();
+      
       const cfg = {
         emulator,
         selectedEmulator: emulator, // for backward compatibility
@@ -350,48 +366,63 @@ function GameLaunchDialog({ isOpen, game, onClose, onSavedAndLaunch, configureOn
     <ModalWithFooter
       isOpen={isOpen}
       onClose={onClose}
-      title={configureOnly ? '配置遊戲' : '首次啟動配置'}
+      title={configureOnly ? t('emulatorConfig.gameConfig') : t('emulatorConfig.firstConfig')}
       size="md"
       contentRef={modalRef}
       requestCloseRef={requestCloseRef}
       actions={[
-        { key: 'cancel', label: '取消', variant: 'secondary', onClick: () => requestCloseRef.current && requestCloseRef.current() },
-        { key: 'save', label: configureOnly ? '保存' : '保存並啟動', variant: 'primary', onClick: () => handleSaveAndLaunch(), disabled: loading, allowFocusRing: true },
+        { key: 'cancel', label: t('app.cancel'), variant: 'secondary', onClick: () => requestCloseRef.current && requestCloseRef.current() },
+        { key: 'save', label: configureOnly ? t('app.save') : t('app.add'), variant: 'primary', onClick: () => handleSaveAndLaunch(), disabled: loading, allowFocusRing: true },
       ]}
     >
-        <div className="section mb-6">
-          <div className="form-row">
-            <label className="form-label">遊戲名</label>
-            <input className="form-input" readOnly value={game?.gameName || game?.filePath || ''} />
-          </div>
-          <div className="form-row">
-            <label className="form-label">模擬器</label>
-            <Select
-              value={emulator}
-              onChange={setEmulator}
-              options={emulatorOptions}
-              placeholder="選擇模擬器"
-            />
-          </div>
-          <div className="form-row" style={{ display: selectedCaps?.perGameParams ? undefined : 'none' }}>
-            <label className="form-label">參數配置</label>
-            <div className="radio-group">
-              <label className={`radio-option ${useGlobal ? 'checked' : ''}`} tabIndex={0} role="button">
-                <input className="radio-input" type="radio" name="useGlobal" checked={useGlobal} onChange={() => setUseGlobal(true)} />
-                預設
-              </label>
-              <label className={`radio-option ${!useGlobal ? 'checked' : ''}`} tabIndex={0} role="button">
-                <input className="radio-input" type="radio" name="useGlobal" checked={!useGlobal} onChange={() => setUseGlobal(false)} />
-                自訂
-              </label>
-            </div>
+      <div>
+        <div className="form-row">
+          <label className="form-label">{t('game.name')}</label>
+          <input
+            type="text"
+            value={customName}
+            onChange={(e) => setCustomName(e.target.value)}
+            placeholder={game.originalName || game.gameName}
+            className="form-input"
+          />
+        </div>
+        <div className="form-row">
+          <label className="form-label">{t('game.vendor')}</label>
+          <input
+            type="text"
+            value={customVendor}
+            onChange={(e) => setCustomVendor(e.target.value)}
+            placeholder={game.originalVendor || game.vendor}
+            className="form-input"
+          />
+        </div>
+        <div className="form-row">
+          <label className="form-label">{t('emulatorConfig.emulator')}</label>
+          <Select
+            value={emulator}
+            onChange={setEmulator}
+            options={emulatorOptions}
+            placeholder={t('emulatorConfig.emulator')}
+          />
+        </div>
+        <div className="form-row" style={{ display: selectedCaps?.perGameParams ? undefined : 'none' }}>
+          <label className="form-label">{t('emulatorConfig.params')}</label>
+          <div className="radio-group">
+            <label className={`radio-option ${useGlobal ? 'checked' : ''}`} tabIndex={0} role="button">
+              <input className="radio-input" type="radio" name="useGlobal" checked={useGlobal} onChange={() => setUseGlobal(true)} />
+              {t('emulatorConfig.default')}
+            </label>
+            <label className={`radio-option ${!useGlobal ? 'checked' : ''}`} tabIndex={0} role="button">
+              <input className="radio-input" type="radio" name="useGlobal" checked={!useGlobal} onChange={() => setUseGlobal(false)} />
+              {t('emulatorConfig.custom')}
+            </label>
           </div>
         </div>
 
-          <div className="section" style={{ display: emulator === 'freej2mePlus' ? undefined : 'none' }}>
+        <div className="section" style={{ display: emulator === 'freej2mePlus' ? undefined : 'none' }}>
             <Collapsible
               className="mb-12"
-              title="FreeJ2ME-Plus 參數"
+              title={`FreeJ2ME-Plus ${t('emulatorConfig.emuParams')}`}
               open={freeOpen}
               onToggle={() => setFreeOpen(o => !o)}
             >
@@ -406,7 +437,7 @@ function GameLaunchDialog({ isOpen, game, onClose, onSavedAndLaunch, configureOn
                 romCacheDisabled={false}
               />
               <div className="hint text-12 text-secondary mt-8">
-                保存後，未來啟動該遊戲時將自動套用此配置。
+                {t('emulatorConfig.saveHint')}
               </div>
             </Collapsible>
           </div>
@@ -415,7 +446,7 @@ function GameLaunchDialog({ isOpen, game, onClose, onSavedAndLaunch, configureOn
           <div className="section" style={{ display: emulator === 'ke' ? undefined : 'none' }}>
             <Collapsible
               className="mb-12"
-              title="KEmulator nnmod 參數"
+              title={`KEmulator nnmod ${t('emulatorConfig.emuParams')}`}
               open={keOpen}
               onToggle={() => setKeOpen(o => !o)}
             >
@@ -427,13 +458,14 @@ function GameLaunchDialog({ isOpen, game, onClose, onSavedAndLaunch, configureOn
           <div className="section" style={{ display: emulator === 'libretro' ? undefined : 'none' }}>
             <Collapsible
               className="mb-12"
-              title="Libretro Core（FreeJ2ME-Plus） 參數"
+              title={`Libretro Core（FreeJ2ME-Plus） ${t('emulatorConfig.emuParams')}`}
               open={libretroOpen}
               onToggle={() => setLibretroOpen(o => !o)}
             >
               <LibretroFJPlus romCache={libretroRomCache} onRomCacheChange={setLibretroRomCache} disabled={false} />
             </Collapsible>
           </div>
+      </div>
     </ModalWithFooter>
   );
 }

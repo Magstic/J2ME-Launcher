@@ -1,6 +1,8 @@
 import React from 'react';
+import { useTranslation } from '@hooks/useTranslation';
 
 function SearchBar({ searchTerm, onSearchChange, onSearch, gameCount, filteredCount, totalCount, directory }) {
+  const { t } = useTranslation();
   const handleChange = (e) => {
     const val = e.target.value;
     if (typeof onSearchChange === 'function') {
@@ -16,7 +18,7 @@ function SearchBar({ searchTerm, onSearchChange, onSearch, gameCount, filteredCo
         <input
           type="text"
           className="search-input"
-          placeholder="搜索遊戲名稱、開發商或版本..."
+          placeholder={t('searchPlaceholder')}
           value={searchTerm ?? ''}
           onChange={handleChange}
         />

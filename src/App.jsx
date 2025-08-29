@@ -7,24 +7,31 @@ import './styles/dialog.css';
 import './styles/buttons.css';
 import './styles/focus-ring.css';
 import { TitleBar, DirectoryManager, SearchBar, DesktopManager, GameInfoDialog, EmulatorConfigDialog } from '@components';
-import { GameGridController as GameGrid } from '@components';
 import { AboutDialog, SettingsDialog, WelcomeGuideDialog } from '@ui';
 import { GameLaunchDialog, BackupDialog } from '@components';
-import useGamepad from '@hooks/useGamepad';
-import { getAvatar } from './assets/avatars';
+import { I18nProvider } from './contexts/I18nContext';
+import { useTranslation } from './hooks/useTranslation';
+import NotificationBubble from './components/ui/NotificationBubble';
 
-// 主應用組件
 function App() {
+  return (
+    <I18nProvider>
+      <AppContent />
+    </I18nProvider>
+  );
+}
+
+function AppContent() {
+  const { t } = useTranslation();
   const [games, setGames] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [directory, setDirectory] = useState(null);
   const [isDirectoryManagerOpen, setIsDirectoryManagerOpen] = useState(false);
   const [isEmulatorConfigOpen, setIsEmulatorConfigOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [gameLaunchDialog, setGameLaunchDialog] = useState({ isOpen: false, game: null, configureOnly: false });
-  const [viewMode, setViewMode] = useState('desktop'); // 'desktop' | 'grid'
-  const [isSwitchingToDesktop, setIsSwitchingToDesktop] = useState(false);
   const [gameInfoDialog, setGameInfoDialog] = useState({ isOpen: false, game: null });
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isBackupOpen, setIsBackupOpen] = useState(false);
@@ -41,6 +48,15 @@ function App() {
   const [fabOpen, setFabOpen] = useState(false);
   const fabHideTimer = useRef(null);
   const fabOpenTimer = useRef(null);
+  // 搜索防抖動效果
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300); // 300ms 延遲，適合拼音輸入
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   const openFab = useCallback(() => {
     // 取消關閉定時，避免即將關閉時又打開
     if (fabHideTimer.current) { clearTimeout(fabHideTimer.current); fabHideTimer.current = null; }
@@ -114,10 +130,20 @@ function App() {
     const handleOpenEmulatorConfigFromGuide = () => setIsEmulatorConfigOpen(true);
     const handleOpenDirectoryManagerFromGuide = () => setIsDirectoryManagerOpen(true);
     const handleOpenBackupConfigFromGuide = () => setIsBackupOpen(true);
+    const handleOpenSettingsTheme = () => setIsSettingsOpen(true);
+
+    const handleThemeChange = (event) => {
+      const newTheme = event.detail;
+      if (newTheme === 'light' || newTheme === 'dark') {
+        setTheme(newTheme);
+      }
+    };
 
     window.addEventListener('open-emulator-config', handleOpenEmulatorConfig);
     window.addEventListener('open-directory-manager', handleOpenDirectoryManager);
     window.addEventListener('open-backup-config', handleOpenBackupConfig);
+    window.addEventListener('open-settings-theme', handleOpenSettingsTheme);
+    window.addEventListener('theme-change', handleThemeChange);
     
     // 從引導觸發的事件
     window.addEventListener('open-emulator-config-from-guide', handleOpenEmulatorConfigFromGuide);
@@ -128,6 +154,8 @@ function App() {
       window.removeEventListener('open-emulator-config', handleOpenEmulatorConfig);
       window.removeEventListener('open-directory-manager', handleOpenDirectoryManager);
       window.removeEventListener('open-backup-config', handleOpenBackupConfig);
+      window.removeEventListener('open-settings-theme', handleOpenSettingsTheme);
+      window.removeEventListener('theme-change', handleThemeChange);
       window.removeEventListener('open-emulator-config-from-guide', handleOpenEmulatorConfigFromGuide);
       window.removeEventListener('open-directory-manager-from-guide', handleOpenDirectoryManagerFromGuide);
       window.removeEventListener('open-backup-config-from-guide', handleOpenBackupConfigFromGuide);
@@ -142,36 +170,6 @@ function App() {
     }
   }, []);
 
-  // 全局手把處理：在非控制器模式下也允許 Start/Select
-  useGamepad({
-    enabled: viewMode !== 'grid',
-    onMove: null,
-    onPress: (action) => {
-      // 僅在非 grid 模式下接收 Start/Select，避免與 GameGrid 的 useGamepad 重疊
-      if (action === 'toggleMode') {
-        setViewMode('grid');
-      } else if (action === 'focusSearch') {
-        document.querySelector('.search-input')?.focus();
-      }
-    },
-  });
-
-  // 彈窗期間的手把處理：允許 B 關閉當前彈窗，禁止其他動作
-  const anyModalOpen = gameLaunchDialog.isOpen || gameInfoDialog.isOpen || isDirectoryManagerOpen || isEmulatorConfigOpen;
-  useGamepad({
-    enabled: !!anyModalOpen,
-    onMove: null,
-    onPress: (action) => {
-      if (!anyModalOpen) return;
-      if (action === 'back') {
-        if (gameLaunchDialog.isOpen) setGameLaunchDialog({ isOpen: false, game: null, configureOnly: false });
-        else if (gameInfoDialog.isOpen) setGameInfoDialog({ isOpen: false, game: null });
-        else if (isEmulatorConfigOpen) setIsEmulatorConfigOpen(false);
-        else if (isDirectoryManagerOpen) setIsDirectoryManagerOpen(false);
-      }
-      // 其他按鍵在彈窗時不進行全局處理
-    },
-  });
 
   // 在应用启动时加载初始游戏
   useEffect(() => {
@@ -240,8 +238,35 @@ function App() {
 
   // 監聽自動掃描完成和遊戲更新事件
   useEffect(() => {
+    let updateTimer = null;
     const handleGamesUpdated = (updatedGames) => {
-      setGames(updatedGames);
+      // 節流更新：避免短時間內多次重新渲染
+      if (updateTimer) clearTimeout(updateTimer);
+      updateTimer = setTimeout(() => {
+        setGames(updatedGames);
+        updateTimer = null;
+      }, 50); // 50ms 延遲，合併多次更新
+    };
+
+    // 增量更新處理器：僅更新受影響的遊戲
+    const handleIncrementalUpdate = (updateData) => {
+      const { action, affectedGames } = updateData;
+      
+      if (!affectedGames || affectedGames.length === 0) return;
+      
+      // 對於資料夾成員關係變更，我們需要重新獲取完整遊戲列表
+      // 因為遊戲的資料夾徽章狀態可能改變
+      if (action === 'folder-membership-changed' || action === 'drag-drop-completed') {
+        // 延遲重新獲取，避免與全量更新衝突
+        setTimeout(async () => {
+          try {
+            const updatedGames = await window.electronAPI.getInitialGames();
+            if (updatedGames) setGames(updatedGames);
+          } catch (e) {
+            console.warn('增量更新失敗，回退到當前狀態:', e);
+          }
+        }, 100);
+      }
     };
 
     const handleAutoScanCompleted = (result) => {
@@ -252,11 +277,14 @@ function App() {
 
     // 添加事件監聽
     window.electronAPI.onGamesUpdated(handleGamesUpdated);
+    window.electronAPI.onGamesIncrementalUpdate?.(handleIncrementalUpdate);
     window.electronAPI.onAutoScanCompleted(handleAutoScanCompleted);
 
     // 清理函數
     return () => {
+      if (updateTimer) clearTimeout(updateTimer);
       window.electronAPI.removeAllListeners('games-updated');
+      window.electronAPI.removeAllListeners('games-incremental-update');
       window.electronAPI.removeAllListeners('auto-scan-completed');
     };
   }, []);
@@ -342,41 +370,25 @@ function App() {
     }
   };
 
-  // 切換視圖模式
-  const handleToggleViewMode = () => {
-    // 切換前立即清除目前焦點
-    try { document.activeElement && document.activeElement.blur && document.activeElement.blur(); } catch {}
-    // 下一個 tick 再次清除一次，避免切換按鈕殘留 focus 樣式
-    setTimeout(() => {
-      try { document.activeElement && document.activeElement.blur && document.activeElement.blur(); } catch {}
-    }, 0);
-
-    setViewMode(prev => {
-      if (prev === 'grid') {
-        // 即將切回桌面視圖：開啟短暫的進場狀態
-        setIsSwitchingToDesktop(true);
-        // 在一個 tick 後切換到 desktop，確保 CSS class 生效
-        setTimeout(() => setIsSwitchingToDesktop(false), 260);
-        return 'desktop';
-      }
-      return 'grid';
-    });
-  };
 
   const filteredGames = useMemo(() => {
-    const lowerCaseSearchTerm = searchTerm.toLowerCase();
+    const lowerCaseSearchTerm = debouncedSearchTerm.toLowerCase();
     if (!lowerCaseSearchTerm) return games;
-    return games.filter(game =>
-      (game.gameName && game.gameName.toLowerCase().includes(lowerCaseSearchTerm)) ||
-      (game.vendor && game.vendor.toLowerCase().includes(lowerCaseSearchTerm))
-    );
-  }, [games, searchTerm]);
+    return games.filter(game => {
+      // 使用顯示名稱進行搜索（優先使用自定義名稱）
+      const displayName = game.gameName || '';
+      const displayVendor = game.vendor || '';
+      
+      return displayName.toLowerCase().includes(lowerCaseSearchTerm) ||
+             displayVendor.toLowerCase().includes(lowerCaseSearchTerm);
+    });
+  }, [games, debouncedSearchTerm]);
 
   return (
-    <div
-      className={`app-container ${viewMode === 'desktop' ? 'desktop-mode' : 'grid-mode'} ${isSwitchingToDesktop ? 'switching-desktop' : ''}`}
-      data-theme={theme}
-    >
+      <div
+        className="app-container desktop-mode"
+        data-theme={theme}
+      >
       <TitleBar />
       <div className="app">
         
@@ -389,26 +401,12 @@ function App() {
             directory={directory}
           />
           <div className="content-area">
-            {/* 同時渲染兩個視圖，透過 CSS 切換可見性，避免桌面視圖卸載導致資料夾消失/重排 */}
-            <div className={`view-layer ${viewMode === 'desktop' ? 'view-active' : 'view-hidden'}`}>
-              <DesktopManager 
-                games={filteredGames}
-                searchQuery={searchTerm}
-                isLoading={isLoading}
-                onGameLaunch={handleGameLaunch}
-                isSwitchingToDesktop={isSwitchingToDesktop}
-              />
-            </div>
-            <div className={`view-layer ${viewMode === 'grid' ? 'view-active' : 'view-hidden'}`}>
-              <GameGrid 
-                games={filteredGames} 
-                isLoading={isLoading} 
-                onGameLaunch={handleGameLaunch}
-                onGameInfo={(game) => setGameInfoDialog({ isOpen: true, game })}
-                controllerModeEnabled={viewMode === 'grid'}
-                onToggleViewMode={handleToggleViewMode}
-              />
-            </div>
+            <DesktopManager 
+              games={filteredGames}
+              searchQuery={debouncedSearchTerm}
+              isLoading={isLoading}
+              onGameLaunch={handleGameLaunch}
+            />
           </div>
           {/* 將 FAB 獨立於 content-area 之外，避免受其滾動與佈局影響 */}
           <div className="fab-container">
@@ -419,18 +417,11 @@ function App() {
               onMouseLeave={scheduleCloseFab}
               onClick={() => setFabOpen(v => !v)}
             >
-              {/* FAB 圖標：桌面模式顯示電腦顯示器；控制器模式顯示控制器。使用 180° 紙片翻轉過渡 */}
-              <div className={`fab-icon ${viewMode === 'grid' ? 'is-grid' : 'is-desktop'}`} aria-hidden="true">
-                {/* front: 桌面（顯示器）*/}
+              {/* FAB 圖標：桌面模式顯示電腦顯示器 */}
+              <div className="fab-icon is-desktop" aria-hidden="true">
                 <span className="face front">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
                     <path d="M21 3H3c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h7v2H8c-.55 0-1 .45-1 1s.45 1 1 1h8c.55 0 1-.45 1-1s-.45-1-1-1h-2v-2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 13H3V5h18v11z"/>
-                  </svg>
-                </span>
-                {/* back: 控制器 */}
-                <span className="face back">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
-                    <path d="M6.5 8C3.46 8 1 10.46 1 13.5S3.46 19 6.5 19c1.33 0 2.55-.52 3.47-1.37h4.06C15.95 18.48 17.17 19 18.5 19 21.54 19 24 16.54 24 13.5S21.54 8 18.5 8c-1.61 0-3.06.74-4.02 1.9h-4.96C9.56 8.74 8.11 8 6.5 8zm0 2c.55 0 1 .45 1 1v1h1c.55 0 1 .45 1 1s-.45 1-1 1h-1v1c0 .55-.45 1-1 1s-1-.45-1-1v-1H4.5c-.55 0-1-.45-1-1s.45-1 1-1H5.5v-1c0-.55.45-1 1-1zm10.5 1.25c.69 0 1.25.56 1.25 1.25S17.69 13.75 17 13.75 15.75 13.19 15.75 12.5 16.31 11.25 17 11.25zm2.5 0c.69 0 1.25.56 1.25 1.25S20.19 13.75 19.5 13.75s-1.25-.56-1.25-1.25.56-1.25 1.25-1.25z"/>
                   </svg>
                 </span>
               </div>
@@ -440,23 +431,20 @@ function App() {
               onMouseEnter={openFab}
               onMouseLeave={scheduleCloseFab}
             >
-              <button className="fab-menu-item" onClick={handleToggleViewMode}>
-                {viewMode === 'desktop' ? '控制器模式 - Beta' : '桌面模式'}
-              </button>
               <button className="fab-menu-item" onClick={handleOpenDirectoryManager}>
-                ROM 資料夾
+                {t('fabMenu.roms')}
               </button>
               <button className="fab-menu-item" onClick={handleOpenEmulatorConfig}>
-                模擬器配置
+                {t('fabMenu.emulator')}
               </button>
               <button className="fab-menu-item" onClick={() => setIsSettingsOpen(true)}>
-                軟體配置
+                {t('fabMenu.settings')}
               </button>
               <button className="fab-menu-item" onClick={() => setIsBackupOpen(true)}>
-                雲端同步
+                {t('fabMenu.backup')}
               </button>
               <button className="fab-menu-item" onClick={() => setIsAboutOpen(true)}>
-                關於我們
+                {t('fabMenu.about')}
               </button>
             </div>
           </div>
@@ -524,7 +512,10 @@ function App() {
           }}
         />
       )}
-    </div>
+      
+      {/* 左下角通知氣泡 */}
+      <NotificationBubble />
+      </div>
   );
 }
 

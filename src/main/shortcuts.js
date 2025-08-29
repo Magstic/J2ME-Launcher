@@ -65,7 +65,11 @@ async function createDesktopShortcut({ filePath, title, iconPngPath }) {
   const desktop = app.getPath('desktop');
   const hash = gameHashFromPath(filePath);
   const safeTitle = sanitizeFileName(title);
-  const lnkPath = path.join(desktop, `${safeTitle}.lnk`);
+  const finalLnkPath = path.join(desktop, `${safeTitle}.lnk`);
+  
+  // 解決中文編碼問題：先創建 MD5 檔名，再重命名
+  const tempLnkPath = path.join(desktop, `${hash}.lnk`);
+  
   const isPackaged = !!app.isPackaged;
   const target = process.execPath; // Packaged: app exe; Dev: electron.exe
   // In dev, electron.exe requires the app path as the first argument.
@@ -82,16 +86,16 @@ async function createDesktopShortcut({ filePath, title, iconPngPath }) {
   const args = argParts.join(' ');
   const iconIcoPath = await ensureIcoForGame(filePath, iconPngPath);
 
-  // Use PowerShell and WScript.Shell to create the shortcut
+  // Step 1: 創建安全的 MD5 檔名捷徑
   const { execFile } = require('child_process');
-  const psCommand = [
+  const createCommand = [
     'powershell',
     '-NoProfile',
     '-NonInteractive',
     '-ExecutionPolicy', 'Bypass',
     '-Command',
     `$Wsh = New-Object -ComObject WScript.Shell; ` +
-    `$s = $Wsh.CreateShortcut("${psEscape(lnkPath.replace(/\\/g, '/'))}"); ` +
+    `$s = $Wsh.CreateShortcut("${psEscape(tempLnkPath.replace(/\\/g, '/'))}"); ` +
     `$s.TargetPath = "${psEscape(target.replace(/\\/g, '/'))}"; ` +
     `$s.Arguments = "${psEscape(args)}"; ` +
     `$s.IconLocation = "${psEscape(iconIcoPath.replace(/\\/g, '/'))}"; ` +
@@ -100,12 +104,38 @@ async function createDesktopShortcut({ filePath, title, iconPngPath }) {
   ];
 
   await new Promise((resolve, reject) => {
-    execFile(psCommand[0], psCommand.slice(1), { windowsHide: true }, (err) => {
+    execFile(createCommand[0], createCommand.slice(1), { windowsHide: true }, (err) => {
       if (err) reject(err); else resolve();
     });
   });
 
-  return { lnkPath, iconPath: iconIcoPath };
+  // Step 2: 如果目標檔名與臨時檔名不同，則重命名為中文名
+  if (tempLnkPath !== finalLnkPath) {
+    // 檢查目標檔案是否已存在，如果存在則先刪除
+    try {
+      await fs.promises.access(finalLnkPath, fs.constants.F_OK);
+      await fs.promises.unlink(finalLnkPath);
+    } catch (_) {
+      // 檔案不存在，繼續
+    }
+
+    const renameCommand = [
+      'powershell',
+      '-NoProfile',
+      '-NonInteractive',
+      '-ExecutionPolicy', 'Bypass',
+      '-Command',
+      `Rename-Item "${psEscape(tempLnkPath.replace(/\\/g, '/'))}" "${psEscape(path.basename(finalLnkPath))}"`
+    ];
+
+    await new Promise((resolve, reject) => {
+      execFile(renameCommand[0], renameCommand.slice(1), { windowsHide: true }, (err) => {
+        if (err) reject(err); else resolve();
+      });
+    });
+  }
+
+  return { lnkPath: finalLnkPath, iconPath: iconIcoPath };
 }
 
 module.exports = {

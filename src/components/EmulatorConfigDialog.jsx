@@ -2,8 +2,10 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './DirectoryManager.css';
 import { Collapsible, ModalWithFooter, RomCacheSwitch } from '@ui';
 import { FreeJ2MEPlusConfig } from '@components';
+import { useTranslation } from '@hooks/useTranslation';
 
 function EmulatorConfigDialog({ isOpen, onClose }) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [emulatorList, setEmulatorList] = useState([]);
   const [emulators, setEmulators] = useState({
@@ -231,12 +233,12 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
     <ModalWithFooter
       isOpen={isOpen}
       onClose={onClose}
-      title="模擬器配置"
+      title={t('emulatorConfig.title')}
       size="md"
       requestCloseRef={requestCloseRef}
       actions={[
-        { key: 'cancel', label: '取消', variant: 'secondary', onClick: () => requestCloseRef.current && requestCloseRef.current() },
-        { key: 'save', label: '保存', variant: 'primary', onClick: handleSave, disabled: loading || !dirty, allowFocusRing: true },
+        { key: 'cancel', label: t('app.cancel'), variant: 'secondary', onClick: () => requestCloseRef.current && requestCloseRef.current() },
+        { key: 'save', label: t('app.save'), variant: 'primary', onClick: handleSave, disabled: loading || !dirty, allowFocusRing: true },
       ]}
     >
         <div className="modal-body">
@@ -250,14 +252,14 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
             >
                 {freeCaps?.requiresGameConf && (
                   <div className="hint text-12 text-secondary mb-8">
-                    預設啟動參數，每款遊戲可於首次啟動時自訂並覆蓋（字體和音源除外）
+                    {t('emulatorConfig.freej2mePlus.hint')}
                   </div>
                 )}
                 <div className="form-row">
-                  <label className="form-label">執行檔（freej2me.jar）</label>
+                  <label className="form-label">{t('emulatorConfig.freej2mePlus.jarPath')}</label>
                   <div className="flex gap-8 items-center" style={{ width: '100%' }}>
-                    <input className="form-input" type="text" readOnly value={emulators.freej2mePlus?.jarPath || ''} placeholder="尚未配置，請選擇 freej2me.jar" />
-                    <button className="btn btn-secondary" onClick={handlePickJar}>選擇</button>
+                    <input className="form-input" type="text" readOnly value={emulators.freej2mePlus?.jarPath || ''} placeholder={t('emulatorConfig.freej2mePlus.placeholder')} />
+                    <button className="btn btn-secondary" onClick={handlePickJar}>{t('app.select')}</button>
                   </div>
                 </div>
 
@@ -288,9 +290,9 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
               onToggle={() => setKeOpen(o => !o)}
             >
                 <div className="form-row">
-                  <label className="form-label">執行檔（KEmulator.jar）</label>
+                  <label className="form-label">{t('emulatorConfig.kemulator.jarPath')}</label>
                   <div className="flex gap-8 items-center" style={{ width: '100%' }}>
-                    <input className="form-input" type="text" readOnly value={emulators.ke?.jarPath || ''} placeholder="尚未配置，請選擇 KEmulator.jar" />
+                    <input className="form-input" type="text" readOnly value={emulators.ke?.jarPath || ''} placeholder={t('emulatorConfig.kemulator.placeholder')} />
                     <button
                       className="btn btn-secondary"
                       onClick={async () => {
@@ -300,7 +302,7 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
                           setDirty(true);
                         }
                       }}
-                    >選擇</button>
+                    >{t('app.select')}</button>
                   </div>
                 </div>
                 <RomCacheSwitch
@@ -308,7 +310,7 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
                   onChange={(v) => { setEmulators(prev => ({ ...prev, ke: { ...(prev.ke || {}), romCache: v } })); setDirty(true); }}
                 />
                 <div className="hint text-12 text-secondary">
-                  Kemnnx 暫不支援自訂參數啟動，請在其 GUI 内設定。
+                  {t('emulatorConfig.kemulator.hint')}
                 </div>
             </Collapsible>
           )}
@@ -321,9 +323,9 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
               onToggle={() => setLibretroOpen(o => !o)}
             >
                 <div className="form-row">
-                  <label className="form-label">執行檔（retroarch.exe）</label>
+                  <label className="form-label">{t('emulatorConfig.libretroFJP.retroarchPath')}</label>
                   <div className="flex gap-8 items-center" style={{ width: '100%' }}>
-                    <input className="form-input" type="text" readOnly value={emulators.libretro?.retroarchPath || ''} placeholder="尚未配置，請選擇 retroarch.exe" />
+                    <input className="form-input" type="text" readOnly value={emulators.libretro?.retroarchPath || ''} placeholder={t('emulatorConfig.libretroFJP.retroarchPlaceholder')} />
                     <button
                       className="btn btn-secondary"
                       onClick={async () => {
@@ -333,13 +335,13 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
                           setDirty(true);
                         }
                       }}
-                    >選擇</button>
+                    >{t('app.select')}</button>
                   </div>
                 </div>
                 <div className="form-row">
-                  <label className="form-label">核心（freej2me_libretro.dll）</label>
+                  <label className="form-label">{t('emulatorConfig.libretroFJP.corePath')}</label>
                   <div className="flex gap-8 items-center" style={{ width: '100%' }}>
-                    <input className="form-input" type="text" readOnly value={emulators.libretro?.corePath || ''} placeholder="尚未配置，請選擇 libretro 核心 .dll" />
+                    <input className="form-input" type="text" readOnly value={emulators.libretro?.corePath || ''} placeholder={t('emulatorConfig.libretroFJP.corePlaceholder')} />
                     <button
                       className="btn btn-secondary"
                       onClick={async () => {
@@ -349,7 +351,7 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
                           setDirty(true);
                         }
                       }}
-                    >選擇</button>
+                    >{t('app.select')}</button>
                   </div>
                 </div>
                 <RomCacheSwitch
@@ -357,7 +359,7 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
                   onChange={(v) => { setEmulators(prev => ({ ...prev, libretro: { ...(prev.libretro || {}), romCache: v } })); setDirty(true); }}
                 />
                 <div className="hint text-12 text-secondary">
-                Libretro Core 暫不支援自訂參數啟動，請在其 GUI 内設定。
+                {t('emulatorConfig.libretroFJP.hint')}
                 </div>
             </Collapsible>
           )}
@@ -372,23 +374,23 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
     <ModalWithFooter
       isOpen={showPathChangeWarn}
       onClose={() => setShowPathChangeWarn(false)}
-      title="注意"
+      title={t('app.warning')}
       size="sm"
       actions={[
-        { key: 'cancel', label: '取消', variant: 'secondary', onClick: () => setShowPathChangeWarn(false) },
-        { key: 'proceed', label: '繼續保存', variant: 'primary', onClick: async () => { setShowPathChangeWarn(false); await doSave(); } }
+        { key: 'cancel', label: t('app.cancel'), variant: 'secondary', onClick: () => setShowPathChangeWarn(false) },
+        { key: 'proceed', label: t('app.save'), variant: 'primary', onClick: async () => { setShowPathChangeWarn(false); await doSave(); } }
       ]}
     >
       <div className="modal-body">
-        <div className="mb-8">您正修改『模擬器執行檔』路徑。</div>
+        <div className="mb-8">{t('emulatorConfig.warn.pathChange1')}</div>
         <br/>
         <ul className="mb-8" style={{ paddingLeft: 18 }}>
-          {warnFlagsRef.current.rmsOn ? (<li>已啟用「RMS 存檔」備份</li>) : null}
-          {warnFlagsRef.current.emuCfgOn ? (<li>已啟用「模擬器配置檔」備份</li>) : null}
+          {warnFlagsRef.current.rmsOn ? (<li>{t('emulatorConfig.warn.rmsOn')}</li>) : null}
+          {warnFlagsRef.current.emuCfgOn ? (<li>{t('emulatorConfig.warn.emuCfgOn')}</li>) : null}
         </ul>
         <br/>
-        <div className="mb-8">若更改路徑，可能致使備份和恢復的路徑存在偏差。</div>
-        <div>是否仍要保存這次變更？</div>
+        <div className="mb-8">{t('emulatorConfig.warn.pathChange2')}</div>
+        <div>{t('emulatorConfig.warn.pathChange3')}</div>
       </div>
     </ModalWithFooter>
   </>);

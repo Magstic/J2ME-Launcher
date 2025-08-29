@@ -1,0 +1,379 @@
+{
+  "app": {
+    "title": "J2ME Launcher",
+    "loading": "Loading…",
+    "cancel": "Cancel",
+    "close": "Close",
+    "create": "Create",
+    "save": "Save",
+    "add": "Save & Launch",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "select": "Select",
+    "warning": "Warning",
+    "load": "Load",
+    "next": "Next",
+    "previous": "Previous",
+    "skip": "Skip",
+    "later": "Later",
+    "startUsing": "Start Using"
+  },
+  "searchPlaceholder": "Search game name, developer…",
+  "welcome": {
+    "title": "Welcome to J2ME Launcher",
+    "subtitle": "A modern J2ME front-end",
+    "description": "To get started quickly, spend a few minutes on basic setup",
+    "language": "Language",
+    "guide": {
+      "title": "Quick Setup Guide"
+    },
+    "steps": {
+      "welcome": {
+        "title": "Welcome to J2ME Launcher"
+      },
+      "theme": {
+        "title": "Theme Settings",
+        "description": "Choose your visual preference",
+        "notice": "Which style do you like?",
+        "darkMode": "Dark Mode",
+        "darkModeDesc": "Easy on the eyes",
+        "lightMode": "Light Mode",
+        "lightModeDesc": "Bright and clean"
+      },
+      "emulator": {
+        "title": "Emulator Configuration",
+        "description": "Set the J2ME emulator path",
+        "subtitle": "Emulator Configuration",
+        "notice": "Due to license incompatibility, this app does not bundle emulators. Please download them yourself:",
+        "freej2me": {
+          "name": "FreeJ2ME-Plus",
+          "description": "A rising star in J2ME emulation. Compatible with multiple J2ME specs and provides both an AWT frontend and a Libretro core."
+        },
+        "kemulator": {
+          "name": "KEmulator nnmod",
+          "description": "Reverse-engineered from the classic KEmulator, with many optimizations and support for multiple desktop platforms."
+        },
+        "configureNow": "Configure Emulator Now"
+      },
+      "roms": {
+        "title": "ROM Path",
+        "description": "Choose where game files are stored",
+        "subtitle": "Configure ROM Folder",
+        "supportedFormats": "Supported J2ME specs:",
+        "midp": {
+          "name": "J2ME-MIDP",
+          "description": "A popular J2ME standard; ROM files use the .jar extension."
+        },
+        "configureFolder": "Configure ROM Folder"
+      },
+      "cloud": {
+        "title": "Cloud Sync",
+        "description": "Protect your app configuration and game saves",
+        "subtitle": "Cloud Sync",
+        "services": {
+          "dropbox": {
+            "name": "Dropbox",
+            "description": "Simple and ready to use."
+          },
+          "webdav": {
+            "name": "WebDAV",
+            "description": "A universal protocol for data transfer."
+          },
+          "s3": {
+            "name": "S3 API",
+            "description": "S3-compatible services, including AWS S3 and Cloudflare R2."
+          }
+        },
+        "configureBackup": "Configure Cloud Backup"
+      },
+      "tutorial": {
+        "title": "Basic Operations",
+        "actions": {
+          "launch": {
+            "title": "Launch Game",
+            "description": "Double-click a game card to launch"
+          },
+          "organize": {
+            "title": "Organize Games",
+            "description": "Drag games into folders on the left to categorize"
+          },
+          "search": {
+            "title": "Search Games",
+            "description": "Use the top search bar to find games quickly"
+          },
+          "settings": {
+            "title": "Game Settings",
+            "description": "Right-click a game card for per-game settings"
+          }
+        }
+      },
+      "complete": {
+        "title": "Explore the world of J2ME",
+        "subtitle": "Setup Complete",
+        "message": "J2ME Launcher is ready",
+        "submessage": "You can now manage your J2ME collection through this app",
+        "startUsing": "Start Using J2ME Launcher"
+      }
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "theme": {
+      "title": "Theme",
+      "light": {
+        "name": "Light",
+        "description": "Bright and clean"
+      },
+      "dark": {
+        "name": "Dark",
+        "description": "Easy on the eyes"
+      }
+    },
+    "language": {
+      "title": "Language",
+      "description": "Select interface language"
+    }
+  },
+  "contextMenu": {
+    "launch": "Launch",
+    "like": "Favorite",
+    "shortcut": "Shortcut",
+    "config": "Configure",
+    "delete": "Remove",
+    "info": "Info",
+    "open": "Open"
+  },
+  "fabMenu": {
+    "roms": "ROM Folder",
+    "emulator": "Emulator",
+    "settings": "Settings",
+    "backup": "Cloud Sync",
+    "about": "About"
+  },
+  "desktopManager": {
+    "label": "Adding to folder…",
+    "common": {
+      "game": "Game",
+      "unknownError": "Unknown error"
+    },
+    "folderSelect": {
+      "title": "Select Folder",
+      "multi": "{{count}} games selected. Choose a folder to add them to:",
+      "single": "Choose a folder to add \"{{name}}\" to:"
+    },
+    "noFolder": {
+      "title": "Add to Folder",
+      "message": "No folders yet. Please create one.",
+      "createButton": "Create Folder"
+    },
+    "confirmDelete": {
+      "title": "Delete Folder",
+      "message": "Are you sure you want to delete the folder ‘{{name}}’?\nAfter deletion, the games in it will be released to the desktop.",
+      "confirm": "Delete",
+      "cancel": "Cancel"
+    },
+    "info": {
+      "deleteFolder": {
+        "fail": "Failed to delete folder",
+        "apiUnavailable": "deleteFolder API is unavailable",
+        "failWithReason": "Failed to delete folder: {{reason}}"
+      },
+      "addToFolder": {
+        "fail": "Failed to add to folder",
+        "failWithReason": "Failed to add to folder: {{reason}}",
+        "limitExceeded": "Folder has reached the game limit ({{limit}} games). Currently has {{currentCount}} games.",
+        "batchLimitExceeded": "Cannot add {{requestedCount}} games in batch. Folder limit is {{limit}}, currently has {{currentCount}} games, can add at most {{canAdd}} more games."
+      },
+      "removeFromFolder": {
+        "fail": "Failed to remove game",
+        "failWithReason": "Failed to remove game: {{reason}}"
+      },
+      "moveGame": {
+        "fail": "Failed to move game",
+        "failWithReason": "Failed to move game: {{reason}}"
+      }
+    },
+    "addToFolder": {
+      "title": "Add to Folder"
+    },
+    "removeFromFolder": {
+      "title": "Remove Game"
+    },
+    "moveGame": {
+      "title": "Move Game"
+    },
+    "bulk": {
+      "processing": "Processing…"
+    }
+  },
+  "directoryManager": {
+    "title": "ROM Folder Management",
+    "state": "Scanning…",
+    "over": "Scan complete!",
+    "gain": "Found {{count}} new games",
+    "error": "Scan failed",
+    "log": "Unknown error",
+    "stats": "{{count}} folders in total, {{enabledCount}} enabled",
+    "add": "Add Folder",
+    "scan": "Incremental Scan",
+    "fullScan": "Full Scan",
+    "empty": "No ROM folders configured yet",
+    "emptyHint": "Click ‘Add Folder’ to start configuring",
+    "lastScan": "Last scan: {{date}}",
+    "neverScanned": "Never scanned",
+    "confirmRemove": {
+      "title": "Remove Folder",
+      "message1": "Are you sure you want to remove the following folder?",
+      "message2": "This will remove all games under that folder in J2ME Launcher."
+    }
+  },
+  "emulatorConfig": {
+    "title": "Emulator Configuration",
+    "romCache": "ROM Caching Mode",
+    "romCacheHint": "Recommended to enable in non-UTF-8 systems to avoid games from failing to launch due to encoding issues.",
+    "gameConfig": "Game Configuration",
+    "firstConfig": "First Run Setup",
+    "name": "Game Title",
+    "emulator": "Emulator",
+    "params": "Parameters",
+    "default": "Default",
+    "custom": "Custom",
+    "emuParams": "Parameters",
+    "saveHint": "After saving, this configuration will auto-apply for future game launches.",
+    "freej2mePlus": {
+      "name": "FreeJ2ME-Plus (AWT)",
+      "jarPath": "Executable (freej2me.jar)",
+      "placeholder": "Not configured yet. Please select freej2me.jar",
+      "hint": "Default launch parameters. Each game can override them on first launch (except font and sound)",
+      "hint2": "Sound and font are global parameters. Configure them in ‘Emulator’.",
+      "resolution": "Resolution (resolution)",
+      "scale": "Scale (scale)",
+      "framerate": "Framerate (framerate)",
+      "keyLayout": "Keypad Layout (keyLayout)",
+      "backlightcolor": "Backlight Color (backlightcolor)",
+      "bgcolor": {
+        "disabled": "Disabled",
+        "green": "Green",
+        "cyan": "Cyan",
+        "orange": "Orange",
+        "violet": "Violet",
+        "red": "Red"
+      },
+      "fontoffset": "Font Size (fontoffset)",
+      "rotate": "Screen Rotation (rotate)",
+      "fpshack": "FPS HACK (fpshack)",
+      "sf2": "SoundFont",
+      "font": "Font",
+      "compatfantasyzonefix": "Fantasy Zone Fix",
+      "compatimmediaterepaints": "Handle canvas repaint calls immediately",
+      "compatoverrideplatchecks": "Override platform checks",
+      "compatsiemensfriendlydrawing": "Siemens-friendly drawing",
+      "compattranstooriginonreset": "Translate to origin on graphics reset",
+      "sound": "Simulate phone sounds",
+      "spdhacknoalpha": "No Alpha blank image",
+      "fullscreen": "Fullscreen"
+    },
+    "kemulator": {
+      "name": "KEmulator nnmod",
+      "jarPath": "Executable (KEmulator.jar)",
+      "placeholder": "Not configured yet. Please select KEmulator.jar",
+      "hint": "Kemnnx currently doesn't support custom launch parameters. Configure them in its GUI."
+    },
+    "libretroFJP": {
+      "name": "Libretro (FreeJ2ME-Plus)",
+      "retroarchPath": "Executable (retroarch.exe)",
+      "retroarchPlaceholder": "Not configured yet. Please select retroarch.exe",
+      "corePath": "Core (freej2me_libretro.dll)",
+      "corePlaceholder": "Not configured yet. Please select freej2me_libretro.dll",
+      "hint": "The Libretro core currently doesn't support custom launch parameters. Configure them in its GUI."
+    },
+    "warn": {
+      "pathChange1": "You are modifying the ‘Emulator executable’ path.",
+      "pathChange2": "Changing the path may cause mismatches in backup and restore paths.",
+      "pathChange3": "Do you still want to save this change?",
+      "rmsOn": "‘RMS Save’ backup is enabled",
+      "emuCfgOn": "‘Emulator config files’ backup is enabled"
+    }
+  },
+  "sync": {
+    "title": "Cloud Sync",
+    "lastTime": "Last backup time:",
+    "full": "Full Backup",
+    "incremental": "Incremental Backup",
+    "restore": "Cloud Restore",
+    "restoreDone": "Restore complete. If the database is involved, icons will be rebuilt after scanning.",
+    "restoreFailed": "Restore failed:",
+    "service": "Service Selection",
+    "content": "Backup Content",
+    "progress": "Sync Progress",
+    "status": "Status:",
+    "phase": {
+      "planning": "Planning",
+      "uploading": "Uploading",
+      "deleting": "Deleting",
+      "finalizing": "Finalizing",
+      "done": "Done",
+      "error": "Error",
+      "idle": "Idle"
+    },
+    "count": "{{done}} / {{total}} files",
+    "current": "Current:",
+    "s3": {
+      "title": "S3 Settings",
+      "prefix": "Store backups under a specific folder within the bucket, e.g., ‘J2ME/’"
+    },
+    "dropbox": {
+      "title": "Dropbox Settings",
+      "prefix": "Dropbox automatically creates a ‘J2ME Launcher’ folder, so this can be left blank.",
+      "nameless": "Dropbox User",
+      "notLinked": "Account not linked",
+      "linked": "Dropbox linked",
+      "linkedFailed": "Dropbox authorization failed",
+      "linkedFailedMessage": "Dropbox authorization error:",
+      "unlink": "Unlink",
+      "connect": "Link Account"
+    },
+    "webdav": {
+      "title": "WebDAV Settings",
+      "prefix": "Optional. Place under a subfolder of the Base URL, e.g., ‘J2ME/’",
+      "username": "Username (optional when using a Bearer Token)",
+      "password": "Password (optional when using a Bearer Token)",
+      "bearerToken": "Optional. For token authentication used by some servers",
+      "note": "If Username/Password and Bearer Token are both provided, Bearer Token takes precedence."
+    }
+  },
+  "about": {
+    "description": "A modern Java ME front-end",
+    "notice": "Without an emulator, J2ME Launcher would be an empty shell.\nThis software is MIT-licensed, so it does not include emulators that may have incompatible licenses. Please download them yourself.",
+    "maintainer": "Maintainer: ",
+    "freej2mePlusDescription": "A rising star from J2ME EMU. Compatible with various J2ME specifications and offers both an AWT frontend and a Libretro core.",
+    "kemulatorDescription": "Reverse engineering of the classic KEmulator, offering many optimizations and support for multiple desktop platforms."
+  },
+  "gameInfo": {
+    "title": "Info",
+    "fileSection": "File Info",
+    "detailSection": "Game Info",
+    "size": "Size",
+    "path": "Path",
+    "ver": "Version",
+    "vendor": "Vendor"
+  },
+  "folder": {
+    "create": "Create Folder",
+    "edit": "Edit Folder",
+    "newFolder": "New Folder",
+    "name": "Name",
+    "description": "Description",
+    "color": "Color",
+    "icon": "Icon",
+    "nameHint": "Enter folder name",
+    "nameError": "Invalid folder name",
+    "descHint": "Enter folder description (optional)"
+  },
+  "NotificationBubble": {
+    "success": "Shortcut created",
+    "failure": "Could not create shortcut",
+    "partialFailure": "Some shortcuts could not be created"
+  }
+}
