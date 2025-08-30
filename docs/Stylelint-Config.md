@@ -8,7 +8,7 @@
 
 ## 配置摘要
 
-專案使用 `stylelint-config-standard` 作為基礎配置，無額外自定義規則檔案。
+專案使用 `stylelint-config-standard` 作為基礎配置，無額外自訂規則檔案。
 
 ### 執行腳本（package.json）
 ```json
@@ -32,7 +32,7 @@
 
 ### 設計代幣系統
 - **優先使用設計代幣**：參考 `src/styles/theme.css` 和 `src/styles/tokens.css`
-- **變數命名規範**：使用 CSS 自定義屬性（CSS Variables）
+- **變數命名規範**：使用 CSS 自訂屬性（CSS Variables）
   ```css
   /* ✅ 推薦 */
   .game-card {
@@ -166,7 +166,7 @@
 
 ## 進階配置
 
-### 自定義規則
+### 自訂規則
 
 如需新增忽略規則或調整校驗強度，可建立 `.stylelintrc.json` 配置檔案：
 

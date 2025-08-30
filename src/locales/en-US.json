@@ -26,7 +26,7 @@
     "description": "To get started quickly, spend a few minutes on basic setup",
     "language": "Language",
     "guide": {
-      "title": "Quick Setup Guide"
+      "title": "Quick Setup"
     },
     "steps": {
       "welcome": {
@@ -357,6 +357,10 @@
     "size": "Size",
     "path": "Path",
     "ver": "Version",
+    "vendor": "Vendor"
+  },
+  "game": {
+    "name": "Name",
     "vendor": "Vendor"
   },
   "folder": {

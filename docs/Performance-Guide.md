@@ -155,7 +155,7 @@ export function useGamesByFolder(folderId) {
 const GameCard = React.memo(({ game, isSelected, ...props }) => {
   // 組件實現
 }, (prevProps, nextProps) => {
-  // 自定義比較邏輯
+  // 自訂比較邏輯
   return prevProps.game.filePath === nextProps.game.filePath &&
          prevProps.isSelected === nextProps.isSelected;
 });

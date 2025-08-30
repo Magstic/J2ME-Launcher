@@ -149,7 +149,7 @@ function GameGrid({ games, isLoading, onGameLaunch, onAddToFolder, onGameInfo, c
     const behavior = scrollBehaviorRef.current || 'smooth';
     const block = scrollBlockRef.current || 'nearest';
     wrapper?.scrollIntoView({ behavior, block, inline: 'nearest' });
-    // 使用一次後恢復為默認
+    // 使用一次後恢復為預設
     scrollBlockRef.current = 'nearest';
   }, [focusedIndex]);
 

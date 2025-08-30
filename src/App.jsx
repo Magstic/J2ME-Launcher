@@ -375,7 +375,7 @@ function AppContent() {
     const lowerCaseSearchTerm = debouncedSearchTerm.toLowerCase();
     if (!lowerCaseSearchTerm) return games;
     return games.filter(game => {
-      // 使用顯示名稱進行搜索（優先使用自定義名稱）
+      // 使用顯示名稱進行搜索（優先使用自訂名稱）
       const displayName = game.gameName || '';
       const displayVendor = game.vendor || '';
       

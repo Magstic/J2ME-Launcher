@@ -13,7 +13,7 @@
   box-shadow: none !important;
 }
 
-/* 2) 白名單：允許明確選擇加入的元素使用自定義焦點環 */
+/* 2) 白名單：允許明確選擇加入的元素使用自訂焦點環 */
 
 /* 使用更高的特異性和 !important 來覆蓋全域抑制 */
 .app-container .allow-focus-ring:focus,

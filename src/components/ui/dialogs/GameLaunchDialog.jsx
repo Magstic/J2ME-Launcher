@@ -4,11 +4,11 @@ import { Card, Collapsible, ModalWithFooter, Select } from '@ui';
 import { FreeJ2MEPlusConfig, KEmulator, LibretroFJPlus } from '@components';
 import { useTranslation } from '@hooks/useTranslation'
 
-// 首次啟動彈窗：選擇使用全局預設或自定義當前遊戲參數
+// 首次啟動彈窗：選擇使用全局預設或自訂當前遊戲參數
 function GameLaunchDialog({ isOpen, game, onClose, onSavedAndLaunch, configureOnly = false }) {
   const [loading, setLoading] = useState(false);
   const { t } = useTranslation();
-  // 自定義名稱狀態
+  // 自訂名稱狀態
   const [customName, setCustomName] = useState('');
   const [customVendor, setCustomVendor] = useState('');
   const [useGlobal, setUseGlobal] = useState(true);
@@ -127,7 +127,7 @@ function GameLaunchDialog({ isOpen, game, onClose, onSavedAndLaunch, configureOn
     rebuildFocusables();
   }, [isOpen, freeOpen, useGlobal, emulator]);
 
-  // 初始化自定義名稱
+  // 初始化自訂名稱
   useEffect(() => {
     if (isOpen && game) {
       setCustomName(game.customName || '');
@@ -305,7 +305,7 @@ function GameLaunchDialog({ isOpen, game, onClose, onSavedAndLaunch, configureOn
 
   
 
-  // 保存自定義名稱
+  // 保存自訂名稱
   const handleSaveCustomNames = async () => {
     if (!game) return;
     try {
@@ -321,7 +321,7 @@ function GameLaunchDialog({ isOpen, game, onClose, onSavedAndLaunch, configureOn
         await window.electronAPI.updateCustomData(game.filePath, customData);
       }
     } catch (error) {
-      console.error('保存自定義名稱失敗:', error);
+      console.error('保存自訂名稱失敗:', error);
     }
   };
 
@@ -330,7 +330,7 @@ function GameLaunchDialog({ isOpen, game, onClose, onSavedAndLaunch, configureOn
     try {
       setLoading(true);
       
-      // 先保存自定義名稱
+      // 先保存自訂名稱
       await handleSaveCustomNames();
       
       const cfg = {
@@ -419,7 +419,7 @@ function GameLaunchDialog({ isOpen, game, onClose, onSavedAndLaunch, configureOn
           </div>
         </div>
 
-        <div className="section" style={{ display: emulator === 'freej2mePlus' ? undefined : 'none' }}>
+        {emulator === 'freej2mePlus' && (
             <Collapsible
               className="mb-12"
               title={`FreeJ2ME-Plus ${t('emulatorConfig.emuParams')}`}
@@ -440,10 +440,10 @@ function GameLaunchDialog({ isOpen, game, onClose, onSavedAndLaunch, configureOn
                 {t('emulatorConfig.saveHint')}
               </div>
             </Collapsible>
-          </div>
+          )}
 
           {/* KEmulator per-game section */}
-          <div className="section" style={{ display: emulator === 'ke' ? undefined : 'none' }}>
+          {emulator === 'ke' && (
             <Collapsible
               className="mb-12"
               title={`KEmulator nnmod ${t('emulatorConfig.emuParams')}`}
@@ -452,10 +452,10 @@ function GameLaunchDialog({ isOpen, game, onClose, onSavedAndLaunch, configureOn
             >
               <KEmulator romCache={keRomCache} onRomCacheChange={setKeRomCache} disabled={false} />
             </Collapsible>
-          </div>
+          )}
 
           {/* Libretro per-game section */}
-          <div className="section" style={{ display: emulator === 'libretro' ? undefined : 'none' }}>
+          {emulator === 'libretro' && (
             <Collapsible
               className="mb-12"
               title={`Libretro Core（FreeJ2ME-Plus） ${t('emulatorConfig.emuParams')}`}
@@ -464,7 +464,7 @@ function GameLaunchDialog({ isOpen, game, onClose, onSavedAndLaunch, configureOn
             >
               <LibretroFJPlus romCache={libretroRomCache} onRomCacheChange={setLibretroRomCache} disabled={false} />
             </Collapsible>
-          </div>
+          )}
       </div>
     </ModalWithFooter>
   );

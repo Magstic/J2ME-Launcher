@@ -26,7 +26,7 @@
     "description": "若想快速上手，只需花几分钟进行基本设置",
     "language": "Language",
     "guide": {
-      "title": "快速设置指南"
+      "title": "快速设置"
     },
     "steps": {
       "welcome": {
@@ -354,6 +354,10 @@
     "size": "大小",
     "path": "路径",
     "ver": "版本",
+    "vendor": "厂商"
+  },
+  "game": {
+    "name": "名称",
     "vendor": "厂商"
   },
   "folder": {

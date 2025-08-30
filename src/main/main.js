@@ -244,7 +244,7 @@ function broadcastToAll(channel, payload, excludeWindowId = null) {
 }
 
 function createWindow() {
-  // 移除默認的應用程式菜單
+  // 移除預設的應用程式菜單
   Menu.setApplicationMenu(null);
 
   // 先創建並顯示加載卡片（避免白閃並提供過渡）
@@ -526,7 +526,7 @@ app.whenReady().then(async () => {
       const requestUrl = new URL(request.url);
       // 从 hostname 中提取文件名，这是更稳健的方式，可以避免结尾斜杠带来的问题
       const iconFilename = decodeURIComponent(requestUrl.hostname);
-      // 默認圖標映射到專案資源：src/image/ico.svg
+      // 預設圖標映射到專案資源：src/image/ico.svg
       if (iconFilename === 'default-ico.svg') {
         const defaultIconPath = path.join(__dirname, '..', 'assets', 'icons', 'icon.svg');
         return callback({ path: defaultIconPath });

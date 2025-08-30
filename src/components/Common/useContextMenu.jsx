@@ -11,7 +11,7 @@ export default function useContextMenu(callbacks = {}) {
   });
 
   const open = useCallback((event, item = null, type = 'desktop') => {
-    // 阻止默認與冒泡，避免全局 contextmenu 捕獲器立刻關閉剛剛打開的菜單（造成閃爍）
+    // 阻止預設與冒泡，避免全局 contextmenu 捕獲器立刻關閉剛剛打開的菜單（造成閃爍）
     event.preventDefault();
     if (event.stopPropagation) event.stopPropagation();
     setState({

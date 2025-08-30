@@ -8,8 +8,8 @@ function rowToGame(row) {
   const manifest = row.manifest ? JSON.parse(row.manifest) : null;
   const base = {
     filePath: row.filePath,
-    gameName: row.customName || row.gameName, // 優先使用自定義名稱
-    vendor: row.customVendor || row.vendor,   // 優先使用自定義開發商
+    gameName: row.customName || row.gameName, // 優先使用自訂名稱
+    vendor: row.customVendor || row.vendor,   // 優先使用自訂開發商
     version: row.version,
     md5: row.md5,
     iconPath: row.iconPath,

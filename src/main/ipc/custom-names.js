@@ -6,7 +6,7 @@ const { addUrlToGames } = require('../utils/icon-url');
 const { getAllGamesFromSql } = require('../sql/read');
 
 function register({ ipcMain, broadcastToAll }) {
-  // 更新遊戲自定義名稱
+  // 更新遊戲自訂名稱
   ipcMain.handle('update-custom-name', async (event, filePath, customName) => {
     try {
       const result = updateCustomName(filePath, customName);
@@ -17,12 +17,12 @@ function register({ ipcMain, broadcastToAll }) {
       }
       return { success: true };
     } catch (error) {
-      console.error('更新自定義名稱失敗:', error);
+      console.error('更新自訂名稱失敗:', error);
       return { success: false, error: error.message };
     }
   });
 
-  // 更新遊戲自定義開發商
+  // 更新遊戲自訂開發商
   ipcMain.handle('update-custom-vendor', async (event, filePath, customVendor) => {
     try {
       const result = updateCustomVendor(filePath, customVendor);
@@ -33,12 +33,12 @@ function register({ ipcMain, broadcastToAll }) {
       }
       return { success: true };
     } catch (error) {
-      console.error('更新自定義開發商失敗:', error);
+      console.error('更新自訂開發商失敗:', error);
       return { success: false, error: error.message };
     }
   });
 
-  // 批量更新自定義數據
+  // 批量更新自訂數據
   ipcMain.handle('update-custom-data', async (event, filePath, customData) => {
     try {
       const result = updateCustomData(filePath, customData);
@@ -49,12 +49,12 @@ function register({ ipcMain, broadcastToAll }) {
       }
       return { success: true };
     } catch (error) {
-      console.error('更新自定義數據失敗:', error);
+      console.error('更新自訂數據失敗:', error);
       return { success: false, error: error.message };
     }
   });
 
-  // 重置自定義名稱
+  // 重置自訂名稱
   ipcMain.handle('reset-custom-names', async (event, filePath) => {
     try {
       const result = resetCustomNames(filePath);
@@ -65,7 +65,7 @@ function register({ ipcMain, broadcastToAll }) {
       }
       return { success: true };
     } catch (error) {
-      console.error('重置自定義名稱失敗:', error);
+      console.error('重置自訂名稱失敗:', error);
       return { success: false, error: error.message };
     }
   });

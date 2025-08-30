@@ -239,7 +239,7 @@ export const I18nProvider = ({ children }) => {
   );
 };
 
-// 自定義 Hook
+// 自訂 Hook
 export const useI18n = () => {
   const context = useContext(I18nContext);
   if (!context) {

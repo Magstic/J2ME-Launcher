@@ -12,7 +12,7 @@ import useVirtualizedGrid from './hooks/useVirtualizedGrid';
  * UnifiedGrid（供桌面視圖與資料夾視圖共用）
  * - 完整保留空白處啟動框選、邊界行為、rAF 節流與淡出
  * - 右鍵：卡片或空白處皆可觸發，由父層傳入回調
- * - 拖拽：多選 + 自定義預覽 + 跨窗口拖拽會話
+ * - 拖拽：多選 + 自訂預覽 + 跨窗口拖拽會話
  * - FLIP：白名單 + 分片（僅可見 ± 緩衝、最多 200）
  * - 虛擬化：此版本僅提供可見範圍，之後可接入 react-window 以真正虛擬化
  */
@@ -268,7 +268,7 @@ const UnifiedGrid = ({
 
   // 右鍵處理：卡片與空白（包含多選清單計算）
   const onContextMenu = (e) => {
-    // 阻止瀏覽器/系統默認菜單與冒泡，確保自訂選單生效
+    // 阻止瀏覽器/系統預設菜單與冒泡，確保自訂選單生效
     try { e.preventDefault(); } catch (_) {}
     try { e.stopPropagation(); } catch (_) {}
     const hitGame = e.target.closest && e.target.closest('.game-card');

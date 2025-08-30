@@ -4,9 +4,9 @@
 const { getDB } = require('../db');
 
 /**
- * 更新遊戲的自定義名稱
+ * 更新遊戲的自訂名稱
  * @param {string} filePath - 遊戲文件路徑
- * @param {string} customName - 自定義名稱
+ * @param {string} customName - 自訂名稱
  */
 function updateCustomName(filePath, customName) {
   const db = getDB();
@@ -19,9 +19,9 @@ function updateCustomName(filePath, customName) {
 }
 
 /**
- * 更新遊戲的自定義開發商
+ * 更新遊戲的自訂開發商
  * @param {string} filePath - 遊戲文件路徑
- * @param {string} customVendor - 自定義開發商
+ * @param {string} customVendor - 自訂開發商
  */
 function updateCustomVendor(filePath, customVendor) {
   const db = getDB();
@@ -34,7 +34,7 @@ function updateCustomVendor(filePath, customVendor) {
 }
 
 /**
- * 批量更新自定義名稱和開發商
+ * 批量更新自訂名稱和開發商
  * @param {string} filePath - 遊戲文件路徑
  * @param {Object} customData - { customName?, customVendor? }
  */
@@ -50,7 +50,7 @@ function updateCustomData(filePath, customData) {
 }
 
 /**
- * 獲取遊戲的顯示名稱（優先使用自定義名稱）
+ * 獲取遊戲的顯示名稱（優先使用自訂名稱）
  * @param {Object} game - 遊戲對象
  * @returns {string} 顯示名稱
  */
@@ -59,7 +59,7 @@ function getDisplayName(game) {
 }
 
 /**
- * 獲取遊戲的顯示開發商（優先使用自定義開發商）
+ * 獲取遊戲的顯示開發商（優先使用自訂開發商）
  * @param {Object} game - 遊戲對象
  * @returns {string} 顯示開發商
  */
@@ -68,7 +68,7 @@ function getDisplayVendor(game) {
 }
 
 /**
- * 重置遊戲的自定義名稱（恢復原始名稱）
+ * 重置遊戲的自訂名稱（恢復原始名稱）
  * @param {string} filePath - 遊戲文件路徑
  */
 function resetCustomNames(filePath) {

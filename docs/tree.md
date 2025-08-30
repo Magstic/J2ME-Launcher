@@ -358,7 +358,7 @@
 
 - __`main/`（Electron 主進程）__
   - `main.js`：主進程入口，建立窗口、註冊 IPC。
-  - `preload.js`：Preload 腳本，暴露 IPC API 給 Renderer（包含完整的資料夾管理、自定義名稱、雲端備份等 API）。
+  - `preload.js`：Preload 腳本，暴露 IPC API 給 Renderer（包含完整的資料夾管理、自訂名稱、雲端備份等 API）。
   - `data-store.js`：資料存取門面（SQL-first，委派至 `sql/` 與 `db.js`）。
   - `db.js`：SQLite 初始化與索引（如 `folder_games`），包含自動清理與壓縮功能。
   - `migrateFromJson.js`：舊 JSON 遷移工具（只在遷移期使用）。
@@ -372,7 +372,7 @@
 
   - `ipc/*.js`：各功能域 IPC handler：
     - `desktop.js`、`directories.js`、`drag-session.js`、`emulator.js`、`folder-windows.js`、`folders.js`、`sql-games.js`、`stats.js`、`window-controls.js`、`shortcuts.js`。
-    - `custom-names.js`：自定義遊戲名稱與開發商管理。
+    - `custom-names.js`：自訂遊戲名稱與開發商管理。
     - `incremental-updates.js`：增量更新機制（Linus-style 最小化更新）。
     - `backup.js`：備份/還原與 Dropbox OAuth（PKCE）流程之 IPC 端點。
     - `README.md`：IPC 說明文件。
@@ -385,7 +385,7 @@
 
   - `sql/`：SQL 存取層：
     - `read.js`、`sync.js`、`settings.js`、`directories.js`、`folders-read.js`、`folders-write.js`、`emulator-configs.js`。
-    - `custom-names.js`：自定義名稱 SQL 操作。
+    - `custom-names.js`：自訂名稱 SQL 操作。
     - `optimized-read.js`：優化的讀取查詢（支援分頁與批次操作）。
 
   - `utils/`：主進程工具集合：

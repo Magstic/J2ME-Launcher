@@ -42,18 +42,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.removeAllListeners(channel);
   },
 
-  // ==================== 自定義名稱管理 API ====================
+  // ==================== 自訂名稱管理 API ====================
   
-  // 更新遊戲自定義名稱
+  // 更新遊戲自訂名稱
   updateCustomName: (filePath, customName) => ipcRenderer.invoke('update-custom-name', filePath, customName),
   
-  // 更新遊戲自定義開發商
+  // 更新遊戲自訂開發商
   updateCustomVendor: (filePath, customVendor) => ipcRenderer.invoke('update-custom-vendor', filePath, customVendor),
   
-  // 批量更新自定義數據
+  // 批量更新自訂數據
   updateCustomData: (filePath, customData) => ipcRenderer.invoke('update-custom-data', filePath, customData),
   
-  // 重置自定義名稱
+  // 重置自訂名稱
   resetCustomNames: (filePath) => ipcRenderer.invoke('reset-custom-names', filePath),
 
   // ==================== 資料夾管理 API ====================

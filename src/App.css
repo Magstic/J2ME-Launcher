@@ -18,7 +18,7 @@
   overflow: hidden;
 }
 
-/* 自定義標題欄 */
+/* 自訂標題欄 */
 .title-bar {
   height: 36px;
   background: var(--titlebar-gradient);

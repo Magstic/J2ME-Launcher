@@ -11,7 +11,7 @@
   .desktop-view { transition: none; }
 }
 
-/* 全局重置：移除瀏覽器默認邊距，避免左側“貼邊”被擠開（例如 body 默認 8px margin） */
+/* 全局重置：移除瀏覽器預設邊距，避免左側“貼邊”被擠開（例如 body 預設 8px margin） */
 html, body, #root {
   margin: 0;
   padding: 0;

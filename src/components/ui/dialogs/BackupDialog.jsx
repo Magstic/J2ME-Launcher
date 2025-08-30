@@ -423,7 +423,7 @@ export default function BackupDialog({ isOpen, onClose }) {
       };
       return (
         <div className="card card-muted p-12">
-          <div className="card-title">WebDAV 設定</div>
+          <div className="card-title">{t('sync.webdav.title')}</div>
           <div className="form-row">
             <label className="form-label">Base URL</label>
             <input className="form-input" type="text" value={p.baseUrl || ''} onChange={(e) => setP('baseUrl', e.target.value)} placeholder="https://dav.example.com/remote.php/dav/files/username" />

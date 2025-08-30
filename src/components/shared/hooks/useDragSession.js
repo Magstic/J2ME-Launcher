@@ -1,6 +1,6 @@
-// 拖拽會話 Hook：移植現有 DesktopGrid/FolderWindowApp 的多選與自定義拖拽預覽
+// 拖拽會話 Hook：移植現有 DesktopGrid/FolderWindowApp 的多選與自訂拖拽預覽
 // - 啟動跨窗口拖拽 session（window.electronAPI.startDragSession）
-// - 自定義拖拽預覽圖層（多層疊加）
+// - 自訂拖拽預覽圖層（多層疊加）
 // - 依賴外部提供的 selectedRef 與 games 列表
 import React from 'react';
 
@@ -14,7 +14,7 @@ export default function useDragSession({ selectedRef, games, source = { type: 'd
     // 準備多選項目
     const currentSel = new Set(selectedRef.current || []);
     if (!currentSel.has(game.filePath)) {
-      // 若未選中該項，默認以該項作為唯一選中
+      // 若未選中該項，預設以該項作為唯一選中
       currentSel.clear();
       currentSel.add(game.filePath);
     }
@@ -33,7 +33,7 @@ export default function useDragSession({ selectedRef, games, source = { type: 'd
       console.warn('startDragSession failed:', e);
     }
 
-    // 自定義拖拽預覽（側向層疊效果）
+    // 自訂拖拽預覽（側向層疊效果）
     try {
       const maxLayers = Math.min(5, items.length);
       const container = document.createElement('div');

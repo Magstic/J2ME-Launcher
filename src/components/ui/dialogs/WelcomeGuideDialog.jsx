@@ -631,7 +631,7 @@ const WelcomeGuideDialog = ({ isOpen, onClose, onComplete }) => {
       <ModalWithFooter
         isOpen={isOpen}
         onClose={onClose}
-        title="快速設定指南"
+        title={t('welcome.guide.title')}
         size="md"
         actions={getFooterActions()}
         bodyClassName="welcome-guide-body"

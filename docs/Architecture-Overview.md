@@ -27,7 +27,7 @@ src/main/
 ├── db.js               # SQLite 資料庫初始化
 ├── ipc/                # IPC 處理器集合
 │   ├── folders.js       # 資料夾管理 IPC
-│   ├── custom-names.js  # 自定義名稱管理 IPC
+│   ├── custom-names.js  # 自訂名稱管理 IPC
 │   ├── drag-session.js  # 跨窗口拖拽 IPC
 │   ├── incremental-updates.js # 增量更新機制
 │   └── unified-events.js # 事件批次處理

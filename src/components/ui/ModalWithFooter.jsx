@@ -17,7 +17,7 @@ import '../DirectoryManager.css';
  * - bodyClassName?: string (附加到 .modal-body)
  * - headerExtra?: ReactNode (標題列右側附加區域)
  * - initialFocusRef?: Ref (開啟時自動聚焦)
- * - footer?: ReactNode (完全自定義底欄，若提供則忽略 actions)
+ * - footer?: ReactNode (完全自訂底欄，若提供則忽略 actions)
  * - actions?: Array<{ key, label, variant?: 'primary'|'secondary'|'warning'|'danger', onClick?, disabled?, autoFocus?, allowFocusRing? }>
  */
 export default function ModalWithFooter({
@@ -242,7 +242,7 @@ export default function ModalWithFooter({
           <div className="modal-footer">
             {footer
               ? (
-                // 若提供自定義 footer，直接渲染，由外部決定左右佈局
+                // 若提供自訂 footer，直接渲染，由外部決定左右佈局
                 footer
               ) : (
                 // 預設動作：僅右側按鈕（不再保留左側佔位）
