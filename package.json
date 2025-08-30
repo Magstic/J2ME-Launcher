@@ -91,7 +91,7 @@
         "rpm",
         "tar.gz"
       ],
-      "icon": "build/icons/icon.ico",
+      "icon": "src/assets/icons/icon.png",
       "executableName": "j2me-launcher",
       "category": "Game",
       "synopsis": "Modern J2ME Game Manager and Launcher",

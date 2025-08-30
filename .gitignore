@@ -1,8 +1,9 @@
-﻿# Node
+# Node
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+{{ ... }}
 pnpm-debug.log*
 package-lock.json
 pnpm-lock.yaml
@@ -10,10 +11,15 @@ yarn.lock
 
 # Build/Dist
 dist/
-build/
 out/
 release/
 *.asar
+
+# Build directory - keep icons but exclude sensitive files
+!build/icons/
+build/icons/*
+!build/icons/icon.ico
+!build/icons/icon.png
 
 # Vite/Cache
 .vite/
@@ -39,3 +45,4 @@ logs/
 *.log
 *.zip
 簇模式開發粗略計劃.md
+Magstic.pfx
