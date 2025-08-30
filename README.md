@@ -3,11 +3,18 @@
   <p><strong>Modern J2ME Game Frontend.</strong></p>
   <p>現代化的 J2ME 遊戲前端</p>
   
-![Platform](https://img.shields.io/badge/Platform-Windows-blue?style=flat-square)
+![Windows](https://img.shields.io/badge/Windows-Stable-success?style=flat-square&logo=windows)
+![Linux](https://img.shields.io/badge/Linux-Testing-yellow?style=flat-square&logo=linux)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 ![Electron](https://img.shields.io/badge/Electron-28.2.0-47848F?style=flat-square)
 ![React](https://img.shields.io/badge/React-19.1.1-61DAFB?style=flat-square)
 ![Vite](https://img.shields.io/badge/Vite-7.0.6-646CFF?style=flat-square)
+</div>
+
+<div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+  <img src="https://s2.loli.net/2025/08/30/Cmh8nyeLWxocsuj.webp" style="width: 30%; min-width: 250px;">
+  <img src="https://s2.loli.net/2025/08/30/XtcPFkRABUZK13q.webp" style="width: 30%; min-width: 250px;">
+  <img src="https://s2.loli.net/2025/08/30/n5mfvIVjNxMEHk4.webp" style="width: 30%; min-width: 250px;">
 </div>
 
 ---
@@ -16,64 +23,36 @@
 
 | 功能 | 描述 |
 |------|------|
-| 🎯 **遊戲管理** | 自動掃描並解析 J2ME 遊戲檔案，生成美觀的遊戲網格 |
+| 🎯 **遊戲管理** | 自動掃描並解析 J2ME 檔，生成美觀的 GameGrid |
 | 📁 **資料夾分類** | 支援自訂資料夾分類，輕鬆管理大量遊戲收藏 |
-| ☁️ **雲端備份** | 支援 S3、WebDAV、Dropbox 多種雲端服務備份 |
-| 🖱️ **拖拽操作** | 直觀的拖拽介面，支援跨視窗操作 |
-| 🎨 **現代化 UI** | 基於 React + Vite 構建的響應式使用者介面 |
-| 🔍 **快速搜尋** | 內建搜尋功能，快速定位目標遊戲 |
-| 🎯 **桌面捷徑** | 一鍵建立 Windows 桌面捷徑 |
+| ☁️ **雲端同步** | 支援 S3 API、WebDAV、Dropbox 進行雲端備份 |
+| 🖱️ **拖拽操作** | 直觀的桌面式操控，支援跨視窗操作 |
+| 🎯 **桌面捷徑** | 建立桌面捷徑，輕鬆打開遊戲 |
 
 ## 📦 安裝
 
+**前往 [Releases](https://github.com/Magstic/J2ME-Launcher/releases) 下載最新版本。**
+
 ### 系統需求
 
-- **作業系統**: Windows 10/11 (x64)
-- **Java**: 用於執行 J2ME 模擬器（建議 OpenJRE 8）
+- Windows 10/11 (x64)
+- Linux (x64)
 
-Linux 版本正在測試中。
+*Linux 正在測試階段，但其功能已經高度可用。*
 
-### 下載安裝包
+### 額外環境
 
-現在我們沒有任何發行版，但這一天不會很遠。
+- OpenJRE 8
 
-前往 [Releases](https://github.com/Magstic/J2ME-Launcher/releases) 頁面下載最新版本。
+*Java 用於執行 J2ME 模擬器，任何的 Java 8 都可以。*
 
-### 從原始碼安裝
+### J2ME EMU
 
-```bash
-# 克隆專案
-git clone https://github.com/Magstic/J2ME-Launcher.git
-cd J2ME-Launcher
+- [FreeJ2ME-Plus](https://github.com/TASEmulators/freej2me-plus)
+- [KEmulator nnmod](https://github.com/shinovon/KEmulator)
 
-# 安裝依賴
-npm install
+*因許可授權限制，本專案不會附帶任何模擬器，您需自行下載。*
 
-# 建置應用程式
-npm run dist
-```
-
-## 🚀 使用方法
-
-### 基本使用
-
-1. **新增遊戲目錄**
-   - 選擇『ROM 資料夾』
-   - 選擇包含 J2ME 遊戲的資料夾，並執行掃描
-
-2. **組織遊戲**
-   - 使用左側資料夾抽屜建立分類
-   - 拖拽或加入遊戲到對應資料夾
-
-3. **啟動遊戲**
-   - 在『模擬器配置』中配置模擬器
-   - 雙擊遊戲卡片，配置參數後啟動
-
-### 雲端備份設定
-
-- S3 API
-- WebDAV
-- Dropbox
 
 ## 🛠️ 開發指南
 
@@ -91,7 +70,8 @@ npm run lint
 npm run stylelint
 
 # 建置應用程式
-npm run dist
+npm run dist:win
+npm run dist:linux
 ```
 
 ### 技術棧
@@ -111,9 +91,11 @@ npm run dist
 - 參考 [I18N 貢獻指南](docs/I18N-Guide.md) 新增翻譯
 - 更新相關文檔
 
+*該專案目前由 AI 進行維護，因此程式碼的貢獻可能不會過於順遂。*
+
 ### 問題回報
 
-有功能建議嗎？請到 [Issues](https://github.com/Magstic/J2ME-Launcher/issues) 頁面回報。
+有功能建議或是錯誤嗎？請到 [Issues](https://github.com/Magstic/J2ME-Launcher/issues) 頁面回報。
 
 ## 📚 文檔
 
@@ -132,9 +114,3 @@ Thanks to every maintainer of the J2ME emulator.
 ## 📄 授權
 
 本專案採用 [MIT License](LICENSE) 授權。
-
----
-
-<div align="center">
-  <p>Made with by <a href="https://github.com/Magstic">Magstic</a></p>
-</div>

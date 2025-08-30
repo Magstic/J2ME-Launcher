@@ -70,7 +70,7 @@
       "legalTrademarks": "Magstic",
       "signAndEditExecutable": true,
       "certificateFile": "build/Magstic.pfx",
-      "certificatePassword": "xxxxxxxxxxxxx"
+      "certificatePassword": ""
     },
     "nsis": {
       "artifactName": "${productName}-${version}-${os}-${arch}-nsis.${ext}",
