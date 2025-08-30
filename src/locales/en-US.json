@@ -390,6 +390,7 @@
   "notification": {
     "success": "Shortcut created",
     "failure": "Could not create shortcut",
-    "partialFailure": "Some shortcuts could not be created"
+    "partialFailure": "Some shortcuts could not be created",
+    "dropboxUrlCopied": "Dropbox authorization URL copied to clipboard, please paste in browser to complete authorization"
   }
 }

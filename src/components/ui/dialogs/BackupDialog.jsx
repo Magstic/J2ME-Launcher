@@ -14,7 +14,7 @@ const PROVIDERS = [
 ];
 
 // 固定本程式的 Dropbox App Key（Client ID）
-const DROPBOX_APP_KEY = 'xxxxxxxxxxxxxxxx'; // TODO: 換成自己的 App Key
+const DROPBOX_APP_KEY = 'f2l61y65nwo0pex'; // TODO: 換成自己的 App Key
 
 export default function BackupDialog({ isOpen, onClose }) {
   const { t } = useTranslation();

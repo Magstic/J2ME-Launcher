@@ -390,6 +390,7 @@
   "notification": {
     "success": "快捷方式已创建",
     "failure": "快捷方式创建失败",
-    "partialFailure": "部分快捷方式创建失败"
+    "partialFailure": "部分快捷方式创建失败",
+    "dropboxUrlCopied": "Dropbox 授权链接已复制到剪贴板，请在浏览器中粘贴并完成授权"
   }
 }

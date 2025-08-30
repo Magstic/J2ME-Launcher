@@ -2,12 +2,12 @@
   position: fixed;
   bottom: 20px;
   left: 20px;
-  z-index: 9999;
+  z-index: 100000;
   pointer-events: none;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-width: 300px;
+  max-width: 400px;
 }
 
 .notification-bubble {
@@ -36,6 +36,11 @@
 
 .notification-bubble.notification-warning {
   border-left: 4px solid var(--warning-color);
+  background: var(--warning-color-alpha, rgba(255, 193, 7, 0.1));
+  border: 1px solid var(--warning-color);
+  font-weight: 600;
+  font-size: 15px;
+  padding: 16px 20px;
 }
 
 .notification-message {

@@ -19,7 +19,7 @@ const NotificationBubble = () => {
     }, duration);
   }, []);
 
-  // 監聽捷徑創建事件
+  // 監聽全域事件
   useEffect(() => {
     const handleShortcutSuccess = (data) => {
       const { count = 1 } = data;
@@ -36,13 +36,19 @@ const NotificationBubble = () => {
       }
     };
 
+    const handleDropboxUrlCopied = (data) => {
+      addNotification(`📃 ${t('notification.dropboxUrlCopied')}`, 'warning', 10000);
+    };
+
     // 註冊全域事件監聽器
     window.addEventListener('shortcut-created', handleShortcutSuccess);
     window.addEventListener('shortcut-error', handleShortcutError);
+    window.addEventListener('dropbox-url-copied', handleDropboxUrlCopied);
 
     return () => {
       window.removeEventListener('shortcut-created', handleShortcutSuccess);
       window.removeEventListener('shortcut-error', handleShortcutError);
+      window.removeEventListener('dropbox-url-copied', handleDropboxUrlCopied);
     };
   }, [addNotification, t]);
 

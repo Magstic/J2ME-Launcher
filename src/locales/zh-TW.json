@@ -390,6 +390,7 @@
   "notification": {
     "success": "捷徑已創建",
     "failure": "捷徑創建失敗",
-    "partialFailure": "部分捷徑創建失敗"
+    "partialFailure": "部分捷徑創建失敗",
+    "dropboxUrlCopied": "Dropbox 授權連結已複製到剪貼板，請在瀏覽器中貼上並完成授權"
   }
 }

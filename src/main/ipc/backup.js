@@ -356,7 +356,34 @@ function register({ ipcMain, app }) {
         }
       });
       server.listen(port, '127.0.0.1', () => {
-        try { shell.openExternal(authUrl.toString()); } catch (_) {}
+        try { 
+          // Linux 下命令行參數長度限制，改用手動複製方式
+          if (process.platform === 'linux') {
+            console.log('[dropbox:oauth] Linux detected - please manually open URL:');
+            console.log(authUrl.toString());
+            // 嘗試複製到剪貼板並發送通知
+            try {
+              const { clipboard } = require('electron');
+              clipboard.writeText(authUrl.toString());
+              console.log('[dropbox:oauth] URL copied to clipboard');
+              
+              // 發送通知到渲染進程
+              const { BrowserWindow } = require('electron');
+              const mainWindow = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+              if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.executeJavaScript(`
+                  window.dispatchEvent(new CustomEvent('dropbox-url-copied', { detail: {} }));
+                `);
+              }
+            } catch (e) {
+              console.log('[dropbox:oauth] Failed to copy to clipboard:', e.message);
+            }
+          } else {
+            shell.openExternal(authUrl.toString());
+          }
+        } catch (e) {
+          console.log('[dropbox:oauth] Failed to open URL:', e.message);
+        }
       });
       server.on('error', (e) => { try { console.log('[dropbox:oauth] server error', e && e.message); } catch (_) {} reject(e); });
     });

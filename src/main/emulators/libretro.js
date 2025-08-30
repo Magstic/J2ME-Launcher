@@ -8,7 +8,7 @@ const path = require('path');
 // We intentionally do NOT add extra flags to mirror KE's minimalism.
 
 const id = 'libretro';
-const name = 'Libretro Core (FreeJ2ME-Plus)';
+const name = '【Alpha】Libretro Core (FreeJ2ME-Plus)';
 const capabilities = {
   perGameParams: false,
   requiresGameConf: false,
