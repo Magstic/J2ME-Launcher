@@ -17,7 +17,9 @@
     "previous": "上一步",
     "skip": "跳過",
     "later": "稍後設定",
-    "startUsing": "開始使用"
+    "startUsing": "開始使用",
+    "goToConfig": "前往配置",
+    "emulost": "啊哦，您尚未配置模擬器？"
   },
   "searchPlaceholder": "檢索遊戲名稱、開發商……",
   "welcome": {
@@ -372,7 +374,7 @@
     "nameError": "資料夾名稱格式不正確",
     "descHint": "請輸入資料夾描述（可選）"
   },
-  "NotificationBubble": {
+  "notification": {
     "success": "捷徑已創建",
     "failure": "捷徑創建失敗",
     "partialFailure": "部分捷徑創建失敗"

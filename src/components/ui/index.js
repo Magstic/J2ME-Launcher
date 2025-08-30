@@ -12,5 +12,6 @@ export { default as Collapsible } from './Collapsible.jsx';
 export { default as ToggleSwitch } from './ToggleSwitch.jsx';
 export { default as AboutNetworkCard } from './AboutNetworkCard.jsx';
 export { default as AboutDialog } from './dialogs/AboutDialog.jsx';
+export { default as EmulatorNotConfiguredDialog } from './dialogs/EmulatorNotConfiguredDialog.jsx';
 export { default as SettingsDialog } from './dialogs/SettingsDialog.jsx';
 export { default as WelcomeGuideDialog } from './dialogs/WelcomeGuideDialog.jsx';

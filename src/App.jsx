@@ -7,7 +7,7 @@ import './styles/dialog.css';
 import './styles/buttons.css';
 import './styles/focus-ring.css';
 import { TitleBar, DirectoryManager, SearchBar, DesktopManager, GameInfoDialog, EmulatorConfigDialog } from '@components';
-import { AboutDialog, SettingsDialog, WelcomeGuideDialog } from '@ui';
+import { AboutDialog, SettingsDialog, WelcomeGuideDialog, EmulatorNotConfiguredDialog } from '@ui';
 import { GameLaunchDialog, BackupDialog } from '@components';
 import { I18nProvider } from './contexts/I18nContext';
 import { useTranslation } from './hooks/useTranslation';
@@ -36,6 +36,7 @@ function AppContent() {
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isBackupOpen, setIsBackupOpen] = useState(false);
   const [isWelcomeGuideOpen, setIsWelcomeGuideOpen] = useState(false);
+  const [emulatorNotConfiguredDialog, setEmulatorNotConfiguredDialog] = useState({ isOpen: false, game: null });
   // 設定：主題（與 body data-theme 同步，並持久化到 localStorage）
   const [theme, setTheme] = useState(() => {
     try {
@@ -364,7 +365,11 @@ function AppContent() {
         setGameLaunchDialog({ isOpen: true, game });
         return;
       }
-      await window.electronAPI?.launchGame?.(game.filePath);
+      const result = await window.electronAPI?.launchGame?.(game.filePath);
+      if (!result?.success && result?.error === 'EMULATOR_NOT_CONFIGURED') {
+        // 模擬器未配置：顯示提示彈窗
+        setEmulatorNotConfiguredDialog({ isOpen: true, game });
+      }
     } catch (error) {
       console.error('啟動遊戲失敗:', error);
     }
@@ -509,6 +514,18 @@ function AppContent() {
           onSavedAndLaunch={async (g) => {
             // 保存已由對話框完成，這裡直接啟動
             try { await window.electronAPI?.launchGame?.(g.filePath); } catch (e) { console.error(e); }
+          }}
+        />
+      )}
+
+      {/* 模擬器未配置提示彈窗 */}
+      {emulatorNotConfiguredDialog.isOpen && (
+        <EmulatorNotConfiguredDialog
+          isOpen={emulatorNotConfiguredDialog.isOpen}
+          onClose={() => setEmulatorNotConfiguredDialog({ isOpen: false, game: null })}
+          onGoToConfig={() => {
+            setEmulatorNotConfiguredDialog({ isOpen: false, game: null });
+            setIsEmulatorConfigOpen(true);
           }}
         />
       )}

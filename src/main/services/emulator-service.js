@@ -50,7 +50,7 @@ function createEmulatorService({
       if (selectedEmulator === 'ke') {
         const keAdapter = adapters.ke;
         const keJarPath = globalKe.jarPath || '';
-        if (!keJarPath) return { success: false, error: '尚未配置 KEmulator.jar 路徑' };
+        if (!keJarPath) return { success: false, error: 'EMULATOR_NOT_CONFIGURED', message: '尚未配置 KEmulator.jar 路徑' };
         if (!fs.existsSync(keJarPath)) return { success: false, error: `KEmulator.jar 不存在: ${keJarPath}` };
 
         // Prepare (MD5 cache) via adapter, honor romCache toggle (per-game overrides; default ON for KE)
@@ -70,7 +70,9 @@ function createEmulatorService({
         const cmdLine = buildCommandLine(javaCmd, renderedArgs);
         console.log('[launch][KE] shell cmd:', cmdLine);
 
-        const child = spawn(cmdLine, { cwd, stdio: 'ignore', windowsHide: true, detached: false, shell: true });
+        const spawnOptions = { cwd, stdio: 'ignore', detached: false, shell: true };
+        if (process.platform === 'win32') spawnOptions.windowsHide = true;
+        const child = spawn(cmdLine, spawnOptions);
         child.on('error', (err) => { console.error('啟動 Java 進程失敗:', err); });
         return { success: true };
       }
@@ -84,9 +86,9 @@ function createEmulatorService({
         const romCache = (perGame && perGame.libretro && typeof perGame.libretro.romCache === 'boolean')
           ? perGame.libretro.romCache
           : (globalLibretro.romCache === true);
-        if (!retroarchPath) return { success: false, error: '尚未配置 RetroArch 可執行檔路徑' };
+        if (!retroarchPath) return { success: false, error: 'EMULATOR_NOT_CONFIGURED', message: '尚未配置 RetroArch 可執行檔路徑' };
         if (!fs.existsSync(retroarchPath)) return { success: false, error: `RetroArch 不存在: ${retroarchPath}` };
-        if (!corePath) return { success: false, error: '尚未配置 Libretro 核心 (DLL) 路徑' };
+        if (!corePath) return { success: false, error: 'EMULATOR_NOT_CONFIGURED', message: '尚未配置 Libretro 核心 (DLL) 路徑' };
         if (!fs.existsSync(corePath)) return { success: false, error: `Libretro 核心不存在: ${corePath}` };
 
         // Optional prepare step for MD5-cached JAR
@@ -102,7 +104,9 @@ function createEmulatorService({
         const cmdLine = buildCommandLine(command, args);
         console.log('[launch][libretro] shell cmd:', cmdLine);
 
-        const child = spawn(cmdLine, { cwd, stdio: 'ignore', windowsHide: true, detached: false, shell: true });
+        const spawnOptions = { cwd, stdio: 'ignore', detached: false, shell: true };
+        if (process.platform === 'win32') spawnOptions.windowsHide = true;
+        const child = spawn(cmdLine, spawnOptions);
         child.on('error', (err) => { console.error('啟動 RetroArch 進程失敗:', err); });
         return { success: true };
       }
@@ -110,9 +114,7 @@ function createEmulatorService({
       // FreeJ2ME-Plus branch
       const jarPath = globalFree.jarPath || '';
       if (!jarPath) {
-        console.warn('尚未配置 FreeJ2ME-Plus jarPath，回退為系統打開方式');
-        await shell.openPath(gameFilePath);
-        return { success: true, fallback: true };
+        return { success: false, error: 'EMULATOR_NOT_CONFIGURED', message: '尚未配置模擬器' };
       }
       if (!fs.existsSync(jarPath)) {
         return { success: false, error: `模擬器 JAR 不存在: ${jarPath}` };
@@ -161,7 +163,9 @@ function createEmulatorService({
       const cmdLine = buildCommandLine(javaCmd, renderedArgs);
       console.log('[launch] shell cmd:', cmdLine);
 
-      const child = spawn(cmdLine, { cwd, stdio: 'ignore', windowsHide: true, detached: false, shell: true });
+      const spawnOptions = { cwd, stdio: 'ignore', detached: false, shell: true };
+      if (process.platform === 'win32') spawnOptions.windowsHide = true;
+      const child = spawn(cmdLine, spawnOptions);
       child.on('error', (err) => { console.error('啟動 Java 進程失敗:', err); });
       return { success: true };
     } catch (error) {

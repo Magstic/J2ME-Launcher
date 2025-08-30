@@ -375,7 +375,7 @@
     "nameError": "Invalid folder name",
     "descHint": "Enter folder description (optional)"
   },
-  "NotificationBubble": {
+  "notification": {
     "success": "Shortcut created",
     "failure": "Could not create shortcut",
     "partialFailure": "Some shortcuts could not be created"

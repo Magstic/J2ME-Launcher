@@ -372,7 +372,7 @@
     "nameError": "文件夹名称格式不正确",
     "descHint": "请输入文件夹描述（可选）"
   },
-  "NotificationBubble": {
+  "notification": {
     "success": "快捷方式已创建",
     "failure": "快捷方式创建失败",
     "partialFailure": "部分快捷方式创建失败"

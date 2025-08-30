@@ -23,16 +23,16 @@ const NotificationBubble = () => {
   useEffect(() => {
     const handleShortcutSuccess = (data) => {
       const { count = 1 } = data;
-      addNotification(`✅ ${t('NotificationBubble.success')}`, 'success');
+      addNotification(`✅ ${t('notification.success')}`, 'success');
     };
 
     const handleShortcutError = (data) => {
       const { count = 1, error } = data;
       
       if (count === 1) {
-        addNotification(`❌ ${t('NotificationBubble.failure')}: ${error}`, 'error', 5000);
+        addNotification(`❌ ${t('notification.failure')}: ${error}`, 'error', 5000);
       } else {
-        addNotification(`⚠️ ${t('NotificationBubble.partialFailure')}: ${error}`, 'warning', 5000);
+        addNotification(`⚠️ ${t('notification.partialFailure')}: ${error}`, 'warning', 5000);
       }
     };
 

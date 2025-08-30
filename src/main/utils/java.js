@@ -13,7 +13,14 @@ function resolveJavaCommand() {
 
 // Safe quoting for shell command line rendering
 function quoteArg(s) {
-  return '"' + String(s).replace(/"/g, '\\"') + '"';
+  const str = String(s);
+  if (process.platform === 'win32') {
+    // Windows: use double quotes with escape
+    return '"' + str.replace(/"/g, '\\"') + '"';
+  } else {
+    // Unix/Linux: use single quotes, escape single quotes by ending quote, adding escaped quote, starting new quote
+    return "'" + str.replace(/'/g, "'\"'\"'") + "'";
+  }
 }
 
 // Build a shell-safe command line string from binary and args

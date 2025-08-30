@@ -110,7 +110,10 @@
     "Launcher",
     "GUI"
   ],
-  "author": "Magstic",
+  "author": {
+    "name": "Magstic",
+    "email": "magsticwind@gmail.com"
+  },
   "license": "MIT",
   "lint-staged": {
     "**/*.{js,jsx}": "eslint --fix"
