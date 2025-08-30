@@ -12,6 +12,8 @@ const libretroAdapter = require('./emulators/libretro.js');
 // Extracted utils
 const { resolveJavaCommand } = require('./utils/java.js');
 const { getConfigGameName } = require('./utils/jar-manifest.js');
+// Centralized configuration service
+const ConfigService = require('./services/config-service.js');
 const { toIconUrl, addUrlToGames } = require('./utils/icon-url.js');
 const { getGameStateCache } = require('./utils/game-state-cache.js');
 // IPC modules
@@ -24,6 +26,7 @@ const { register: registerDesktopIpc } = require('./ipc/desktop.js');
 const { register: registerStatsIpc } = require('./ipc/stats.js');
 const { register: registerWindowControlsIpc } = require('./ipc/window-controls.js');
 const { register: registerShortcutsIpc } = require('./ipc/shortcuts.js');
+const { register: registerConfigIpc } = require('./ipc/config.js');
 const { gameHashFromPath } = require('./utils/hash');
 // Optional: SQLite-backed IPC (non-invasive)
 const { register: registerSqlGamesIpc } = require('./ipc/sql-games.js');
@@ -47,6 +50,9 @@ try {
   else app.once('ready', cleanupCacheOnStartup);
 } catch (_) {}
 
+// Create single ConfigService instance for dependency injection
+const configService = new ConfigService();
+
 // Register emulator-related IPC handlers (kept early; safe before app ready)
 registerEmulatorIpc({
   ipcMain,
@@ -55,9 +61,15 @@ registerEmulatorIpc({
   freej2mePlusAdapter,
   keAdapter,
   libretroAdapter,
-  resolveJavaCommand,
+  configService,
   getConfigGameName,
   app
+});
+
+// Register configuration IPC handlers
+registerConfigIpc({
+  ipcMain,
+  configService
 });
 
 // Register folder-related IPC handlers
@@ -379,10 +391,13 @@ function createWindow() {
         // 若為捷徑啟動，將 hash 傳遞給渲染器
         try {
           if (pendingLaunchHash) {
+            console.log(`[Shortcut Launch] Sending hash to renderer: ${pendingLaunchHash}`);
             mainWindow.webContents.send('shortcut-launch', pendingLaunchHash);
             pendingLaunchHash = null;
           }
-        } catch (_) {}
+        } catch (e) {
+          console.error('[Shortcut Launch] Failed to send to renderer:', e);
+        }
       }
 
       // 等待與 CSS 對應過渡時間後關閉 splash

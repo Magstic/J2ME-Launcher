@@ -17,7 +17,9 @@
     "previous": "上一步",
     "skip": "跳过",
     "later": "稍后设置",
-    "startUsing": "开始使用"
+    "startUsing": "开始使用",
+    "goToConfig": "前往配置",
+    "emulost": "啊哦，您尚未配置模拟器？"
   },
   "searchPlaceholder": "搜索游戏名称、开发商……",
   "welcome": {
@@ -132,6 +134,19 @@
     "language": {
       "title": "语言",
       "description": "选择界面语言"
+    },
+    "java": {
+      "title": "Java 配置",
+      "description": "配置模拟器启动所需的 Java 可执行文件路径",
+      "currentPath": "自动检测",
+      "customPath": "手动配置",
+      "customPathPlaceholder": "若留空，则自動检测。",
+      "browse": "载入",
+      "reset": "重置",
+      "browseFailed": "载入 Java 可执行文件失败",
+      "validating": "载入中……",
+      "invalidPath": "无效的路径",
+      "saveFailed": "保存路径失败"
     }
   },
   "contextMenu": {

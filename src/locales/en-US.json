@@ -17,7 +17,9 @@
     "previous": "Previous",
     "skip": "Skip",
     "later": "Later",
-    "startUsing": "Start Using"
+    "startUsing": "Start Using",
+    "goToConfig": "Go to Configuration",
+    "emulost": "Your haven't configured the emulator yet?"
   },
   "searchPlaceholder": "Search game name, developer…",
   "welcome": {
@@ -44,7 +46,6 @@
       "emulator": {
         "title": "Emulator Configuration",
         "description": "Set the J2ME emulator path",
-        "subtitle": "Emulator Configuration",
         "notice": "Due to license incompatibility, this app does not bundle emulators. Please download them yourself:",
         "freej2me": {
           "name": "FreeJ2ME-Plus",
@@ -133,6 +134,19 @@
     "language": {
       "title": "Language",
       "description": "Select interface language"
+    },
+    "java": {
+      "title": "Java Configuration",
+      "description": "Configure Java executable path for emulator launch",
+      "currentPath": "Auto",
+      "customPath": "Custom",
+      "customPathPlaceholder": "Leave empty to auto-detect, or specify path to java.exe",
+      "browse": "Browse",
+      "reset": "Reset",
+      "browseFailed": "Failed to browse for Java executable",
+      "validating": "Loading...",
+      "invalidPath": "Invalid Java executable path",
+      "saveFailed": "Failed to save Java path configuration"
     }
   },
   "contextMenu": {
@@ -181,9 +195,7 @@
       },
       "addToFolder": {
         "fail": "Failed to add to folder",
-        "failWithReason": "Failed to add to folder: {{reason}}",
-        "limitExceeded": "Folder has reached the game limit ({{limit}} games). Currently has {{currentCount}} games.",
-        "batchLimitExceeded": "Cannot add {{requestedCount}} games in batch. Folder limit is {{limit}}, currently has {{currentCount}} games, can add at most {{canAdd}} more games."
+        "failWithReason": "Failed to add to folder: {{reason}}"
       },
       "removeFromFolder": {
         "fail": "Failed to remove game",

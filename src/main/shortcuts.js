@@ -60,16 +60,27 @@ async function ensureIcoForGame(filePath, iconPngPath) {
   }
 }
 
-// Create a Windows .lnk on the user's Desktop that launches the app with --launch-game-hash
+// Create a desktop shortcut that launches the app with --launch-game-hash
 async function createDesktopShortcut({ filePath, title, iconPngPath }) {
   const desktop = app.getPath('desktop');
   const hash = gameHashFromPath(filePath);
+  
+  if (process.platform === 'win32') {
+    return createWindowsShortcut({ filePath, title, iconPngPath, desktop, hash });
+  } else if (process.platform === 'linux') {
+    return createLinuxDesktopFile({ filePath, title, iconPngPath, desktop, hash });
+  } else {
+    throw new Error(`Unsupported platform: ${process.platform}`);
+  }
+}
+
+// Create a Windows .lnk on the user's Desktop
+async function createWindowsShortcut({ filePath, title, iconPngPath, desktop, hash }) {
   const safeTitle = sanitizeFileName(title);
+  const tempLnkPath = path.join(desktop, `${hash}.lnk`);
   const finalLnkPath = path.join(desktop, `${safeTitle}.lnk`);
   
   // 解決中文編碼問題：先創建 MD5 檔名，再重命名
-  const tempLnkPath = path.join(desktop, `${hash}.lnk`);
-  
   const isPackaged = !!app.isPackaged;
   const target = process.execPath; // Packaged: app exe; Dev: electron.exe
   // In dev, electron.exe requires the app path as the first argument.
@@ -135,11 +146,69 @@ async function createDesktopShortcut({ filePath, title, iconPngPath }) {
     });
   }
 
-  return { lnkPath: finalLnkPath, iconPath: iconIcoPath };
+  return finalLnkPath;
 }
 
-module.exports = {
-  getLnkIcoDir,
-  ensureIcoForGame,
-  createDesktopShortcut
-};
+// Create a Linux .desktop file on the user's Desktop
+async function createLinuxDesktopFile({ filePath, title, iconPngPath, desktop, hash }) {
+  const fs = require('fs').promises;
+  const safeTitle = sanitizeFileName(title);
+  const desktopFilePath = path.join(desktop, `${safeTitle}.desktop`);
+  
+  const isPackaged = !!app.isPackaged;
+  const execPath = process.execPath;
+  const argParts = [];
+  
+  if (!isPackaged) {
+    try {
+      const appPath = app.getAppPath();
+      argParts.push(`"${appPath}"`);
+    } catch (_) {}
+  }
+  argParts.push(`--launch-game-hash=${hash}`);
+  argParts.push('--no-sandbox'); // Fix Linux sandbox permissions issue
+  
+  // Properly quote the exec path and arguments for shell safety
+  const quotedExecPath = `"${execPath}"`;
+  const quotedArgs = argParts.map(arg => arg.includes(' ') ? `"${arg}"` : arg);
+  const execLine = [quotedExecPath, ...quotedArgs].join(' ');
+  
+  const iconPath = iconPngPath || path.join(__dirname, '..', 'assets', 'icons', 'icon.png');
+  
+  const desktopContent = `[Desktop Entry]
+Version=1.0
+Type=Application
+Name=${title}
+Comment=Launch ${title} with J2ME Launcher
+Exec=${execLine}
+Icon=${iconPath}
+Terminal=false
+Categories=Game;
+StartupNotify=true
+StartupWMClass=j2me-launcher
+`;
+
+  await fs.writeFile(desktopFilePath, desktopContent, 'utf8');
+  
+  // Make the .desktop file executable
+  try {
+    await fs.chmod(desktopFilePath, 0o755);
+    console.log(`[Linux Shortcut] Created executable .desktop file: ${desktopFilePath}`);
+    console.log(`[Linux Shortcut] Exec line: ${execLine}`);
+  } catch (e) {
+    console.warn('Could not make .desktop file executable:', e);
+  }
+  
+  // Verify the file was created correctly
+  try {
+    const stats = await fs.stat(desktopFilePath);
+    const permissions = (stats.mode & parseInt('777', 8)).toString(8);
+    console.log(`[Linux Shortcut] File permissions: ${permissions}`);
+  } catch (e) {
+    console.warn('Could not verify .desktop file:', e);
+  }
+  
+  return desktopFilePath;
+}
+
+module.exports = { createDesktopShortcut };

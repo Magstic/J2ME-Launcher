@@ -290,5 +290,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const handler = (_e, hash) => callback && callback(hash);
     ipcRenderer.on(ch, handler);
     return () => ipcRenderer.removeListener(ch, handler);
-  }
+  },
+
+  // ==================== Java 配置 API ====================
+  // 獲取 Java 路徑配置
+  getJavaPath: () => ipcRenderer.invoke('get-java-path'),
+  // 設置自定義 Java 路徑
+  setJavaPath: (javaPath) => ipcRenderer.invoke('set-java-path', javaPath),
+  // 驗證 Java 路徑
+  validateJavaPath: (javaPath) => ipcRenderer.invoke('validate-java-path', javaPath),
+  // 瀏覽選擇 Java 可執行檔
+  browseJavaExecutable: () => ipcRenderer.invoke('browse-java-executable')
 });

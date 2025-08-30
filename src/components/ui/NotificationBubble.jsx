@@ -44,7 +44,7 @@ const NotificationBubble = () => {
       window.removeEventListener('shortcut-created', handleShortcutSuccess);
       window.removeEventListener('shortcut-error', handleShortcutError);
     };
-  }, [addNotification]);
+  }, [addNotification, t]);
 
   if (notifications.length === 0) return null;
 

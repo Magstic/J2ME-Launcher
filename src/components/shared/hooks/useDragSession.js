@@ -33,14 +33,25 @@ export default function useDragSession({ selectedRef, games, source = { type: 'd
       console.warn('startDragSession failed:', e);
     }
 
-    // 自訂拖拽預覽（側向層疊效果）
+    // 自訂拖拽預覽（平台特定效果）
     try {
-      const maxLayers = Math.min(5, items.length);
+      // Linux: 完全禁用拖拽圖像
+      if (navigator.userAgent.includes('Linux')) {
+        // 創建透明的 1x1 像素圖像來禁用拖拽預覽
+        const emptyImg = new Image();
+        emptyImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=';
+        event.dataTransfer.setDragImage(emptyImg, 0, 0);
+        return;
+      }
+      
+      // Windows/其他平台: 原有的層疊效果
       const container = document.createElement('div');
       container.style.position = 'absolute';
       container.style.top = '-1000px';
       container.style.left = '-1000px';
       container.style.pointerEvents = 'none';
+      
+      const maxLayers = Math.min(5, items.length);
       container.style.padding = '8px';
       container.style.borderRadius = '8px';
       container.style.background = 'var(--background-secondary)';

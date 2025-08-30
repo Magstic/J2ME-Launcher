@@ -18,8 +18,8 @@
     "skip": "跳過",
     "later": "稍後設定",
     "startUsing": "開始使用",
-    "goToConfig": "前往配置",
-    "emulost": "啊哦，您尚未配置模擬器？"
+    "goToConfig": "前往設定",
+    "emulost": "啊哦，您尚未設定模擬器？"
   },
   "searchPlaceholder": "檢索遊戲名稱、開發商……",
   "welcome": {
@@ -134,6 +134,19 @@
     "language": {
       "title": "語言",
       "description": "選擇介面語言"
+    },
+    "java": {
+      "title": "Java 設定",
+      "description": "設定模擬器所需的 Java 路徑",
+      "currentPath": "自動偵測",
+      "customPath": "手動設定",
+      "customPathPlaceholder": "若留空，则自動偵測。",
+      "browse": "載入",
+      "reset": "重設",
+      "browseFailed": "載入 Java 執行檔失敗",
+      "validating": "載入中……",
+      "invalidPath": "無效的路徑",
+      "saveFailed": "儲存路徑失敗"
     }
   },
   "contextMenu": {

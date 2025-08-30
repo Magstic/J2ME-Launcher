@@ -11,7 +11,7 @@ function createEmulatorService({
   DataStore,
   adapters, // { freej2mePlus, ke, libretro }
   ensureCachedJar,
-  resolveJavaCommand,
+  configService, // Injected ConfigService for centralized configuration
   getConfigGameName,
   shell,
 }) {
@@ -63,7 +63,7 @@ function createEmulatorService({
         console.log('[launch][KE] using game path:', preparedGamePath);
 
         const { command: defaultCmd, args, cwd } = keAdapter.buildCommand({ jarPath: keJarPath, gameFilePath: preparedGamePath });
-        const javaCmd = defaultCmd === 'java' ? resolveJavaCommand() : defaultCmd;
+        const javaCmd = defaultCmd === 'java' ? configService.resolveJavaPath() : defaultCmd;
 
         const renderedArgs = args.map(a => (a === '-Dfile.encoding=ISO_8859_1' ? '"-Dfile.encoding=ISO_8859_1"' : a));
         // Avoid pre-quoting; let buildCommandLine handle all quoting to prevent embedded quotes
@@ -156,7 +156,7 @@ function createEmulatorService({
       const preparedGamePath = prep?.preparedGamePath || gameFilePath;
       console.log('[launch] using game path:', preparedGamePath);
       const { command: defaultCmd, args, cwd } = adapters.freej2mePlus.buildCommand({ jarPath, gameFilePath: preparedGamePath, params });
-      const javaCmd = defaultCmd === 'java' ? resolveJavaCommand() : defaultCmd;
+      const javaCmd = defaultCmd === 'java' ? configService.resolveJavaPath() : defaultCmd;
 
       const renderedArgs = args.map(a => (a === '-Dfile.encoding=ISO_8859_1' ? '"-Dfile.encoding=ISO_8859_1"' : a));
       // Avoid pre-quoting; let buildCommandLine handle all quoting to prevent embedded quotes

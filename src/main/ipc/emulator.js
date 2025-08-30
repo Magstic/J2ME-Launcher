@@ -8,7 +8,7 @@ const { shell } = require('electron');
 const { ensureCachedJar } = require('../utils/jar-cache.js');
 const { createEmulatorService } = require('../services/emulator-service.js');
 
-function register({ ipcMain, dialog, DataStore, freej2mePlusAdapter, keAdapter, libretroAdapter, resolveJavaCommand, getConfigGameName, app }) {
+function register({ ipcMain, dialog, DataStore, freej2mePlusAdapter, keAdapter, libretroAdapter, configService, getConfigGameName, app }) {
   // ==================== 模擬器設定 IPC ====================
   // 取得模擬器設定
   ipcMain.handle('get-emulator-config', () => {
@@ -377,7 +377,7 @@ function register({ ipcMain, dialog, DataStore, freej2mePlusAdapter, keAdapter, 
     DataStore,
     adapters: { freej2mePlus: freej2mePlusAdapter, ke: keAdapter, libretro: libretroAdapter },
     ensureCachedJar,
-    resolveJavaCommand,
+    configService,
     getConfigGameName,
     shell,
   });

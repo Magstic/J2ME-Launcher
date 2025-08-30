@@ -1,7 +1,18 @@
 const path = require('path');
 const fs = require('fs');
 
-function resolveJavaCommand() {
+/**
+ * Resolve Java command through ConfigService
+ * Dependency injection pattern - configService passed in
+ * @param {ConfigService} configService - Injected configuration service
+ * @returns {string} Java executable path
+ */
+function resolveJavaCommand(configService) {
+  if (configService) {
+    return configService.resolveJavaPath();
+  }
+  
+  // Fallback to legacy behavior if no configService
   const isWin = process.platform === 'win32';
   const javaHome = process.env.JAVA_HOME || process.env.JDK_HOME;
   if (javaHome) {
