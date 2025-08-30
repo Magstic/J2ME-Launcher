@@ -12,9 +12,9 @@
 </div>
 
 <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
-  <img src="https://s2.loli.net/2025/08/30/Cmh8nyeLWxocsuj.webp" style="width: 33%; min-width: 250px;">
-  <img src="https://s2.loli.net/2025/08/30/XtcPFkRABUZK13q.webp" style="width: 33%; min-width: 250px;">
-  <img src="https://s2.loli.net/2025/08/30/n5mfvIVjNxMEHk4.webp" style="width: 33%; min-width: 250px;">
+  <img src="https://s2.loli.net/2025/08/30/Cmh8nyeLWxocsuj.webp" style="width: 30%; min-width: 250px;">
+  <img src="https://s2.loli.net/2025/08/30/XtcPFkRABUZK13q.webp" style="width: 30%; min-width: 250px;">
+  <img src="https://s2.loli.net/2025/08/30/n5mfvIVjNxMEHk4.webp" style="width: 30%; min-width: 250px;">
 </div>
 
 ---
