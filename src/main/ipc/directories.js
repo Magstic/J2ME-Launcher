@@ -47,16 +47,22 @@ function register({ ipcMain, dialog, DataStore, processDirectory, processMultipl
     const existingDirectories = [];
 
     for (const directoryPath of filePaths) {
-      const added = DataStore.addDirectory(directoryPath);
-      if (added) {
-        addedDirectories.push(directoryPath);
-        try { sqlAddDirectory(directoryPath); } catch (e) { console.warn('[SQL write] addDirectory failed:', e.message); }
-      } else {
+      try {
+        // 檢查是否已存在
+        const existing = sqlGetDirectories().some(d => d.path === directoryPath);
+        if (existing) {
+          existingDirectories.push(directoryPath);
+          console.log(`目录已存在: ${directoryPath}`);
+        } else {
+          sqlAddDirectory(directoryPath);
+          addedDirectories.push(directoryPath);
+          console.log(`已添加目录: ${directoryPath}`);
+        }
+      } catch (e) {
+        console.error(`[IPC] addDirectory failed for ${directoryPath}:`, e.message);
         existingDirectories.push(directoryPath);
       }
     }
-
-    DataStore.saveData();
 
     return {
       success: true,
@@ -68,56 +74,54 @@ function register({ ipcMain, dialog, DataStore, processDirectory, processMultipl
 
   // 移除目录
   ipcMain.handle('remove-directory', async (event, directoryPath) => {
-    const removed = DataStore.removeDirectory(directoryPath);
-    if (removed) {
-      DataStore.saveData();
-      try { sqlRemoveDirectory(directoryPath); } catch (e) { console.warn('[SQL write] removeDirectory failed:', e.message); }
-      // Purge games under this directory from SQL (and cascade folder_games)
-      try {
-        const db = getDB();
-        const likePrefix = directoryPath.endsWith('\\') || directoryPath.endsWith('/') ? directoryPath : (directoryPath + (process.platform === 'win32' ? '\\' : '/'));
-        const affected = db.prepare(`DELETE FROM games WHERE filePath LIKE ?`).run(likePrefix + '%');
-        if (affected && affected.changes) {
-          console.log('[SQL] removed', affected.changes, 'games under', directoryPath);
+    try {
+      // 檢查目錄是否存在
+      const exists = sqlGetDirectories().some(d => d.path === directoryPath);
+      if (exists) {
+        sqlRemoveDirectory(directoryPath);
+        // Purge games under this directory from SQL (and cascade folder_games)
+        try {
+          const db = getDB();
+          const likePrefix = directoryPath.endsWith('\\') || directoryPath.endsWith('/') ? directoryPath : (directoryPath + (process.platform === 'win32' ? '\\' : '/'));
+          const affected = db.prepare(`DELETE FROM games WHERE filePath LIKE ?`).run(likePrefix + '%');
+          if (affected && affected.changes) {
+            console.log('[SQL] removed', affected.changes, 'games under', directoryPath);
+          }
+        } catch (e) {
+          console.warn('[SQL purge] remove-directory failed to purge games:', e.message);
         }
-      } catch (e) {
-        console.warn('[SQL purge] remove-directory failed to purge games:', e.message);
       }
-      const games = DataStore.getAllGames();
-      // Filter out games from the removed directory to avoid resurrecting them
-      const prefixWin = directoryPath.endsWith('\\') ? directoryPath : (directoryPath + '\\');
-      const prefixPosix = directoryPath.endsWith('/') ? directoryPath : (directoryPath + '/');
-      const filteredGames = games.filter(g => {
-        const fp = g.filePath || '';
-        return !(fp.startsWith(prefixWin) || fp.startsWith(prefixPosix));
-      });
-      try { upsertGames(filteredGames); } catch (e) { console.warn('[SQL sync] remove-directory upsert failed:', e.message); }
-      // Always broadcast fresh list from SQL after sync
+      // 广播更新后的游戏列表
       try {
         const sqlGames = getAllGamesFromSql();
         broadcastToAll('games-updated', addUrlToGames(sqlGames));
-      } catch (_) {
-        const gamesWithUrl = addUrlToGames(filteredGames);
-        broadcastToAll('games-updated', gamesWithUrl);
+      } catch (e) {
+        console.error('[IPC] Failed to broadcast updated games:', e.message);
       }
+      return { success: true };
+    } catch (e) {
+      console.error('[IPC] remove-directory failed:', e.message);
+      return { success: false, error: e.message };
     }
-    return { success: removed };
   });
 
   // 启用/禁用目录
   ipcMain.handle('toggle-directory', async (event, directoryPath, enabled) => {
-    DataStore.setDirectoryEnabled(directoryPath, enabled);
-    DataStore.saveData();
-    try { sqlSetDirectoryEnabled(directoryPath, enabled); } catch (e) { console.warn('[SQL write] setDirectoryEnabled failed:', e.message); }
-    // Immediately refresh games list with enabled-dir filter
     try {
-      const games = getAllGamesFromSql();
-      broadcastToAll('games-updated', addUrlToGames(games));
-    } catch (_) {
-      const games = DataStore.getAllGames();
-      broadcastToAll('games-updated', addUrlToGames(games));
+      sqlSetDirectoryEnabled(directoryPath, enabled);
+      console.log(`目录 ${directoryPath} ${enabled ? '已启用' : '已禁用'}`);
+      // Immediately refresh games list with enabled-dir filter
+      try {
+        const games = getAllGamesFromSql();
+        broadcastToAll('games-updated', addUrlToGames(games));
+      } catch (e) {
+        console.error('[IPC] Failed to broadcast updated games:', e.message);
+      }
+      return { success: true };
+    } catch (e) {
+      console.error('[IPC] toggle-directory failed:', e.message);
+      return { success: false, error: e.message };
     }
-    return { success: true };
   });
 
   // 手动触发多目录扫描
@@ -128,29 +132,27 @@ function register({ ipcMain, dialog, DataStore, processDirectory, processMultipl
       const result = await processMultipleDirectories(null, forceFullScan);
 
       if (result.success) {
-        const games = DataStore.getAllGames();
-        try { upsertGames(games); } catch (e) { console.warn('[SQL sync] scan-directories upsert failed:', e.message); }
-        // Compute updated games (SQL-first), then broadcast once
-        let updatedGames;
+        // 直接從 SQL 獲取並廣播遊戲列表
         try {
           const sqlGames = getAllGamesFromSql();
-          updatedGames = addUrlToGames(sqlGames);
-        } catch (_) {
-          updatedGames = addUrlToGames(games);
+          const updatedGames = addUrlToGames(sqlGames);
+          broadcastToAll('games-updated', updatedGames);
+          console.log(`📡 已廣播 ${updatedGames.length} 個遊戲到前端`);
+        } catch (e) {
+          console.error('[IPC] Failed to broadcast games after scan:', e.message);
         }
-        broadcastToAll('games-updated', updatedGames);
         try {
           const iso = new Date().toISOString();
           // If processMultipleDirectories returns per-dir info, we could use that.
           // For now, update all enabled directories' lastScanTime.
-          const dirs = (function(){ try { return sqlGetDirectories(); } catch (_) { return DataStore.getDirectories(); } })();
+          const dirs = sqlGetDirectories();
           for (const d of dirs) {
             if (d.enabled) {
               try { sqlUpdateDirectoryScanTime(d.path, iso); } catch (e) {}
             }
           }
         } catch (_) {}
-        return { success: true, games: updatedGames, scanResult: result };
+        return { success: true, scanResult: result };
       } else {
         return result;
       }

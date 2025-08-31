@@ -586,7 +586,7 @@ app.whenReady().then(async () => {
     console.error('[Startup] DB init/migration failed:', e);
   }
 
-  DataStore.loadData(); // 应用启动时加载数据库（保持現有 JSON 流程暫不改動）
+  // DataStore 已移除 JSON 加載，現在完全依賴 SQLite
   console.log(`[Path Debug] UserData Path: ${app.getPath('userData')}`); // 调试日志
   
   createWindow();

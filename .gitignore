@@ -46,3 +46,5 @@ logs/
 *.zip
 簇模式開發粗略計劃.md
 Magstic.pfx
+優化架構.md
+多層快取架構技術指南.md

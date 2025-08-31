@@ -1,7 +1,7 @@
 // Performance-related constants centralized here
 export const MAX_ANIMATIONS = 200; // upper bound for FLIP-permitted cards
-export const VISIBLE_BUFFER = 50;  // extra items before/after visible range
-export const VIRTUALIZATION_THRESHOLD = 300; // switch to virtualization over this total count
+export const VISIBLE_BUFFER = 20;  // extra items before/after visible range
+export const VIRTUALIZATION_THRESHOLD = 100; // switch to virtualization over this total count
 export const FLIP_DURATION = 180; // ms, consistent with existing transitions
 export const FLIP_EASING = 'ease-out';
 // Approximate card layout metrics (used by virtualization/windowing)

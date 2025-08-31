@@ -260,9 +260,21 @@ async function processDirectory(directoryPath, isIncrementalScan = false) {
           const stat = await fs.stat(fullPath);
           
           // 增量掃描邏輯：檢查是否需要重新解析
-          if (isIncrementalScan && !DataStore.needsRescan(fullPath, stat.mtimeMs)) {
-            skippedFiles.push(fullPath);
-            console.log(`⏭️  跳過未變化檔案: ${path.basename(fullPath)}`);
+          if (isIncrementalScan) {
+            const { getDB } = require('./db');
+            try {
+              const db = getDB();
+              const existingGame = db.prepare('SELECT * FROM games WHERE filePath = ?').get(fullPath);
+              if (existingGame && existingGame.mtimeMs >= stat.mtimeMs) {
+                skippedFiles.push(fullPath);
+                console.log(`⏭️  跳過未變化檔案: ${path.basename(fullPath)}`);
+              } else {
+                filesToParse.push({ path: fullPath, stat });
+              }
+            } catch (e) {
+              // 如果查詢失敗，重新解析
+              filesToParse.push({ path: fullPath, stat });
+            }
           } else {
             filesToParse.push({ path: fullPath, stat });
           }
@@ -286,9 +298,15 @@ async function processDirectory(directoryPath, isIncrementalScan = false) {
       try {
         const gameData = await parseJarFile(file.path);
         if (gameData) {
-          DataStore.setGame(file.path, gameData);
-          newlyParsedGames.push(gameData);
-          console.log(`✅ 已解析: ${gameData.gameName || path.basename(file.path)}`);
+          // 直接保存到 SQL 數據庫
+          const { upsertGames } = require('./sql/sync');
+          try {
+            upsertGames([gameData]);
+            newlyParsedGames.push(gameData);
+            console.log(`✅ 已解析並保存: ${gameData.gameName || path.basename(file.path)}`);
+          } catch (sqlError) {
+            console.error(`保存遊戲到數據庫失敗 ${file.path}:`, sqlError.message);
+          }
         }
       } catch (error) {
         console.error(`解析文件失败 ${file.path}:`, error.message);
@@ -298,8 +316,14 @@ async function processDirectory(directoryPath, isIncrementalScan = false) {
 
   // 3. 只有當有新遊戲或非增量掃描時才更新掃描時間
   if (newlyParsedGames.length > 0 || !isIncrementalScan) {
-    DataStore.updateDirectoryScanTime(directoryPath);
-    console.log(`🔄 已更新目錄掃描時間: ${directoryPath}`);
+    const { updateDirectoryScanTime } = require('./sql/directories');
+    try {
+      const iso = new Date().toISOString();
+      updateDirectoryScanTime(directoryPath, iso);
+      console.log(`🔄 已更新目錄掃描時間: ${directoryPath}`);
+    } catch (e) {
+      console.warn('[SQL] 更新掃描時間失敗:', e.message);
+    }
   } else {
     console.log(`⏭️ 目錄無變化，不更新掃描時間: ${directoryPath}`);
   }
@@ -308,34 +332,50 @@ async function processDirectory(directoryPath, isIncrementalScan = false) {
   try {
     const normalizedDir = path.normalize(directoryPath).toLowerCase();
     const foundSet = new Set([...allFoundFiles].map(p => path.normalize(p).toLowerCase()));
-    const allGames = (typeof DataStore.getAllGames === 'function') ? DataStore.getAllGames() : [];
+    const { getDB } = require('./db');
+    const db = getDB();
+    
+    // ✅ 修復：只查詢當前目錄下的遊戲記錄
+    const dirGames = db.prepare(`
+      SELECT * FROM games 
+      WHERE LOWER(filePath) LIKE LOWER(?) || '%'
+      ORDER BY gameName
+    `).all(directoryPath);
+    
     let prunedCount = 0;
-    for (const game of allGames) {
+    for (const game of dirGames) {
       const filePath = game && game.filePath ? game.filePath : null;
       if (!filePath) continue;
+      
       const normalizedFile = path.normalize(filePath).toLowerCase();
-      if (normalizedFile.startsWith(normalizedDir)) {
-        if (!foundSet.has(normalizedFile)) {
-          // 此檔案在資料庫中，但本次掃描未發現，視為已被外部移除
-          DataStore.removeGame(filePath);
+      
+      // ✅ 修復：實際檢查檔案是否存在於磁碟
+      const fs = require('fs-extra');
+      try {
+        const exists = await fs.pathExists(filePath);
+        if (!exists) {
+          // 檔案確實不存在，安全刪除
+          db.prepare('DELETE FROM games WHERE filePath = ?').run(filePath);
           prunedCount++;
           console.log(`🗑️  已移除缺失的遊戲記錄: ${path.basename(filePath)}`);
         }
+      } catch (fsError) {
+        // 檔案系統錯誤，也視為檔案不存在
+        db.prepare('DELETE FROM games WHERE filePath = ?').run(filePath);
+        prunedCount++;
+        console.log(`🗑️  已移除無法訪問的遊戲記錄: ${path.basename(filePath)}`);
       }
     }
+    
     if (prunedCount > 0) {
       console.log(`🧹 已裁剪 ${prunedCount} 個缺失檔案的遊戲記錄（來源目錄: ${directoryPath}）`);
-      // 清理可能遺留的孤立圖標
-      if (typeof DataStore.cleanupOrphanIcons === 'function') {
-        DataStore.cleanupOrphanIcons();
-      }
     }
   } catch (e) {
     console.warn(`裁剪缺失檔案記錄時發生錯誤: ${e.message}`);
   }
   
-  DataStore.saveData();
-  console.log('💾 資料庫已保存');
+  // 資料已自動保存至 SQLite，無需手動保存
+  console.log('💾 資料已保存至 SQLite');
 
   // 4. 返回本次掃描的結果統計
   const result = {
@@ -359,7 +399,8 @@ async function processMultipleDirectories(directories = null, forceFullScan = fa
   console.log('🌍 開始多路徑掃描...');
   
   // 如果沒有指定目錄，從數據庫獲取啟用的目錄
-  const targetDirectories = directories || DataStore.getEnabledDirectories();
+  const { getDirectories } = require('./sql/directories');
+  const targetDirectories = directories || getDirectories().filter(d => d.enabled).map(d => d.path);
   
   if (targetDirectories.length === 0) {
     console.log('⚠️  沒有配置任何目錄');
