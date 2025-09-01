@@ -62,23 +62,14 @@ html, body, #root {
   transform: translateX(60px);
 }
 
-/* 桌面網格 - 只在桌面視圖中生效 */
+/* 桌面網格 - React-window 虛擬化容器 */
 .desktop-view .desktop-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  grid-auto-rows: max-content; /* 讓行高自適應內容 */
-  gap: 20px;
-  padding: 20px;
   width: 100%;
-
-  /* 讓網格至少撐滿視圖高度，便於在空白區域開始框選（與 .desktop-view 對齊） */
-  min-height: calc(100vh - 36px - 16px - 24px);
-
-  /* 與容器一致，避免滾動錨點影響網格重排時的視口位置 */
-  overflow-anchor: none;
-
-  /* 與容器一致，固定滾動條佔位 */
-  scrollbar-gutter: stable both-edges;
+  height: calc(100vh - 36px - 16px - 24px);
+  overflow: hidden; /* react-window 處理滾動 */
+  position: relative;
+  display: flex;
+  justify-content: center; /* 讓 react-window 容器居中 */
 }
 
 /* 桌面視圖中的遊戲卡片樣式覆蓋 */

@@ -1,5 +1,5 @@
 import React from 'react';
-import UnifiedGrid from '@shared/UnifiedGrid';
+import VirtualizedUnifiedGrid from '@shared/VirtualizedUnifiedGrid';
 import useUnifiedContextMenu from '@shared/hooks/useUnifiedContextMenu';
 import { useSelectedGames } from '@hooks/useGameStore';
 
@@ -105,7 +105,7 @@ const FolderGridUnified = ({
 
   return (
     <>
-      <UnifiedGrid
+      <VirtualizedUnifiedGrid
         games={games}
         folders={[]}
         onGameClick={onGameLaunch}

@@ -129,9 +129,10 @@ export default function useSelectionBox({
         cache.items = [];
         cache.rows = new Map();
         cache.rowKeys = [];
-        const bucket = cache.bucket || 16; // 增大桶大小減少桶數量
+        const bucket = cache.bucket || 16;
         const container = rootRef?.current || document;
         const nodes = container?.querySelectorAll?.(hitSelector);
+        
         if (nodes) {
           const map = elementsByFpRef.current; map.clear();
           nodes.forEach((node) => {
@@ -144,20 +145,21 @@ export default function useSelectionBox({
             const minKey = Math.floor(rect.top / bucket) * bucket;
             const maxKey = Math.floor(rect.bottom / bucket) * bucket;
             for (let key = minKey; key <= maxKey; key += bucket) {
-              if (!cache.rows.has(key)) cache.rows.set(key, []);
-              cache.rows.get(key).push({ fp, rect });
+              if (!cache.rows.has(key)) {
+                cache.rows.set(key, []);
+                cache.rowKeys.push(key);
+              }
+              cache.rows.get(key).push(cache.items.length - 1);
             }
           });
-          cache.rowKeys = Array.from(cache.rows.keys()).sort((a, b) => a - b);
-          
-          // 性能監控
-          const buildTime = performance.now() - buildStart;
-          perfStatsRef.current.cacheBuilds++;
-          perfStatsRef.current.lastBuildTime = buildTime;
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`[SelectionBox] Cache built: ${nodes.length} items in ${buildTime.toFixed(1)}ms (build #${perfStatsRef.current.cacheBuilds})`);
-          }
+          cache.rowKeys.sort((a, b) => a - b);
         }
+        
+        const buildEnd = performance.now();
+        const buildTime = buildEnd - buildStart;
+        perfStatsRef.current.lastBuildTime = buildTime;
+        perfStatsRef.current.cacheBuilds++;
+        // console.log(`[SelectionBox] 緩存構建完成，耗時 ${buildTime.toFixed(2)}ms，處理 ${cache.items.length} 個元素`);
       } catch (_) {}
       cacheBuiltRef.current = true;
     }
@@ -188,7 +190,7 @@ export default function useSelectionBox({
           const arr = cache.rows.get(key);
           if (!arr) continue;
           for (let j = 0; j < arr.length; j++) {
-            const { fp, rect: r } = arr[j];
+            const { fp, rect: r } = cache.items[arr[j]];
             if (!(rect.right < r.left || rect.left > r.right || rect.bottom < r.top || rect.top > r.bottom)) {
               next.add(fp);
             }
@@ -400,12 +402,6 @@ export default function useSelectionBox({
 
     // 每次框選開始時都重新構建緩存，確保滾動後坐標準確
     cacheBuiltRef.current = false;
-    // 緩存持久化優化：僅在非持久化模式下清空元素緩存
-    if (!enableCachePersistence) {
-      elementsByFpRef.current.clear();
-    }
-    clearEphemeralSelection();
-    lastComputedRef.current = new Set();
 
     window.addEventListener('mousemove', onGlobalMouseMove, { passive: true });
     window.addEventListener('mouseup', onGlobalMouseUp, { passive: true });
@@ -418,6 +414,25 @@ export default function useSelectionBox({
     document.addEventListener('mouseout', onDocumentMouseOut, true);
     document.addEventListener('visibilitychange', onVisibilityChange, true);
   }, [isBlankArea, hitSelector, rootRef, onGlobalMouseMove, onGlobalMouseUp, onWindowLeft, onGlobalCancel, onWindowReenter, onDocumentMouseOut, onVisibilityChange]);
+
+  // 滾動時智能失效緩存（虛擬化優化）
+  React.useEffect(() => {
+    const container = rootRef?.current;
+    if (!container) return;
+    let scrollTimeout;
+    const onScroll = () => {
+      // 延遲失效緩存，避免滾動過程中頻繁重建
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        cacheBuiltRef.current = false; // 滾動停止後緩存失效
+      }, 50); // 50ms延遲，平衡響應性和性能
+    };
+    container.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      container.removeEventListener('scroll', onScroll);
+      clearTimeout(scrollTimeout);
+    };
+  }, []);
 
   return {
     // 狀態（外控模式下可忽略）

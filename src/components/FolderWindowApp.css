@@ -118,15 +118,11 @@
 .folder-window-content {
   flex: 1;
   height: 100%;
-  overflow: auto; /* 支持滾動 - 根據記憶要求 */
+  overflow: hidden; /* 隱藏父容器滾動條，由 react-window 處理 */
   position: relative;
   background: var(--background-primary);
   -webkit-app-region: no-drag;
   min-height: calc(100vh - 32px); /* 減去標題欄高度 */
-
-  /* 與桌面視圖一致：避免滾動錨點導致視圖跳動；鎖定滾動條佔位 */
-  overflow-anchor: none;
-  scrollbar-gutter: stable both-edges;
 }
 
 /* 載入狀態 - 匹配主體樣式 */
@@ -172,19 +168,16 @@
   font-weight: 500;
 }
 
-/* 遊戲網格 - 完全匹配主體窗口的桌面網格樣式 */
+/* 遊戲網格 - React-window 虛擬化容器 */
 .games-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  grid-auto-rows: max-content;
-  gap: 20px;
-  padding: 20px;
   width: 100%;
-  min-height: calc(100vh - 32px);
-
-  /* 與桌面視圖一致：避免錨點引起重排跳動；固定滾動條佔位 */
-  overflow-anchor: none;
-  scrollbar-gutter: stable both-edges;
+  height: calc(100vh - 32px);
+  overflow: hidden; /* react-window 處理滾動 */
+  position: relative;
+  display: flex;
+  justify-content: center; /* 讓 react-window 容器居中 */
+  /* 使用 scrollbar-gutter 為滾動條預留空間，保持居中 */
+  scrollbar-gutter: stable;
 }
 
 /* 資料夾窗口中的遊戲卡片樣式 - 完全匹配主體窗口桌面視圖 */
