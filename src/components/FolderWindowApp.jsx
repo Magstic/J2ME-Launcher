@@ -1,18 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { GameLaunchDialog } from '@components';
-import useFlipAnimation from '@shared/hooks/useFlipAnimation';
 import GameInfoDialog from './Desktop/GameInfoDialog';
 import FolderGridUnified from './FolderGrid.Unified';
 import { useGamesByFolder, useSelectedGames, useDragState, useGameActions } from '../hooks/useGameStore';
-// 先載入全域設計代幣，保證元件樣式可引用
-import '../styles/theme.css';
 import './FolderWindowApp.css';
 import './Desktop/Desktop.css';
-// 導入與主視圖一致的全域樣式，確保彈窗（尤其是模擬器配置）在資料夾視窗與桌面視圖風格一致
-import '../styles/utility.css';
-import '../styles/dialog.css';
-import '../styles/buttons.css';
-import '../styles/focus-ring.css';
 
 // 已切換至統一網格（UnifiedGrid）
 
@@ -66,13 +58,6 @@ const FolderWindowApp = () => {
   const leftWindowRef = useRef(false);
   const fadeTimerRef = useRef(0);
   // Remove manual object reconciliation - now handled by unified store
-  // FLIP：只對移位的卡片做動畫
-  const flipKeys = React.useMemo(() => games.map(g => `game:${g.filePath}`), [games]);
-  useFlipAnimation(gridRef, flipKeys, {
-    disabled: boxSelecting || dragState.isDragging,
-    duration: 180, // 與卡片過渡時長保持一致
-    easing: 'ease-out'
-  });
   const startPointRef = useRef({ x: 0, y: 0 });
   const [selectionRect, setSelectionRect] = useState(null);
   const [gameInfoDialog, setGameInfoDialog] = useState({ isOpen: false, game: null });
@@ -443,7 +428,6 @@ const FolderWindowApp = () => {
         {games.length === 0 ? (
           <div className="empty-folder">
             <div className="empty-icon">📂</div>
-            <div className="empty-text">此資料夾目前沒有遊戲</div>
           </div>
         ) : (
           <FolderGridUnified

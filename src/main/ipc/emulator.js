@@ -124,17 +124,26 @@ function register({ ipcMain, dialog, DataStore, freej2mePlusAdapter, keAdapter, 
   // 匯入所選檔案至 emulator JAR 同路徑下的 freej2me_system 專用資料夾
   ipcMain.handle('freej2me:import-asset', async (event, type, sourcePath) => {
     try {
+      console.log('[DEBUG] freej2me:import-asset 開始處理:', { type, sourcePath });
       if (!sourcePath || !fs.existsSync(sourcePath)) {
+        console.log('[DEBUG] 來源檔案不存在:', sourcePath);
         return { success: false, error: '來源檔案不存在' };
       }
       const emus = DataStore.getEmulatorConfig();
+      console.log('[DEBUG] 模擬器配置:', JSON.stringify(emus, null, 2));
       const globalFree = emus?.freej2mePlus || { jarPath: '' };
       let jarPath = globalFree.jarPath || '';
+      console.log('[DEBUG] JAR 路徑:', jarPath);
+      console.log('[DEBUG] JAR 路徑是否為空:', !jarPath);
       // If jarPath is not configured yet, return error to avoid duplicate dialogs
       if (!jarPath) {
+        console.log('[DEBUG] JAR 路徑未配置');
         return { success: false, error: '請先在設定中配置 FreeJ2ME-Plus JAR 路徑' };
       }
-      if (!fs.existsSync(jarPath)) return { success: false, error: `模擬器 JAR 不存在: ${jarPath}` };
+      if (!fs.existsSync(jarPath)) {
+        console.log('[DEBUG] JAR 檔案不存在:', jarPath);
+        return { success: false, error: `模擬器 JAR 不存在: ${jarPath}` };
+      }
 
       const jarDir = path.dirname(jarPath);
       const sysDir = path.join(jarDir, 'freej2me_system');

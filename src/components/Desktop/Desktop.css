@@ -49,7 +49,7 @@ html, body, #root {
   overflow-anchor: none;
 
   /* 鎖定滾動條佔位，避免出現/消失導致寬度抖動 */
-  scrollbar-gutter: stable both-edges;
+  scrollbar-gutter: stable;
 }
 
 /* 抽屜開啟時，平移桌面網格內容層（.desktop-shift-layer），避免影響 fixed/overlay 元素 */
@@ -65,7 +65,7 @@ html, body, #root {
 /* 桌面網格 - React-window 虛擬化容器 */
 .desktop-view .desktop-grid {
   width: 100%;
-  height: calc(100vh - 36px - 16px - 24px);
+  height: calc(100vh - 76px); /* 統一高度計算：頂部工具列高度 */
   overflow: hidden; /* react-window 處理滾動 */
   position: relative;
   display: flex;
@@ -154,10 +154,7 @@ html, body, #root {
   color: var(--text-primary);
 }
 
-.desktop-view .game-vendor,
-.desktop-view .game-version {
-  display: none; /* 桌面視圖中隱藏詳細信息 */
-}
+/* 桌面視圖的廠商和版本信息由 GameCard props 控制，不需要 CSS 強制隱藏 */
 
 /* folder icon/name desktop styles removed (drawer has its own styles in FolderDrawer.css) */
 

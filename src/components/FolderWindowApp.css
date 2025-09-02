@@ -163,15 +163,10 @@
   opacity: 0.5;
 }
 
-.empty-text {
-  font-size: 18px;
-  font-weight: 500;
-}
-
 /* 遊戲網格 - React-window 虛擬化容器 */
 .games-grid {
   width: 100%;
-  height: calc(100vh - 32px);
+  height: calc(100vh - 76px); /* 統一高度計算：與桌面視圖一致 */
   overflow: hidden; /* react-window 處理滾動 */
   position: relative;
   display: flex;
@@ -261,32 +256,11 @@
   color: var(--text-primary);
 }
 
-.games-grid .game-vendor,
-.games-grid .game-version {
-  display: none;
-}
+/* 資料夾視圖的廠商和版本信息由 GameCard props 控制，不需要 CSS 強制隱藏 */
 
-/* 自訂滾動條 - 匹配主應用樣式 */
-.folder-window-content::-webkit-scrollbar {
-  width: 8px;
-}
 
-.folder-window-content::-webkit-scrollbar-track {
-  background: var(--background-secondary);
-  border-radius: var(--border-radius-sm);
-}
-
-.folder-window-content::-webkit-scrollbar-thumb {
-  background: var(--background-tertiary);
-  border-radius: var(--border-radius-sm);
-}
-
-.folder-window-content::-webkit-scrollbar-thumb:hover {
-  background: var(--hover-color);
-}
-
-/* 響應式設計 - 完全匹配主體窗口樣式 */
-@media (width <= 600px) {
+/* 響應式設計 - 統一斷點與桌面視圖一致 */
+@media (width <= 768px) {
   .games-grid {
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
     gap: 16px;
@@ -315,5 +289,13 @@
   
   .folder-window-title {
     font-size: 12px;
+  }
+}
+
+@media (width <= 480px) {
+  .games-grid {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 12px;
+    padding: 12px;
   }
 }

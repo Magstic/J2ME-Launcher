@@ -1,7 +1,7 @@
 {
   "name": "j2me-launcher",
   "version": "1.0.0",
-  "description": "Modern J2ME Game Manager and Launcher",
+  "description": "Modern J2ME Game Frontend.",
   "main": "src/main/main.js",
   "homepage": "./",
   "scripts": {
@@ -61,8 +61,7 @@
     "npmRebuild": false,
     "win": {
       "target": [
-        "nsis",
-        "portable"
+        "nsis"
       ],
       "icon": "build/icons/icon.ico",
       "executableName": "J2ME_Launcher",
@@ -86,21 +85,23 @@
     },
     "linux": {
       "target": [
-        "AppImage",
         "deb",
         "rpm",
         "tar.gz"
       ],
-      "icon": "src/assets/icons/icon.png",
+      "icon": "build/icons/icon.png",
       "executableName": "j2me-launcher",
-      "category": "Game",
-      "synopsis": "Modern J2ME Game Manager and Launcher",
+      "category": "Frontend",
+      "synopsis": "Modern J2ME Game Frontend.",
       "description": "A modern desktop application for managing and launching J2ME games with support for multiple emulators.",
       "desktop": {
         "Name": "J2ME Launcher",
-        "Comment": "Modern J2ME Game Manager and Launcher",
-        "Keywords": "J2ME;Games;Launcher;Emulator;Java;Mobile",
-        "Categories": "Game;Emulator;"
+        "Comment": "Modern J2ME Game Frontend.",
+        "Keywords": "J2ME;Frontend;Launcher;GUI",
+        "Categories": "Frontend;Launcher",
+        "Icon": "j2me-launcher",
+        "StartupWMClass": "J2ME Launcher",
+        "StartupNotify": "true"
       }
     }
   },
@@ -143,12 +144,10 @@
     "@aws-sdk/lib-storage": "^3.686.0",
     "better-sqlite3": "^12.2.0",
     "fs-extra": "^11.3.1",
-    "ini": "^5.0.0",
     "js-yaml": "^4.1.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-window": "^1.8.11",
-    "react-window-infinite-loader": "^1.0.10",
     "yauzl": "^3.2.0"
   }
 }

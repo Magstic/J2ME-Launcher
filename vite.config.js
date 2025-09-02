@@ -12,6 +12,7 @@ export default defineConfig({
       '@shared': resolve(__dirname, 'src/components/shared'),
       '@hooks': resolve(__dirname, 'src/hooks'),
       '@config': resolve(__dirname, 'src/config'),
+      '@styles': resolve(__dirname, 'src/styles'),
     }
   },
   base: './',

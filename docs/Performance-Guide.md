@@ -2,9 +2,9 @@
 
 本指南基於實際優化經驗，提供系統性的性能優化策略與最佳實踐。
 
-> **最後更新**: 2025-08-27  
-> **版本**: v2.1.0  
-> **狀態**: ✅ 已完成所有核心性能優化與序列化修復
+> **最後更新**: 2025-09-02  
+> **版本**: v2.2.0  
+> **狀態**: ✅ 已完成虛擬化架構清理與統一布局系統
 
 ## 核心性能瓶頸與解決方案
 
@@ -20,21 +20,35 @@
 - **靜默處理**：避免不必要的控制台警告
 
 ```javascript
-// VirtualizedGameGrid.jsx 核心實現
-const VirtualizedGameGrid = ({ games, ...props }) => {
-  // 錯誤邊界：虛擬化失敗時降級
-  if (!isVirtualizationSupported) {
-    return <RegularGrid games={games} {...props} />;
+// VirtualizedUnifiedGrid.jsx 核心實現
+const VirtualizedUnifiedGrid = ({ games, folders, ...props }) => {
+  // 智能虛擬化：根據項目數量自動切換
+  const shouldVirtualize = items.length > VIRTUALIZATION_THRESHOLD;
+  
+  if (shouldVirtualize) {
+    return (
+      <FixedSizeGrid
+        columnCount={gridDimensions.columnCount}
+        rowCount={gridDimensions.rowCount}
+        itemData={{ items, ...itemData }}
+      >
+        {GridCell}
+      </FixedSizeGrid>
+    );
   }
   
+  // 非虛擬化模式使用統一的絕對定位系統
   return (
-    <FixedSizeGrid
-      columnCount={columnCount}
-      rowCount={rowCount}
-      itemData={{ games, ...itemData }}
-    >
-      {GridItem}
-    </FixedSizeGrid>
+    <div className="regular-grid" style={{ 
+      position: 'relative',
+      width: gridDimensions.width,
+      height: gridDimensions.height
+    }}>
+      {items.map((item, index) => {
+        const style = calculateAbsolutePosition(index, gridDimensions);
+        return <GridCell key={item.id} style={style} data={itemData} />;
+      })}
+    </div>
   );
 };
 ```
@@ -174,37 +188,20 @@ const filteredGames = useMemo(() => {
 
 ### 2. 動畫性能
 
-**FLIP 動畫**：
+**統一布局系統**：
 ```javascript
-// 使用 FLIP 技術實現流暢佈局動畫
-const useFlipAnimation = (dependencies) => {
-  const elementsRef = useRef(new Map());
+// 統一的絕對定位系統，消除雙重布局架構
+const calculateAbsolutePosition = (index, gridDimensions) => {
+  const columnIndex = index % gridDimensions.columnCount;
+  const rowIndex = Math.floor(index / gridDimensions.columnCount);
   
-  useLayoutEffect(() => {
-    // First: 記錄初始位置
-    const firstPositions = new Map();
-    elementsRef.current.forEach((element, key) => {
-      firstPositions.set(key, element.getBoundingClientRect());
-    });
-    
-    // Last: 讓 DOM 更新
-    // Invert & Play: 計算差異並播放動畫
-    elementsRef.current.forEach((element, key) => {
-      const first = firstPositions.get(key);
-      const last = element.getBoundingClientRect();
-      
-      const deltaX = first.left - last.left;
-      const deltaY = first.top - last.top;
-      
-      if (deltaX || deltaY) {
-        element.animate([
-          { transform: `translate(${deltaX}px, ${deltaY}px)` },
-          { transform: 'translate(0, 0)' }
-        ], { duration: 300, easing: 'ease-out' });
-      }
-    });
-  }, dependencies);
-};
+  return {
+    position: 'absolute',
+    left: columnIndex * gridDimensions.itemWidth,
+    top: rowIndex * ITEM_HEIGHT,
+    width: gridDimensions.itemWidth,
+    height: ITEM_HEIGHT
+  };
 ```
 
 ## 記憶體管理
@@ -449,6 +446,6 @@ if (process.env.NODE_ENV === 'development') {
 
 - ✅ **序列化安全**: 修復所有 "An object could not be cloned" 錯誤
 - ✅ **狀態一致性**: Hook 層面無效物件過濾
-- ✅ **渲染穩定**: 消除 UnifiedGrid 無效遊戲警告
+- ✅ **渲染穩定**: 消除 VirtualizedUnifiedGrid 無效遊戲警告
 - ✅ **IPC 可靠**: 全面的參數序列化檢查
 - ✅ **錯誤處理**: 分層錯誤處理與優雅降級

@@ -28,6 +28,20 @@
 .mt-8 { margin-top: 8px; }
 .p-12 { padding: 12px; }
 
+/* Grid utilities */
+.grid-2 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+/* Grid responsive design */
+@media (width <= 820px) {
+  .grid-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* Typography */
 .text-12 { font-size: 12px; }
 .text-16 { font-size: 16px; }

@@ -201,9 +201,13 @@ const DesktopView = ({
     refreshMemberSet();
   }, [refreshMemberSet, folders]);
 
-  // 將 hasFolder 作為額外屬性傳入 GameCard，避免改動遊戲資料本身
+  // 將 hasFolder 作為額外屬性傳入 GameCard，桌面視圖隱藏廠商和版本信息
   const gameCardExtraProps = useCallback(
-    (game) => ({ hasFolder: !!(game && memberSet.has(game.filePath)) }),
+    (game) => ({ 
+      hasFolder: !!(game && memberSet.has(game.filePath)),
+      showPublisher: false,
+      showVersion: false
+    }),
     [memberSet]
   );
 

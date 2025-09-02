@@ -149,9 +149,48 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
     setDirty(true);
   };
 
+  // 通用自動保存函數
+  const autoSaveConfig = async (emulatorType, field, value) => {
+    try {
+      const currentConfig = {
+        freej2mePlus: {
+          jarPath: emulators.freej2mePlus?.jarPath || '',
+          romCache: (typeof emulators.freej2mePlus?.romCache === 'boolean') ? emulators.freej2mePlus.romCache : true,
+          defaults: freeDefaults
+        },
+        ke: { 
+          jarPath: emulators.ke?.jarPath || '', 
+          romCache: (typeof emulators.ke?.romCache === 'boolean') ? emulators.ke.romCache : true 
+        },
+        libretro: {
+          retroarchPath: emulators.libretro?.retroarchPath || '',
+          corePath: emulators.libretro?.corePath || '',
+          romCache: (typeof emulators.libretro?.romCache === 'boolean') ? emulators.libretro.romCache : false
+        }
+      };
+      
+      // 更新指定的配置項
+      if (emulatorType === 'freej2mePlus') {
+        currentConfig.freej2mePlus[field] = value;
+      } else if (emulatorType === 'ke') {
+        currentConfig.ke[field] = value;
+      } else if (emulatorType === 'libretro') {
+        currentConfig.libretro[field] = value;
+      }
+      
+      await window.electronAPI.setEmulatorConfig(currentConfig);
+      console.log(`[DEBUG] ${emulatorType} ${field} 已自動保存:`, value);
+    } catch (e) {
+      console.error(`自動保存 ${emulatorType} 配置失敗:`, e);
+    }
+  };
+
   const handlePickJar = async () => {
     const path = await window.electronAPI.pickEmulatorBinary('freej2mePlus');
-    if (path) updateFreeField('jarPath', path);
+    if (path) {
+      updateFreeField('jarPath', path);
+      await autoSaveConfig('freej2mePlus', 'jarPath', path);
+    }
   };
 
   const doSave = async () => {
@@ -241,7 +280,7 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
         { key: 'save', label: t('app.save'), variant: 'primary', onClick: handleSave, disabled: loading || !dirty, allowFocusRing: true },
       ]}
     >
-        <div className="modal-body">
+      <>
           {/* FreeJ2ME-Plus 區塊（可折疊） */}
           {emulatorList.some(e => e?.id === 'freej2mePlus') && (
             <Collapsible
@@ -300,6 +339,7 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
                         if (p) {
                           setEmulators(prev => ({ ...prev, ke: { ...(prev.ke || {}), jarPath: p } }));
                           setDirty(true);
+                          await autoSaveConfig('ke', 'jarPath', p);
                         }
                       }}
                     >{t('app.select')}</button>
@@ -333,6 +373,7 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
                         if (p) {
                           setEmulators(prev => ({ ...prev, libretro: { ...(prev.libretro || {}), retroarchPath: p } }));
                           setDirty(true);
+                          await autoSaveConfig('libretro', 'retroarchPath', p);
                         }
                       }}
                     >{t('app.select')}</button>
@@ -349,6 +390,7 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
                         if (p) {
                           setEmulators(prev => ({ ...prev, libretro: { ...(prev.libretro || {}), corePath: p } }));
                           setDirty(true);
+                          await autoSaveConfig('libretro', 'corePath', p);
                         }
                       }}
                     >{t('app.select')}</button>
@@ -367,7 +409,7 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
             <h3 style={{ margin: '0 0 8px 0', fontSize: 16 }}>？？？</h3>
             <div className="hint" style={{ fontSize: 12 }}>？？？？？？</div>
           </div>
-        </div>
+      </>
     </ModalWithFooter>
 
     {/* 二級確認 Modal：變更模擬器路徑且影響備份時的警告 */}
@@ -381,7 +423,7 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
         { key: 'proceed', label: t('app.save'), variant: 'primary', onClick: async () => { setShowPathChangeWarn(false); await doSave(); } }
       ]}
     >
-      <div className="modal-body">
+      <>
         <div className="mb-8">{t('emulatorConfig.warn.pathChange1')}</div>
         <br/>
         <ul className="mb-8" style={{ paddingLeft: 18 }}>
@@ -391,7 +433,7 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
         <br/>
         <div className="mb-8">{t('emulatorConfig.warn.pathChange2')}</div>
         <div>{t('emulatorConfig.warn.pathChange3')}</div>
-      </div>
+      </>
     </ModalWithFooter>
   </>);
 }

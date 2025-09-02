@@ -111,6 +111,10 @@ const handleAddToFolder = async (games, folderId) => {
     - `Collapsible`
     - `ToggleSwitch`
     - `AboutNetworkCard`
+    - `AboutDialog`
+    - `EmulatorNotConfiguredDialog`
+    - `SettingsDialog`
+    - `WelcomeGuideDialog`
   - 用法：
     ```js
     import { ModalWithFooter, Collapsible } from '@ui';
@@ -149,19 +153,19 @@ const handleAddToFolder = async (games, folderId) => {
   - 命名匯出（Named exports）：
     - `AppIconSvg`（對應 `./icon.svg`）
     - `MitLicenseSvg`（對應 `./License_MIT.svg`）
+    - `S3Svg`（對應 `./s3.svg`）
+    - `WebdavSvg`（對應 `./webdav.svg`）
+    - `DropboxSvg`（對應 `./dropbox.svg`）
   - 用法：
     ```js
-    import { AppIconSvg, MitLicenseSvg } from '@/assets/icons';
+    import { AppIconSvg, MitLicenseSvg, S3Svg, WebdavSvg, DropboxSvg } from '@/assets/icons';
     ```
 
 - `src/components/shared/hooks/index.js`
   - 共享 hooks 彙總出口：
     - `useDragSession`
-    - `useFlipAnimation`
-    - `useFlipWithWhitelist`
     - `useSelectionBox`
     - `useUnifiedContextMenu`
-    - `useVirtualizedGrid`
   - 用法：
     ```js
     import { useSelectionBox, useDragSession } from '@shared/hooks';

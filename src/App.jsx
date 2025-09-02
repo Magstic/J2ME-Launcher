@@ -1,12 +1,13 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 
-import './styles/theme.css';
 import './App.css';
-import './styles/utility.css';
-import './styles/dialog.css';
-import './styles/buttons.css';
-import './styles/focus-ring.css';
-import { TitleBar, DirectoryManager, SearchBar, DesktopManager, GameInfoDialog, EmulatorConfigDialog } from '@components';
+import '@styles/theme.css';
+import '@styles/utility.css';
+import '@styles/dialog.css';
+import '@styles/buttons.css';
+import '@styles/focus-ring.css';
+import { TitleBar, DirectoryManager, SearchBar, GameInfoDialog, EmulatorConfigDialog } from '@components';
+import { DesktopManager } from '@components';
 import { AboutDialog, SettingsDialog, WelcomeGuideDialog, EmulatorNotConfiguredDialog } from '@ui';
 import { GameLaunchDialog, BackupDialog } from '@components';
 import { I18nProvider } from './contexts/I18nContext';

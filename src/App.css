@@ -5,9 +5,6 @@
   box-sizing: border-box;
 }
 
-
-
-
 /* 應用程式容器，包含標題欄和主體 */
 .app-container {
   display: flex;
@@ -31,12 +28,6 @@
   padding: 0 0 0 8px;
 }
 
-.title-bar-title {
-  color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 500;
-  margin-left: 8px;
-}
 
 .window-controls {
   display: flex;
@@ -103,9 +94,8 @@ body {
   min-height: 0; /* 允許子項（content-area）在 flex 佈局中正確縮放 */
 }
 
-/* 僅在桌面模式為主內容預留抽屜空間（避免影響控制器模式） */
+/* 在桌面模式為主內容預留抽屜空間，與 FolderDrawer 寬度一致 */
 .desktop-mode .main-content {
-  /* 與 FolderDrawer 寬度一致 */
   padding-left: 120px;
 }
 
@@ -119,7 +109,6 @@ body {
   display: flex; /* 讓內部主容器能夠填滿高度 */
   flex-direction: column;
   position: relative;
-
   /* 為垂直滾動條預留穩定空間，並在左右兩側保留等寬凹槽，避免右側看起來比左側寬 */
   scrollbar-gutter: stable both-edges;
 }
@@ -131,7 +120,7 @@ body {
   bottom: 24px;
   right: 24px;
   display: flex;
-  flex-direction: column-reverse; /* 讓菜單在按鈕上方 */
+  flex-direction: column-reverse; /* 讓選單在按鈕上方 */
   align-items: center;
   z-index: 3001; /* 高於 selection-rect(2000) 等覆蓋層，確保可點擊 */
   pointer-events: none; /* 預設不攔截事件，避免影響框選 */
@@ -223,12 +212,11 @@ body {
   opacity: 1; /* 懸停时不透明 */
 }
 
-/* FAB 圖標：180° 紙片翻轉（桌面 ↔ 控制器），使用 currentColor 作為純色染色 */
+/* FAB 圖標 */
 .fab-icon {
   position: relative;
   width: 24px;
   height: 24px;
-  transform-style: preserve-3d;
   transition: transform 0.18s ease; /* 與卡片動畫一致 180ms */
   will-change: transform;
 }
@@ -248,21 +236,9 @@ body {
   fill: currentcolor; /* 純色染色 */
 }
 
-/* 正面：桌面圖示 */
-.fab-icon .front { transform: rotateY(0deg); }
-
-/* 背面：控制器圖示，先反轉，容器翻轉時顯示 */
-.fab-icon .back { transform: rotateY(180deg); }
-
-/* 狀態：桌面模式（顯示 front） */
-.fab-icon.is-desktop { transform: rotateY(0deg); }
-
-/* 狀態：控制器模式（顯示 back） */
-.fab-icon.is-grid { transform: rotateY(180deg); }
-
 /* 全域規則：任一 .modal-overlay 存在時，FAB 不可被滑鼠響應，並呈現漸變灰色 */
 body.any-modal-open .fab-container {
-  pointer-events: none; /* 容器完全不接收事件（含主按鈕與菜單） */
+  pointer-events: none; /* 容器完全不接收事件（含主按鈕與選單） */
 }
 
 body.any-modal-open .fab-container .fab,
@@ -294,7 +270,7 @@ body.any-modal-open.modal-fading-out .fab {
 body.any-modal-open .fab:hover + .fab-menu,
 body.any-modal-open .fab-menu:hover,
 body.any-modal-open .fab-menu.open {
-  opacity: 0;           /* 不顯示菜單 */
+  opacity: 0;           /* 不顯示選單 */
   visibility: hidden;
   pointer-events: none;
 }
@@ -303,8 +279,6 @@ body.any-modal-open .fab-menu.open {
   width: 24px;
   height: 24px;
 }
-
-
 
 /* 搜索欄 */
 .search-bar {
@@ -318,24 +292,12 @@ body.any-modal-open .fab-menu.open {
   z-index: 9600; /* 高於抽屜（2400）與主內容 */
 }
 
-.search-bar-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  flex-shrink: 0;
-}
 
 /* 搜索容器填滿可用的內容寬度（與網格寬度一致） */
 .search-container {
   width: 100%;
 }
 
-.search-input-wrapper {
-  position: relative;
-  width: 100%;
-  max-width: 100%;
-}
 
 .search-input {
   width: 100%;
@@ -353,24 +315,7 @@ body.any-modal-open .fab-menu.open {
 .search-input:focus {
   outline: none;
   border-color: var(--accent-color);
-
-  /* 聚焦內陰影（原: rgba(0, 123, 255, 0.2)） */
   box-shadow: 0 0 0 3px var(--focus-ring);
-}
-
-.search-icon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-secondary);
-  width: 16px;
-  height: 16px;
-}
-
-.search-results-count {
-  font-size: 14px;
-  color: var(--text-secondary);
 }
 
 /* 遊戲網格 */
@@ -382,7 +327,6 @@ body.any-modal-open .fab-menu.open {
   min-height: 0; /* 避免在 flex 布局中高度膨脹導致滾動異常 */
   scroll-behavior: smooth; /* 讓連續移動時滾動有動畫 */
 }
-
 
 /* 讓桌面網格同樣填滿可用高度 */
 .content-area > .desktop-grid {
@@ -400,20 +344,6 @@ body.any-modal-open .fab-menu.open {
   min-height: calc(100vh - 32px);
 }
 
-.loading-container, .empty-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: var(--text-secondary);
-  text-align: center;
-}
-
-.loading-container p, .empty-container p {
-  font-size: 16px;
-  margin-top: 16px;
-}
 
 /* 遊戲卡片 */
 .game-card {
@@ -464,25 +394,6 @@ body.any-modal-open .fab-menu.open {
   object-fit: contain;
 }
 
-/* 合併至下方 .game-info 區塊 */
-
-.game-icon-img:hover {
-  opacity: 0.9;
-}
-
-.game-icon-fallback {
-  font-size: 24px;
-  display: block;
-  opacity: 0.6;
-}
-
-.game-icon-fallback:hover {
-  opacity: 0.8;
-}
-
-.game-icon-fallback.hidden {
-  display: none;
-}
 
 .game-info {
   text-align: center;
@@ -503,32 +414,12 @@ body.any-modal-open .fab-menu.open {
   width: 100%; /* 確保 text-overflow 生效 */
 }
 
-.game-vendor {
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-
 .game-version {
   /* 次要文字（原: #8a8886） */
   color: var(--fg-muted-1);
   font-size: 12px;
   margin-bottom: 0;
 }
-
-/* 載入狀態 */
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 300px;
-
-  /* 載入狀態文字（原: #605e5c） */
-  color: var(--fg-muted-2);
-}
-
-/* loading-spinner 與 @keyframes spin 已移至全域 theme.css 的共用定義 */
 
 /* 空狀態 */
 .empty-state {
@@ -551,20 +442,6 @@ body.any-modal-open .fab-menu.open {
   opacity: 0.5;
 }
 
-.empty-state h3 {
-  /* 空狀態標題（原: #323130） */
-  color: var(--fg-strong);
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-
-.empty-state p {
-  font-size: 14px;
-
-  /* 空狀態副文（原: #8a8886） */
-  color: var(--fg-muted-1);
-}
 
 /* 響應式設計 */
 @media (width <= 768px) {
@@ -577,25 +454,3 @@ body.any-modal-open .fab-menu.open {
     padding: 16px;
   }
 }
-
-/* 滾動條樣式 */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  /* 滾動條拇指（原: rgba(0, 0, 0, 0.2)） */
-  background: var(--scrollbar-thumb);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  /* 滾動條拇指懸停（原: rgba(0, 0, 0, 0.3)） */
-  background: var(--scrollbar-thumb-hover);
-}
-
-

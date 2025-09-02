@@ -56,9 +56,8 @@ src/
 ├── components/         # UI 組件集合
 │   ├── DesktopManager.jsx # 桌面管理器
 │   ├── FolderWindowApp.jsx # 資料夾窗口
-│   ├── VirtualizedGameGrid.jsx # 虛擬化網格
 │   └── shared/         # 共享組件
-│       └── UnifiedGrid.jsx # 統一網格渲染
+│       └── VirtualizedUnifiedGrid.jsx # 統一虛擬化網格
 ├── hooks/              # React Hooks
 │   ├── useGameStore.js # 遊戲狀態 Hook
 │   └── useTranslation.js # 國際化 Hook
@@ -119,11 +118,11 @@ src/
 
 ### 3. 虛擬化渲染系統
 
-**性能優化策略**：
-- **react-window**：大列表虛擬化
-- **錯誤邊界**：虛擬化失敗時降級
+**統一布局架構**：
+- **智能虛擬化**：根據項目數量自動切換虛擬化/非虛擬化模式
+- **統一定位系統**：非虛擬化模式使用絕對定位模擬 react-window 行為
+- **單一組件實現**：VirtualizedUnifiedGrid 消除雙重布局架構
 - **記憶體池**：URL 物件生命週期管理
-- **FLIP 動畫**：流暢的佈局變更動畫
 - **無效過濾**：Hook 層面過濾無效遊戲物件
 - **靜默處理**：避免不必要的控制台警告
 

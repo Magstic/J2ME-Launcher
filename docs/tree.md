@@ -33,16 +33,9 @@
 │  │  index.js
 │  │  SearchBar.jsx
 │  │  TitleBar.jsx
-│  │  VirtualizedGameGrid.css
-│  │  VirtualizedGameGrid.jsx
 │  │
 │  ├─Common
 │  │      ConfirmDialog.jsx
-│  │      useContextMenu.jsx
-│  │
-│  ├─controller
-│  │      GameGridController.jsx
-│  │      useControllerContextMenu.js
 │  │
 │  ├─Desktop
 │  │      ContextMenu.jsx
@@ -75,17 +68,13 @@
 │  │      LibretroFJPlus.jsx
 │  │
 │  ├─shared
-│  │  │  index.js
-│  │  │  UnifiedGrid.jsx
+│  │  │  VirtualizedUnifiedGrid.jsx
 │  │  │
 │  │  └─hooks
 │  │          index.js
 │  │          useDragSession.js
-│  │          useFlipAnimation.js
-│  │          useFlipWithWhitelist.js
 │  │          useSelectionBox.js
 │  │          useUnifiedContextMenu.js
-│  │          useVirtualizedGrid.js
 │  │
 │  ├─ui
 │  │  │  AboutNetworkCard.jsx
@@ -105,6 +94,7 @@
 │  │          AboutDialog.jsx
 │  │          BackupDialog.jsx
 │  │          ConflictResolveDialog.jsx
+│  │          EmulatorNotConfiguredDialog.jsx
 │  │          FolderSelectDialog.css
 │  │          FolderSelectDialog.jsx
 │  │          GameLaunchDialog.jsx
@@ -116,14 +106,12 @@
 │          FormRenderer.jsx
 │
 ├─config
-│      controllerBindings.js
 │      perf.js
 │
 ├─contexts
 │      I18nContext.jsx
 │
 ├─hooks
-│      useGamepad.js
 │      useGameStore.js
 │      useTranslation.js
 │
@@ -160,6 +148,7 @@
 │  │
 │  ├─ipc
 │  │      backup.js
+│  │      config.js
 │  │      custom-names.js
 │  │      desktop.js
 │  │      directories.js
@@ -188,6 +177,7 @@
 │  │      yauzl-reader.js
 │  │
 │  ├─services
+│  │      config-service.js
 │  │      emulator-service.js
 │  │
 │  ├─sql
@@ -242,7 +232,7 @@
 以下為每個目錄與關鍵檔案的用途簡述，方便後續維護與導覽。
 
 > **重要提醒**：該附註說明會定期更新以反映當前專案狀態，但仍可能存在滯後，請以實際程式碼為準。  
-> **最後更新**：2025-08-29（包含國際化系統、性能優化、統一狀態管理與增量更新機制）
+> **最後更新**：2025-09-02（虛擬化架構清理、統一布局系統、配置服務架構）
 
 - __根目錄（src/）__
   - `App.jsx`：Renderer 主頁（桌面視圖）入口，掛載應用、註冊全域樣式與路由/狀態。
@@ -258,21 +248,15 @@
   - `DesktopManager.jsx`：協調桌面場景，管理桌面/資料夾對話框與全域操作。
   - `DirectoryManager.jsx` / `DirectoryManager.css`：資料夾來源管理 UI 與樣式。
   - `EmulatorConfigDialog.jsx`：模擬器設定對話框，使用 `@ui/Collapsible`，讀取 schema/IPC。
-  - `FolderGrid.Unified.jsx`：資料夾窗口用網格（以 `@shared/UnifiedGrid` 實現統一選取/拖拽）。
+  - `FolderGrid.Unified.jsx`：資料夾窗口用網格（以 `@shared/VirtualizedUnifiedGrid` 實現統一選取/拖拽）。
   - `FolderWindowApp.jsx` / `FolderWindowApp.css`：資料夾窗口頁面（獨立 BrowserWindow 渲染端）。
   - `GameCard.jsx`：遊戲卡片元件（桌面/資料夾共用樣式與選取覆蓋）。
   - `SearchBar.jsx`：搜尋列元件。
   - `TitleBar.jsx`：視窗標題列（最小化/關閉等）。
-  - `VirtualizedGameGrid.jsx` / `VirtualizedGameGrid.css`：虛擬化遊戲網格（支援大量遊戲的高效渲染）。
   - `index.js`：`@components` barrel 匯出。
 
   - `Common/ConfirmDialog.jsx`：通用確認對話框。
   - `Common/useContextMenu.jsx`：通用右鍵選單 hook（桌面/資料夾上下文共享基礎）。
-
-  - `controller/`：**已廢棄的控制器模組**（檔案仍存在但未使用）：
-    - `GameGridController.jsx`：舊版手把控制器實現（已停用）。
-    - `useControllerContextMenu.js`：手把專用右鍵選單 hook（已停用）。
-
 
   - `Desktop/ContextMenu.jsx`：桌面專用右鍵選單。
   - `Desktop/Desktop.css`：桌面視圖樣式。
@@ -280,7 +264,7 @@
       - `.desktop-manager.drawer-open .content-area-inner > .desktop-view .desktop-shift-layer { transform: translateX(60px); }`
       - 與 `DesktopManager.jsx` 之 `drawerOpen` 狀態同步（根容器會加上 `drawer-open` 類）。
       - 若需調整位移距離，請同步考量抽屜/把手尺寸（見 `DesktopManager.jsx` 內常數）。
-  - `Desktop/DesktopGrid.Unified.jsx`：桌面網格（以 `@shared/UnifiedGrid` 統一行為）。
+  - `Desktop/DesktopGrid.Unified.jsx`：桌面網格（以 `@shared/VirtualizedUnifiedGrid` 統一行為）。
   - `Desktop/DesktopView.jsx`：桌面主視圖容器。
   - `Desktop/GameInfoDialog.jsx` / `.css`：遊戲資訊對話框。
   - 桌面已啟用「無資料夾模式」：不再於桌面渲染資料夾或提供資料夾相關交互（建立、拖入、右鍵等）。
@@ -299,13 +283,11 @@
   - `kemulator/KEmulator.jsx`：KEmulator 相關 UI。
   - `libretro/LibretroFJPlus.jsx`：Libretro（FJPlus）相關 UI/整合元件。
 
-  - `shared/UnifiedGrid.jsx`：統一的網格元件（選取框、右鍵、拖拽、FLIP 動畫整合）。最近調整：拖拽結束不再立刻關閉會話，依賴 `drop` IPC 完成（含 800ms 安全超時），`dragend` 進行資料夾命中測試並呼叫 `dropDragSession`，且含 IPC 重試以降低競態失敗。
+  - `shared/VirtualizedUnifiedGrid.jsx`：統一的虛擬化網格元件（智能虛擬化、選取框、右鍵、拖拽整合）。採用單一布局系統，非虛擬化模式使用絕對定位模擬 react-window 行為，消除雙重布局架構。最近調整：拖拽結束不再立刻關閉會話，依賴 `drop` IPC 完成（含 800ms 安全超時），`dragend` 進行資料夾命中測試並呼叫 `dropDragSession`，且含 IPC 重試以降低競態失敗。
   - `shared/hooks/`：共享 hooks（提供 `@shared/hooks` 彙總匯出）：
     - `index.js`：hooks 彙總匯出檔案。
     - `useSelectionBox.js`：框選行為（最小拖動距離閾值 2px，提升快速拖放時的選取靈敏度）。
     - `useDragSession.js`：拖曳會話管理。
-    - `useFlipAnimation.js` / `useFlipWithWhitelist.js`：FLIP 動畫與白名單優化。
-    - `useVirtualizedGrid.js`：虛擬化網格渲染。
     - `useUnifiedContextMenu.js`：桌面/資料夾語境對應的統一選單。
 
   - `ui/`：可重用 UI 元件集合與 barrel：

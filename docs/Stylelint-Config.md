@@ -134,8 +134,6 @@
 - **`DirectoryManager.css`** - 目錄管理器樣式
 - **`Desktop.css`** - 桌面主介面樣式
 - **`FolderDrawer.css`** - 資料夾抽屉樣式
-- **`UnifiedGrid.css`** - 統一遊戲網格樣式
-- **`VirtualizedGameGrid.css`** - 虛擬化遊戲網格樣式
 
 #### 樣式組織原則
 ```css

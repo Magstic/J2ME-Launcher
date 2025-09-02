@@ -209,12 +209,17 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
                       disabled={disabled || (values.textfont ?? 'Default') !== 'Custom'}
                       onClick={async () => {
                         try {
+                          console.log('[DEBUG] 開始選擇文字字體檔案...');
                           const src = await window.electronAPI.pickFreej2meAsset('textfont');
+                          console.log('[DEBUG] 選擇結果:', src);
                           if (!src) return;
+                          console.log('[DEBUG] 開始匯入文字字體:', src);
                           const res = await window.electronAPI.importFreej2meAsset('textfont', src);
+                          console.log('[DEBUG] 匯入結果:', res);
                           if (!res?.success) console.warn('匯入文字字體失敗:', res?.error);
+                          else console.log('[DEBUG] 文字字體匯入成功');
                         } catch (e) {
-                          console.warn('選擇/匯入文字字體發生錯誤:', e);
+                          console.error('[DEBUG] 選擇/匯入文字字體發生錯誤:', e);
                         }
                       }}
                     >{t('app.load')}</button>

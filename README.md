@@ -111,4 +111,13 @@ Thanks to every maintainer of the J2ME emulator.
 
 ## 📄 授權
 
-本專案採用 [MIT License](LICENSE) 授權。
+本專案採用 [MIT License](LICENSE) 授權，使用的第三方套件如下：
+
+- [aws-sdk-js-v3](https://github.com/aws/aws-sdk-js-v3)(client-s3/lib-storage) - Apache-2.0 license
+- [better-sqlite3](https://github.com/JoshuaWise/better-sqlite3) - MIT license
+- [fs-extra](https://github.com/jprichardson/node-fs-extra) - MIT license
+- [js-yaml](https://github.com/nodeca/js-yaml) - MIT license
+- [react](https://github.com/facebook/react) - MIT license
+- [react-dom](https://github.com/facebook/react) - MIT license
+- [react-window](https://github.com/bvaughn/react-window) - MIT license
+- [yauzl](https://github.com/thejoshwolfe/yauzl) - MIT license

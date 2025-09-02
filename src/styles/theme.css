@@ -93,3 +93,158 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* === 統一滾動條樣式 === */
+/* 整個應用統一的滾動條外觀，結合各組件需求的最佳實踐 */
+/* 只在實際有滾動內容時顯示滾動條 */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background-secondary);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 6px;
+  border: 2px solid var(--background-secondary);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* 防止嵌套 modal-body 出現空滾動條 */
+.modal-body .modal-body {
+  overflow: visible;
+}
+
+/* === 通用佈局工具類 === */
+.push-right {
+  margin-left: auto;
+}
+
+/* === 通用卡片樣式 === */
+.card-title {
+  margin: 2px 0 10px;
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+/* === DirectoryManager 專用空狀態樣式 === */
+.directory-manager .empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+}
+
+.directory-manager .empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.directory-manager .empty-hint {
+  font-size: 14px;
+  margin-top: 8px;
+  opacity: 0.8;
+}
+
+/* === 通用按鈕增強 === */
+.btn.soft-hover {
+  transition: background-color 0.18s ease, color 0.18s ease, filter 0.18s ease, transform 0.06s ease;
+}
+
+.btn.soft-hover:hover {
+  filter: brightness(1.06);
+}
+
+.btn.soft-hover:active {
+  transform: translateY(0.5px);
+}
+
+/* === 通用代碼樣式 === */
+.modal-body code,
+.table-like code,
+.card code {
+  font-family: inherit;
+  font-size: 0.92em;
+  background: var(--background-secondary);
+  border: 1px solid var(--dialog-border);
+  border-radius: 6px;
+  padding: 2px 6px;
+  color: var(--text-primary);
+}
+
+/* === 通用 Chip 組件 === */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  white-space: nowrap;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--background-secondary);
+  border: 1px solid var(--dialog-border);
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
+.chip code {
+  border: none;
+  background: transparent;
+  padding: 0;
+}
+
+/* === 通用表格樣式 === */
+.table-like {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) repeat(4, minmax(0, 1fr)) minmax(0, 1fr);
+  gap: 6px 8px;
+}
+
+.table-like .row {
+  display: contents;
+}
+
+.table-like .row .cell {
+  padding: 4px;
+  border-bottom: 1px solid var(--dialog-border);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.table-like .row.header .cell {
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom-color: var(--dialog-border);
+}
+
+.table-like code {
+  white-space: nowrap;
+}
+
+/* === 通用數字輸入樣式 === */
+input[type="number"].form-input::-webkit-outer-spin-button,
+input[type="number"].form-input::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+input[type="number"].form-input {
+  appearance: textfield; /* Firefox */
+  appearance: none;
+}
