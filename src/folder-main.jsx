@@ -5,6 +5,8 @@ import { I18nProvider } from './contexts/I18nContext';
 import './App.css';
 import '@styles/theme.css';
 import '@styles/buttons.css';
+import '@styles/dialog.css';
+import '@styles/utility.css';
 
 ReactDOM.createRoot(document.getElementById('folder-root')).render(
   <React.StrictMode>

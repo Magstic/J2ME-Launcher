@@ -36,6 +36,7 @@
 │  │
 │  ├─Common
 │  │      ConfirmDialog.jsx
+│  │      useContextMenu.jsx
 │  │
 │  ├─Desktop
 │  │      ContextMenu.jsx
@@ -61,6 +62,7 @@
 │  ├─freej2meplus
 │  │      FreeJ2MEPlusConfig.jsx
 │  │
+│  ├─GameLauncher
 │  ├─kemulator
 │  │      KEmulator.jsx
 │  │
@@ -76,6 +78,7 @@
 │  │          useSelectionBox.js
 │  │          useUnifiedContextMenu.js
 │  │
+│  ├─ShortcutManager
 │  ├─ui
 │  │  │  AboutNetworkCard.jsx
 │  │  │  Card.jsx
@@ -112,8 +115,25 @@
 │      I18nContext.jsx
 │
 ├─hooks
+│      index.js
+│      useAppDialogs.js
+│      useAppEventListeners.js
+│      useBatchOperationState.js
+│      useDesktopActions.js
+│      useDesktopDialogs.js
+│      useDesktopEventListeners.js
+│      useDesktopFolders.js
+│      useDesktopManager.js
+│      useDesktopState.js
+│      useDesktopView.js
+│      useDrawerPositioning.js
+│      useFabMenu.js
+│      useFolderOperations.js
+│      useGameLauncher.js
 │      useGameStore.js
+│      useThemeManager.js
 │      useTranslation.js
+│      useWelcomeGuide.js
 │
 ├─locales
 │      en-US.json
@@ -232,7 +252,7 @@
 以下為每個目錄與關鍵檔案的用途簡述，方便後續維護與導覽。
 
 > **重要提醒**：該附註說明會定期更新以反映當前專案狀態，但仍可能存在滯後，請以實際程式碼為準。  
-> **最後更新**：2025-09-02（虛擬化架構清理、統一布局系統、配置服務架構）
+> **最後更新**：2025-09-03（React Hooks 系統重構、模組化架構優化、未使用變數清理）
 
 - __根目錄（src/）__
   - `App.jsx`：Renderer 主頁（桌面視圖）入口，掛載應用、註冊全域樣式與路由/狀態。
@@ -317,10 +337,26 @@
 - __`contexts/`__
   - `I18nContext.jsx`：國際化上下文提供者（支援繁中、簡中、英文，含熱重載與自動語言檢測）。
 
-- __`hooks/`__
-  - `useGamepad.js`：手把輸入 Hook（通用 Gamepad 輪詢，支援方向移動與動作按鍵回調）。
+- __`hooks/`（React Hooks 系統）__
+  - `index.js`：hooks 彙總出口（barrel exports）。
+  - `useAppDialogs.js`：應用級對話框狀態管理。
+  - `useAppEventListeners.js`：應用級事件監聽器。
+  - `useBatchOperationState.js`：批次操作狀態管理。
+  - `useDesktopActions.js`：桌面操作邏輯。
+  - `useDesktopDialogs.js`：桌面對話框管理。
+  - `useDesktopEventListeners.js`：桌面事件監聽器。
+  - `useDesktopFolders.js`：桌面資料夾操作。
+  - `useDesktopManager.js`：桌面管理器主 hook（整合所有子 hooks）。
+  - `useDesktopState.js`：桌面狀態管理。
+  - `useDesktopView.js`：桌面視圖邏輯（拖拽、右鍵選單、資料夾徽章）。
+  - `useDrawerPositioning.js`：抽屜定位邏輯。
+  - `useFabMenu.js`：浮動操作按鈕選單。
+  - `useFolderOperations.js`：資料夾操作邏輯。
+  - `useGameLauncher.js`：遊戲啟動邏輯。
   - `useGameStore.js`：遊戲狀態管理 Hook（連接統一狀態管理系統）。
+  - `useThemeManager.js`：主題管理器。
   - `useTranslation.js`：翻譯 Hook（提供 `t()` 函數與語言切換功能）。
+  - `useWelcomeGuide.js`：歡迎引導邏輯。
 
 - __`locales/`（國際化資源）__
   - `en-US.json`：英文翻譯資源。

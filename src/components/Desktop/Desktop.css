@@ -33,39 +33,21 @@ html, body, #root {
   flex: 1;
   height: 100%;
 
-  /* 僅允許垂直滾動，避免抽屜平移造成橫向滾動條 */
-  overflow: hidden auto;
+  /* 移除滾動處理，交給 VirtualizedUnifiedGrid 內部容器 */
+  overflow: hidden;
   position: relative;
   background: var(--background-primary);
 
   /* 取消整體容器淡入，避免壓過卡片過渡（卡片本身已有入場動畫） */
   opacity: 1;
   transition: none;
-
-  /* 確保右鍵菜單覆蓋整個區域，但不影響子元素 */
-  min-height: calc(100vh - 36px - 16px - 24px);
-
-  /* 防止瀏覽器滾動錨點在列表異動（例如拖拽插入/刪除，且發生在視口外）時導致視圖跳動 */
-  overflow-anchor: none;
-
-  /* 鎖定滾動條佔位，避免出現/消失導致寬度抖動 */
-  scrollbar-gutter: stable;
 }
 
-/* 抽屜開啟時，平移桌面網格內容層（.desktop-shift-layer），避免影響 fixed/overlay 元素 */
-.desktop-manager .content-area-inner > .desktop-view .desktop-shift-layer {
-  transition: transform 160ms ease; /* 僅針對 transform 動畫 */
-  will-change: transform;
-}
-
-.desktop-manager.drawer-open .content-area-inner > .desktop-view .desktop-shift-layer {
-  transform: translateX(60px);
-}
 
 /* 桌面網格 - React-window 虛擬化容器 */
 .desktop-view .desktop-grid {
-  width: 100%;
-  height: calc(100vh - 76px); /* 統一高度計算：頂部工具列高度 */
+  width: 100%; /* 填滿父容器寬度 */
+  height: 100%; /* 填滿父容器高度，由 content-area 控制實際尺寸 */
   overflow: hidden; /* react-window 處理滾動 */
   position: relative;
   display: flex;

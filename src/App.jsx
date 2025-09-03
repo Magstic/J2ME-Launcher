@@ -6,13 +6,318 @@ import '@styles/utility.css';
 import '@styles/dialog.css';
 import '@styles/buttons.css';
 import '@styles/focus-ring.css';
-import { TitleBar, DirectoryManager, SearchBar, GameInfoDialog, EmulatorConfigDialog } from '@components';
-import { DesktopManager } from '@components';
-import { AboutDialog, SettingsDialog, WelcomeGuideDialog, EmulatorNotConfiguredDialog } from '@ui';
-import { GameLaunchDialog, BackupDialog } from '@components';
+import { TitleBar, DirectoryManager, SearchBar, EmulatorConfigDialog } from '@components';
 import { I18nProvider } from './contexts/I18nContext';
-import { useTranslation } from './hooks/useTranslation';
+import { DragProvider } from '@components/DragDrop/DragProvider';
+import VirtualizedUnifiedGrid from '@shared/VirtualizedUnifiedGrid';
+import FolderDrawer from '@components/FolderDrawer/FolderDrawer';
+import CreateFolderDialog from '@components/Folder/CreateFolderDialog';
+import { FolderSelectDialog } from '@components';
+import GameInfoDialog from '@components/Desktop/GameInfoDialog';
+import ConfirmDialog from '@components/Common/ConfirmDialog';
+import { ModalWithFooter, ModalHeaderOnly } from '@ui';
+import { useTranslation } from '@hooks/useTranslation';
+import { 
+  useDesktopManager, 
+  useAppDialogs, 
+  useGameLauncher, 
+  useAppEventListeners, 
+  useFabMenu, 
+  useDesktopView, 
+  useThemeManager, 
+  useWelcomeGuide 
+} from './hooks';
+import '@components/Desktop/Desktop.css';
 import NotificationBubble from './components/ui/NotificationBubble';
+import AboutDialog from './components/ui/dialogs/AboutDialog';
+import BackupDialog from './components/ui/dialogs/BackupDialog';
+import SettingsDialog from './components/ui/dialogs/SettingsDialog';
+import GameLaunchDialog from './components/ui/dialogs/GameLaunchDialog';
+import EmulatorNotConfiguredDialog from './components/ui/dialogs/EmulatorNotConfiguredDialog';
+import WelcomeGuideDialog from './components/ui/dialogs/WelcomeGuideDialog';
+
+// Direct DesktopView component (DesktopView logic integrated)
+function DesktopViewDirect({ 
+  games = [], 
+  onGameSelect,
+  onAddToFolder,
+  onGameInfo,
+  onRefresh,
+  isLoading = false,
+  isSwitchingToDesktop = false,
+  disableFlipExtra = false,
+}) {
+
+  // 使用桌面視圖 hook
+  const {
+    externalDragActive,
+    rootRef,
+    dragState,
+    gameCardExtraProps,
+    handleDragStart,
+    handleDragEnd,
+    handleDropOnFolder,
+    handleRootDragOver,
+    handleRootDrop,
+    ContextMenuElement,
+    openMenu
+  } = useDesktopView({
+    games,
+    onGameSelect,
+    onAddToFolder,
+    onRefresh,
+    onGameInfo
+  });
+
+  return (
+    <div 
+      className={`desktop-view ${isSwitchingToDesktop ? 'mounting' : ''}`} 
+      onDragOver={handleRootDragOver}
+      onDrop={handleRootDrop}
+      ref={rootRef}
+    >
+      <VirtualizedUnifiedGrid
+        games={games}
+        folders={[]}
+        onGameClick={onGameSelect}
+        onGameContextMenu={(e, game) => openMenu(e, game, { view: 'desktop', kind: 'game' })}
+        onBlankContextMenu={(e) => openMenu(e, null, { view: 'desktop', kind: 'blank' })}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDropOnFolder={handleDropOnFolder}
+        dragState={dragState}
+        externalDragActive={externalDragActive}
+        isLoading={isLoading}
+        disableFlip={isSwitchingToDesktop || disableFlipExtra}
+        gameCardExtraProps={gameCardExtraProps}
+      />
+      {ContextMenuElement}
+    </div>
+  );
+}
+
+// DesktopManager component using hooks
+function DesktopManagerHooks({ games, searchQuery, isLoading, onGameLaunch }) {
+  const { t } = useTranslation();
+  const {
+    // State
+    folders,
+    bulkStatus,
+    
+    // Actions
+    handleFolderOpen,
+    getUncategorizedGames,
+    getDrawerFolders,
+    handleRefresh,
+    
+    // Dialogs
+    createFolderDialog,
+    folderSelectDialog,
+    gameInfoDialog,
+    confirmDelete,
+    infoDialog,
+    noFolderGuideOpen,
+    noFolderGuideCloseRef,
+    handleOpenCreateFolderDialog,
+    handleCloseFolderDialog,
+    handleConfirmFolderDialog,
+    handleCloseFolderSelectDialog,
+    handleGameInfo,
+    handleCloseGameInfoDialog,
+    handleDeleteFolder,
+    closeConfirmDelete,
+    closeInfoDialog,
+    closeNoFolderGuide,
+    
+    // Drawer positioning
+    contentWrapRef,
+    drawerTopOffset,
+    drawerTopViewport,
+    drawerWidth,
+    
+    // Callback handlers
+    handleGameSelect,
+    handleEditFolder,
+    handleAddToFolder,
+    handleFolderSelect
+  } = useDesktopManager({ games, searchQuery, onGameLaunch });
+
+  return (
+    <DragProvider>
+      <div className={`desktop-manager`} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        {/* 相對定位的包裹層：抽屜與內容區同級（抽屜固定顯示） */}
+        <div ref={contentWrapRef} className="content-wrap" style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
+          <div className="content-area" style={{ height: '100%' }}>
+            <div className="content-area-inner" style={{ padding: '10px 6px 6px 6px', height: '100%' }}>
+              <DesktopViewDirect
+                games={getUncategorizedGames(games, searchQuery)}
+                onGameSelect={handleGameSelect}
+                onAddToFolder={handleAddToFolder}
+                onGameInfo={handleGameInfo}
+                isLoading={isLoading}
+              />
+            </div>
+          </div>
+          {/* 左側資料夾抽屜 - 與 content-area 同級 */}
+          <FolderDrawer
+            width={drawerWidth}
+            topOffset={drawerTopOffset}
+            topViewport={drawerTopViewport}
+            folders={getDrawerFolders()}
+            onOpenFolder={handleFolderOpen}
+            onCreateFolder={handleOpenCreateFolderDialog}
+            onEditFolder={handleEditFolder}
+            onDeleteFolder={handleDeleteFolder}
+          />
+        </div>
+
+        {/* 創建/編輯資料夾對話框 */}
+        <CreateFolderDialog
+          isOpen={createFolderDialog.isOpen}
+          mode={createFolderDialog.mode}
+          initialData={createFolderDialog.initialData}
+          onClose={handleCloseFolderDialog}
+          onConfirm={handleConfirmFolderDialog}
+        />
+
+        {/* 資料夾選擇對話框 */}
+        <FolderSelectDialog
+          isOpen={folderSelectDialog.isOpen}
+          game={folderSelectDialog.game}
+          selectedFilePaths={folderSelectDialog.selectedFilePaths}
+          folders={folders}
+          onClose={handleCloseFolderSelectDialog}
+          onSelect={handleFolderSelect}
+        />
+
+        {/* 遊戲信息對話框 */}
+        <GameInfoDialog
+          isOpen={gameInfoDialog.isOpen}
+          game={gameInfoDialog.game}
+          onClose={handleCloseGameInfoDialog}
+        />
+
+        {/* 刪除資料夾確認對話框（主題樣式） */}
+        <ConfirmDialog
+          isOpen={confirmDelete.isOpen}
+          title={t('desktopManager.confirmDelete.title')}
+          message={t('desktopManager.confirmDelete.message', { name: confirmDelete.folder?.name || '' })}
+          confirmText={t('desktopManager.confirmDelete.confirm')}
+          cancelText={t('desktopManager.confirmDelete.cancel')}
+          variant="danger"
+          onClose={closeConfirmDelete}
+          onCancel={closeConfirmDelete}
+          onConfirm={async () => {
+            // 立即關閉對話框，避免短暫回彈
+            const folder = confirmDelete.folder;
+            closeConfirmDelete();
+            // 略延後執行刪除與刷新，讓 UI 穩定
+            setTimeout(async () => {
+              try {
+                if (window.electronAPI?.deleteFolder && folder) {
+                  const result = await window.electronAPI.deleteFolder(folder.id, true);
+                  if (!result.success) {
+                    // 需要通過 hooks 訪問 setInfoDialog
+                    console.error('刪除資料夾失敗');
+                  }
+                  // 刷新資料
+                  handleRefresh();
+                } else {
+                  console.error('刪除 API 不可用');
+                }
+              } catch (error) {
+                console.error('刪除資料夾失敗:', error);
+              }
+            }, 30);
+          }}
+        />
+
+        {/* 單按鈕資訊對話框（取代內建 alert） */}
+        <ModalHeaderOnly
+          isOpen={infoDialog.isOpen}
+          onClose={closeInfoDialog}
+          title={infoDialog.title}
+          size="sm"
+        >
+          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+            {infoDialog.message}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <button className="btn btn-primary" onClick={closeInfoDialog}>
+              確定
+            </button>
+          </div>
+        </ModalHeaderOnly>
+
+        {/* 無資料夾引導對話框 */}
+        <ModalWithFooter
+          isOpen={noFolderGuideOpen}
+          onClose={closeNoFolderGuide}
+          title={t('desktopManager.noFolder.title')}
+          size="sm"
+          requestCloseRef={noFolderGuideCloseRef}
+          footer={
+            <div className="flex gap-8 push-right">
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  // 開啟新建資料夾彈窗，並關閉引導
+                  handleOpenCreateFolderDialog();
+                  if (noFolderGuideCloseRef.current) noFolderGuideCloseRef.current();
+                }}
+              >
+                {t('desktopManager.noFolder.createButton')}
+              </button>
+            </div>
+          }
+        >
+          <div>
+            <p>{t('desktopManager.noFolder.message')}</p>
+          </div>
+        </ModalWithFooter>
+
+        {/* 批次加入載入卡片（全屏遮罩）*/}
+        {bulkStatus.active ? (
+          <div
+            className="bulk-loading-overlay"
+            style={{
+              position: 'fixed', inset: 0, background: 'var(--scrim-35)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              zIndex: 10000, backdropFilter: 'blur(2px)'
+            }}
+          >
+            <div
+              className="bulk-loading-card"
+              style={{
+                minWidth: 320, maxWidth: 420, padding: '20px 24px', borderRadius: 12,
+                background: 'var(--glass-panel-gradient)',
+                boxShadow: '0 10px 30px var(--scrim-35)',
+                border: '1px solid var(--overlay-on-light-08)',
+                color: 'var(--text-primary)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                <div style={{
+                  width: 22, height: 22, border: '3px solid var(--overlay-on-light-20)',
+                  borderTopColor: '#6aa8ff', borderRadius: '50%', animation: 'spin 0.9s linear infinite'
+                }} />
+                <div style={{ fontSize: 16, fontWeight: 600 }}>{bulkStatus.label || t('desktopManager.bulk.processing')}</div>
+              </div>
+              <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 10 }}>
+                {bulkStatus.done} / {bulkStatus.total}
+              </div>
+              <div style={{ width: '100%', height: 8, background: 'var(--overlay-on-light-12)', borderRadius: 8, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${Math.min(100, Math.round((bulkStatus.done / Math.max(1, bulkStatus.total)) * 100))}%`, background: 'linear-gradient(90deg, #6aa8ff, #62e1ff)', transition: 'width 140ms ease' }} />
+              </div>
+            </div>
+            {/* 簡單 keyframes */}
+            <style>{`@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
+          </div>
+        ) : null}
+      </div>
+    </DragProvider>
+  );
+}
 
 function App() {
   return (
@@ -29,27 +334,19 @@ function AppContent() {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [directory, setDirectory] = useState(null);
-  const [isDirectoryManagerOpen, setIsDirectoryManagerOpen] = useState(false);
-  const [isEmulatorConfigOpen, setIsEmulatorConfigOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [gameLaunchDialog, setGameLaunchDialog] = useState({ isOpen: false, game: null, configureOnly: false });
-  const [gameInfoDialog, setGameInfoDialog] = useState({ isOpen: false, game: null });
-  const [isAboutOpen, setIsAboutOpen] = useState(false);
-  const [isBackupOpen, setIsBackupOpen] = useState(false);
-  const [isWelcomeGuideOpen, setIsWelcomeGuideOpen] = useState(false);
-  const [emulatorNotConfiguredDialog, setEmulatorNotConfiguredDialog] = useState({ isOpen: false, game: null });
-  // 設定：主題（與 body data-theme 同步，並持久化到 localStorage）
-  const [theme, setTheme] = useState(() => {
-    try {
-      const saved = localStorage.getItem('theme');
-      if (saved === 'light' || saved === 'dark') return saved;
-    } catch {}
-    return typeof document !== 'undefined' ? (document.body?.dataset?.theme || 'dark') : 'dark';
+
+  // 使用模組化 hooks
+  const { theme, setTheme } = useThemeManager();
+  const dialogs = useAppDialogs();
+  const { fabOpen, openFab, scheduleCloseFab, toggleFab } = useFabMenu();
+  const { isWelcomeGuideOpen, closeWelcomeGuide, handleWelcomeGuideComplete } = useWelcomeGuide();
+  
+  // 遊戲啟動邏輯
+  const { handleGameLaunch } = useGameLauncher({
+    games,
+    openGameLaunchDialog: dialogs.openGameLaunchDialog,
+    openEmulatorNotConfiguredDialog: dialogs.openEmulatorNotConfiguredDialog
   });
-  // FAB 抽屜延時關閉控制
-  const [fabOpen, setFabOpen] = useState(false);
-  const fabHideTimer = useRef(null);
-  const fabOpenTimer = useRef(null);
   // 搜索防抖動效果
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -59,119 +356,22 @@ function AppContent() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  const openFab = useCallback(() => {
-    // 取消關閉定時，避免即將關閉時又打開
-    if (fabHideTimer.current) { clearTimeout(fabHideTimer.current); fabHideTimer.current = null; }
-    // 若已經開啟，立即保持開啟
-    if (fabOpen) { setFabOpen(true); return; }
-    // 引入微小延時，避免穿越卡片邊界時造成生硬的進出
-    if (!fabOpenTimer.current) {
-      fabOpenTimer.current = setTimeout(() => {
-        setFabOpen(true);
-        fabOpenTimer.current = null;
-      }, 90); // 開啟延時（hover-intent）
-    }
-  }, [fabOpen]);
-  const scheduleCloseFab = useCallback(() => {
-    if (fabHideTimer.current) clearTimeout(fabHideTimer.current);
-    if (fabOpenTimer.current) { clearTimeout(fabOpenTimer.current); fabOpenTimer.current = null; }
-    fabHideTimer.current = setTimeout(() => {
-      setFabOpen(false);
-      fabHideTimer.current = null;
-    }, 100); // 更靈敏：縮短關閉延時
-  }, []);
-  useEffect(() => () => {
-    if (fabHideTimer.current) clearTimeout(fabHideTimer.current);
-    if (fabOpenTimer.current) clearTimeout(fabOpenTimer.current);
-  }, []);
 
-  // 同步主題到全局 body 並持久化，確保 Portal/覆蓋層與其他視窗一致
-  useEffect(() => {
-    try { document.body && document.body.setAttribute('data-theme', theme); } catch {}
-    try { localStorage.setItem('theme', theme); } catch {}
-  }, [theme]);
-
-  // 監聽跨視窗的 storage 事件以同步主題（例如資料夾視窗或主視窗切換時）
-  useEffect(() => {
-    const onStorage = (e) => {
-      if (e.key === 'theme') {
-        const v = e.newValue;
-        if (v === 'light' || v === 'dark') setTheme(v);
-      }
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, []);
-
-  // 首次啟動檢測和歡迎指南
-  useEffect(() => {
-    const checkFirstLaunch = async () => {
-      try {
-        const hasSeenWelcome = localStorage.getItem('hasSeenWelcomeGuide');
-        if (!hasSeenWelcome) {
-          // 延遲顯示歡迎指南，確保應用完全載入
-          setTimeout(() => {
-            setIsWelcomeGuideOpen(true);
-          }, 1000);
-        }
-      } catch (error) {
-        console.warn('Failed to check first launch status:', error);
-      }
-    };
-
-    checkFirstLaunch();
-  }, []);
-
-  // 監聽歡迎指南觸發的事件
-  useEffect(() => {
-    const handleOpenEmulatorConfig = () => setIsEmulatorConfigOpen(true);
-    const handleOpenDirectoryManager = () => setIsDirectoryManagerOpen(true);
-    const handleOpenBackupConfig = () => setIsBackupOpen(true);
-
-    // 從歡迎指南觸發的事件 - 不關閉引導
-    const handleOpenEmulatorConfigFromGuide = () => setIsEmulatorConfigOpen(true);
-    const handleOpenDirectoryManagerFromGuide = () => setIsDirectoryManagerOpen(true);
-    const handleOpenBackupConfigFromGuide = () => setIsBackupOpen(true);
-    const handleOpenSettingsTheme = () => setIsSettingsOpen(true);
-
-    const handleThemeChange = (event) => {
-      const newTheme = event.detail;
-      if (newTheme === 'light' || newTheme === 'dark') {
-        setTheme(newTheme);
-      }
-    };
-
-    window.addEventListener('open-emulator-config', handleOpenEmulatorConfig);
-    window.addEventListener('open-directory-manager', handleOpenDirectoryManager);
-    window.addEventListener('open-backup-config', handleOpenBackupConfig);
-    window.addEventListener('open-settings-theme', handleOpenSettingsTheme);
-    window.addEventListener('theme-change', handleThemeChange);
-    
-    // 從引導觸發的事件
-    window.addEventListener('open-emulator-config-from-guide', handleOpenEmulatorConfigFromGuide);
-    window.addEventListener('open-directory-manager-from-guide', handleOpenDirectoryManagerFromGuide);
-    window.addEventListener('open-backup-config-from-guide', handleOpenBackupConfigFromGuide);
-
-    return () => {
-      window.removeEventListener('open-emulator-config', handleOpenEmulatorConfig);
-      window.removeEventListener('open-directory-manager', handleOpenDirectoryManager);
-      window.removeEventListener('open-backup-config', handleOpenBackupConfig);
-      window.removeEventListener('open-settings-theme', handleOpenSettingsTheme);
-      window.removeEventListener('theme-change', handleThemeChange);
-      window.removeEventListener('open-emulator-config-from-guide', handleOpenEmulatorConfigFromGuide);
-      window.removeEventListener('open-directory-manager-from-guide', handleOpenDirectoryManagerFromGuide);
-      window.removeEventListener('open-backup-config-from-guide', handleOpenBackupConfigFromGuide);
-    };
-  }, []);
-
-  const handleWelcomeGuideComplete = useCallback(() => {
-    try {
-      localStorage.setItem('hasSeenWelcomeGuide', 'true');
-    } catch (error) {
-      console.warn('Failed to save welcome guide completion:', error);
-    }
-  }, []);
-
+  // 應用級事件監聽
+  useAppEventListeners({
+    setGames,
+    openGameInfoDialog: dialogs.openGameInfoDialog,
+    openGameLaunchDialog: dialogs.openGameLaunchDialog,
+    openDirectoryManager: dialogs.openDirectoryManager,
+    openEmulatorConfig: dialogs.openEmulatorConfig,
+    openBackup: dialogs.openBackup,
+    openSettings: dialogs.openSettings,
+    setTheme,
+    gameLaunchDialog: dialogs.gameLaunchDialog,
+    gameInfoDialog: dialogs.gameInfoDialog,
+    isDirectoryManagerOpen: dialogs.isDirectoryManagerOpen,
+    isEmulatorConfigOpen: dialogs.isEmulatorConfigOpen
+  });
 
   // 在应用启动时加载初始游戏
   useEffect(() => {
@@ -196,20 +396,9 @@ function AppContent() {
     loadInitialGames();
   }, []);
 
-  // 監聽全局的遊戲資訊事件（供網格視圖使用）
-  useEffect(() => {
-    const handleOpenGameInfo = (event) => {
-      if (gameLaunchDialog.isOpen || gameInfoDialog.isOpen || isDirectoryManagerOpen || isEmulatorConfigOpen) return;
-      const game = event.detail;
-      if (game) setGameInfoDialog({ isOpen: true, game });
-    };
-    window.addEventListener('open-game-info', handleOpenGameInfo);
-    return () => window.removeEventListener('open-game-info', handleOpenGameInfo);
-  }, [gameLaunchDialog.isOpen, gameInfoDialog.isOpen, isDirectoryManagerOpen, isEmulatorConfigOpen]);
-
   // 模態開啟時鎖定背景滾動，避免背後遊戲列表跟著滾
   useEffect(() => {
-    const anyModalOpen = gameLaunchDialog.isOpen || gameInfoDialog.isOpen || isDirectoryManagerOpen || isEmulatorConfigOpen;
+    const anyModalOpen = dialogs.gameLaunchDialog.isOpen || dialogs.gameInfoDialog.isOpen || dialogs.isDirectoryManagerOpen || dialogs.isEmulatorConfigOpen;
     const prev = document.body.style.overflow;
     if (anyModalOpen) {
       document.body.style.overflow = 'hidden';
@@ -220,159 +409,14 @@ function AppContent() {
     return () => {
       document.body.style.overflow = '';
     };
-  }, [gameLaunchDialog.isOpen, gameInfoDialog.isOpen, isDirectoryManagerOpen, isEmulatorConfigOpen]);
+  }, [dialogs.gameLaunchDialog.isOpen, dialogs.gameInfoDialog.isOpen, dialogs.isDirectoryManagerOpen, dialogs.isEmulatorConfigOpen]);
 
-  // 監聽全局的遊戲配置事件（右鍵『配置』）
-  useEffect(() => {
-    const handleOpenGameConfig = (e) => {
-      const game = e?.detail;
-      // 若已有任一彈窗開啟，忽略
-      if (gameLaunchDialog.isOpen || gameInfoDialog.isOpen || isDirectoryManagerOpen || isEmulatorConfigOpen) return;
-      if (game) setGameLaunchDialog({ isOpen: true, game, configureOnly: true });
-    };
-    window.addEventListener('open-game-config', handleOpenGameConfig);
-    return () => window.removeEventListener('open-game-config', handleOpenGameConfig);
-  }, [gameLaunchDialog.isOpen, gameInfoDialog.isOpen, isDirectoryManagerOpen, isEmulatorConfigOpen]);
-
-  const handleCloseGameInfoDialog = useCallback(() => {
-    setGameInfoDialog({ isOpen: false, game: null });
-  }, []);
-
-  // 監聽自動掃描完成和遊戲更新事件
-  useEffect(() => {
-    let updateTimer = null;
-    const handleGamesUpdated = (updatedGames) => {
-      // 節流更新：避免短時間內多次重新渲染
-      if (updateTimer) clearTimeout(updateTimer);
-      updateTimer = setTimeout(() => {
-        setGames(updatedGames);
-        updateTimer = null;
-      }, 50); // 50ms 延遲，合併多次更新
-    };
-
-    // 增量更新處理器：僅更新受影響的遊戲
-    const handleIncrementalUpdate = (updateData) => {
-      const { action, affectedGames } = updateData;
-      
-      if (!affectedGames || affectedGames.length === 0) return;
-      
-      // 對於資料夾成員關係變更，我們需要重新獲取完整遊戲列表
-      // 因為遊戲的資料夾徽章狀態可能改變
-      if (action === 'folder-membership-changed' || action === 'drag-drop-completed') {
-        // 延遲重新獲取，避免與全量更新衝突
-        setTimeout(async () => {
-          try {
-            const updatedGames = await window.electronAPI.getInitialGames();
-            if (updatedGames) setGames(updatedGames);
-          } catch (e) {
-            console.warn('增量更新失敗，回退到當前狀態:', e);
-          }
-        }, 100);
-      }
-    };
-
-    const handleAutoScanCompleted = (result) => {
-      if (result.success && result.scanResult.summary.totalNewGames > 0) {
-        console.log(`自動掃描完成，發現 ${result.scanResult.summary.totalNewGames} 個新遊戲`);
-      }
-    };
-
-    // 添加事件監聽
-    window.electronAPI.onGamesUpdated(handleGamesUpdated);
-    window.electronAPI.onGamesIncrementalUpdate?.(handleIncrementalUpdate);
-    window.electronAPI.onAutoScanCompleted(handleAutoScanCompleted);
-
-    // 清理函數
-    return () => {
-      if (updateTimer) clearTimeout(updateTimer);
-      window.electronAPI.removeAllListeners('games-updated');
-      window.electronAPI.removeAllListeners('games-incremental-update');
-      window.electronAPI.removeAllListeners('auto-scan-completed');
-    };
-  }, []);
-
-  const handleSearchChange = (term) => {
-    setSearchTerm(term)
-  }
 
   // 目錄管理相關事件處理
-  const handleOpenDirectoryManager = () => {
-    setIsDirectoryManagerOpen(true)
-  };
-
-  const handleCloseDirectoryManager = () => {
-    setIsDirectoryManagerOpen(false);
-  };
-
   const handleDirectoriesChanged = async () => {
     const updatedGames = await window.electronAPI.getInitialGames();
     if (updatedGames) {
       setGames(updatedGames);
-    }
-  };
-
-  // 監聽 Windows 捷徑啟動事件：根據 hash 尋找並啟動對應遊戲
-  useEffect(() => {
-    // 在渲染器使用 Web Crypto 計算 SHA-1（與主進程 utils/hash.js 對齊）
-    const sha1Hex = async (text) => {
-      const enc = new TextEncoder();
-      const data = enc.encode((text || '').trim().toLowerCase());
-      const buf = await crypto.subtle.digest('SHA-1', data);
-      const bytes = new Uint8Array(buf);
-      return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
-    };
-
-    const unsubscribe = window.electronAPI?.onShortcutLaunch?.(async (launchHash) => {
-      try {
-        // 優先在現有列表查找
-        let target = null;
-        for (const g of games || []) {
-          const h = await sha1Hex(g.filePath);
-          if (h === launchHash) { target = g; break; }
-        }
-        // 若未找到，嘗試重新獲取遊戲列表（例如冷啟動時）
-        if (!target) {
-          try {
-            const latest = await window.electronAPI?.getInitialGames?.();
-            if (Array.isArray(latest)) {
-              for (const g of latest) {
-                const h = await sha1Hex(g.filePath);
-                if (h === launchHash) { target = g; break; }
-              }
-            }
-          } catch (_) {}
-        }
-        if (target) {
-          await handleGameLaunch(target);
-        } else {
-          console.warn('[shortcut-launch] 無法匹配到遊戲，hash=', launchHash);
-        }
-      } catch (e) {
-        console.error('[shortcut-launch] 處理失敗:', e);
-      }
-    });
-    return () => { if (typeof unsubscribe === 'function') unsubscribe(); };
-  }, [games]);
-
-  const handleOpenEmulatorConfig = () => setIsEmulatorConfigOpen(true);
-  const handleCloseEmulatorConfig = () => setIsEmulatorConfigOpen(false);
-
-  // 處理遊戲啟動（帶首次啟動提示與持久化）
-  const handleGameLaunch = async (game) => {
-    try {
-      const cfg = await window.electronAPI?.getGameEmulatorConfig?.(game.filePath);
-      if (!cfg) {
-        // 首次啟動：顯示彈窗
-        setGameLaunchDialog({ isOpen: true, game });
-        return;
-      }
-      const result = await window.electronAPI?.launchGame?.(game.filePath);
-      if (!result?.success && result?.error === 'EMULATOR_NOT_CONFIGURED') {
-        // 模擬器未配置：顯示提示彈窗
-        setEmulatorNotConfiguredDialog({ isOpen: true, game });
-      }
-    } catch (error) {
-      console.error('啟動遊戲失敗:', error);
     }
   };
 
@@ -407,7 +451,7 @@ function AppContent() {
             directory={directory}
           />
           <div className="content-area">
-            <DesktopManager 
+            <DesktopManagerHooks 
               games={filteredGames}
               searchQuery={debouncedSearchTerm}
               isLoading={isLoading}
@@ -421,7 +465,7 @@ function AppContent() {
               title="選項"
               onMouseEnter={openFab}
               onMouseLeave={scheduleCloseFab}
-              onClick={() => setFabOpen(v => !v)}
+              onClick={toggleFab}
             >
               {/* FAB 圖標：桌面模式顯示電腦顯示器 */}
               <div className="fab-icon is-desktop" aria-hidden="true">
@@ -437,19 +481,19 @@ function AppContent() {
               onMouseEnter={openFab}
               onMouseLeave={scheduleCloseFab}
             >
-              <button className="fab-menu-item" onClick={handleOpenDirectoryManager}>
+              <button className="fab-menu-item" onClick={dialogs.openDirectoryManager}>
                 {t('fabMenu.roms')}
               </button>
-              <button className="fab-menu-item" onClick={handleOpenEmulatorConfig}>
+              <button className="fab-menu-item" onClick={dialogs.openEmulatorConfig}>
                 {t('fabMenu.emulator')}
               </button>
-              <button className="fab-menu-item" onClick={() => setIsSettingsOpen(true)}>
+              <button className="fab-menu-item" onClick={dialogs.openSettings}>
                 {t('fabMenu.settings')}
               </button>
-              <button className="fab-menu-item" onClick={() => setIsBackupOpen(true)}>
+              <button className="fab-menu-item" onClick={dialogs.openBackup}>
                 {t('fabMenu.backup')}
               </button>
-              <button className="fab-menu-item" onClick={() => setIsAboutOpen(true)}>
+              <button className="fab-menu-item" onClick={dialogs.openAbout}>
                 {t('fabMenu.about')}
               </button>
             </div>
@@ -459,59 +503,59 @@ function AppContent() {
       
       {/* 目錄管理彈窗 */}
       <DirectoryManager 
-        isOpen={isDirectoryManagerOpen}
-        onClose={handleCloseDirectoryManager}
+        isOpen={dialogs.isDirectoryManagerOpen}
+        onClose={dialogs.closeDirectoryManager}
         onDirectoriesChanged={handleDirectoriesChanged}
       />
 
       {/* 遊戲資訊彈窗（供網格視圖） */}
       <GameInfoDialog
-        isOpen={gameInfoDialog.isOpen}
-        game={gameInfoDialog.game}
-        onClose={handleCloseGameInfoDialog}
+        isOpen={dialogs.gameInfoDialog.isOpen}
+        game={dialogs.gameInfoDialog.game}
+        onClose={dialogs.closeGameInfoDialog}
       />
 
       {/* 模擬器配置彈窗 */}
-      {isEmulatorConfigOpen && (
-        <EmulatorConfigDialog isOpen={isEmulatorConfigOpen} onClose={handleCloseEmulatorConfig} />
+      {dialogs.isEmulatorConfigOpen && (
+        <EmulatorConfigDialog isOpen={dialogs.isEmulatorConfigOpen} onClose={dialogs.closeEmulatorConfig} />
       )}
 
       {/* 軟體配置（設定）彈窗 */}
-      {isSettingsOpen && (
+      {dialogs.isSettingsOpen && (
         <SettingsDialog 
-          isOpen={isSettingsOpen} 
-          onClose={() => setIsSettingsOpen(false)}
+          isOpen={dialogs.isSettingsOpen} 
+          onClose={dialogs.closeSettings}
           theme={theme}
           setTheme={setTheme}
         />
       )}
 
       {/* 雲端備份 對話框 */}
-      {isBackupOpen && (
-        <BackupDialog isOpen={isBackupOpen} onClose={() => setIsBackupOpen(false)} />
+      {dialogs.isBackupOpen && (
+        <BackupDialog isOpen={dialogs.isBackupOpen} onClose={dialogs.closeBackup} />
       )}
 
       {/* 關於 對話框 */}
-      {isAboutOpen && (
-        <AboutDialog isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
+      {dialogs.isAboutOpen && (
+        <AboutDialog isOpen={dialogs.isAboutOpen} onClose={dialogs.closeAbout} />
       )}
 
       {/* 歡迎指南對話框 */}
       {isWelcomeGuideOpen && (
         <WelcomeGuideDialog 
           isOpen={isWelcomeGuideOpen} 
-          onClose={() => setIsWelcomeGuideOpen(false)}
+          onClose={closeWelcomeGuide}
           onComplete={handleWelcomeGuideComplete}
         />
       )}
 
       {/* 遊戲啟動彈窗 */}
-      {gameLaunchDialog.isOpen && (
+      {dialogs.gameLaunchDialog.isOpen && (
         <GameLaunchDialog
-          isOpen={gameLaunchDialog.isOpen}
-          game={gameLaunchDialog.game}
-          configureOnly={!!gameLaunchDialog.configureOnly}
-          onClose={() => setGameLaunchDialog({ isOpen: false, game: null, configureOnly: false })}
+          isOpen={dialogs.gameLaunchDialog.isOpen}
+          game={dialogs.gameLaunchDialog.game}
+          configureOnly={!!dialogs.gameLaunchDialog.configureOnly}
+          onClose={dialogs.closeGameLaunchDialog}
           onSavedAndLaunch={async (g) => {
             // 保存已由對話框完成，這裡直接啟動
             try { await window.electronAPI?.launchGame?.(g.filePath); } catch (e) { console.error(e); }
@@ -520,13 +564,13 @@ function AppContent() {
       )}
 
       {/* 模擬器未配置提示彈窗 */}
-      {emulatorNotConfiguredDialog.isOpen && (
+      {dialogs.emulatorNotConfiguredDialog.isOpen && (
         <EmulatorNotConfiguredDialog
-          isOpen={emulatorNotConfiguredDialog.isOpen}
-          onClose={() => setEmulatorNotConfiguredDialog({ isOpen: false, game: null })}
+          isOpen={dialogs.emulatorNotConfiguredDialog.isOpen}
+          onClose={dialogs.closeEmulatorNotConfiguredDialog}
           onGoToConfig={() => {
-            setEmulatorNotConfiguredDialog({ isOpen: false, game: null });
-            setIsEmulatorConfigOpen(true);
+            dialogs.closeEmulatorNotConfiguredDialog();
+            dialogs.openEmulatorConfig();
           }}
         />
       )}

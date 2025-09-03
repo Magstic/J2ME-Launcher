@@ -2,9 +2,9 @@
 
 本文檔提供 J2ME Launcher 的整體架構設計與核心概念說明，幫助開發者快速理解系統結構。
 
-> **最後更新**: 2025-08-29  
-> **版本**: v2.2.0  
-> **狀態**: ✅ 已完成國際化系統、統一狀態管理與增量更新機制
+> **最後更新**: 2025-09-03  
+> **版本**: v2.3.0  
+> **狀態**: ✅ 已完成 React Hooks 系統重構、模組化架構優化、未使用變數清理
 
 ## 系統架構
 
@@ -58,7 +58,11 @@ src/
 │   ├── FolderWindowApp.jsx # 資料夾窗口
 │   └── shared/         # 共享組件
 │       └── VirtualizedUnifiedGrid.jsx # 統一虛擬化網格
-├── hooks/              # React Hooks
+├── hooks/              # React Hooks 系統
+│   ├── index.js        # Hooks 彙總出口
+│   ├── useDesktopManager.js # 桌面管理器主 Hook
+│   ├── useDesktopView.js # 桌面視圖邏輯
+│   ├── useAppDialogs.js # 應用級對話框管理
 │   ├── useGameStore.js # 遊戲狀態 Hook
 │   └── useTranslation.js # 國際化 Hook
 ├── contexts/           # React Context

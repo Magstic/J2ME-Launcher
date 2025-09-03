@@ -238,10 +238,16 @@ export default function useSelectionBox({
     ephemeralSelectedRef.current = new Set();
   }, []);
 
-  const endSelection = React.useCallback((opts = { fadeToEdge: false }) => {
+  const endSelection = React.useCallback((opts = { fadeToEdge: false, commitSelection: false }) => {
     isSelectingRef.current = false;
     setBoxSelecting(false);
     if (fadeTimerRef.current) { clearTimeout(fadeTimerRef.current); fadeTimerRef.current = 0; }
+    
+    // 如果需要提交選中狀態（拖出螢幕外時）
+    if (opts.commitSelection && didDragRef.current && lastComputedRef.current.size > 0) {
+      setSelected(new Set(lastComputedRef.current));
+    }
+    
     if (opts.fadeToEdge) {
       const viewportW = window.innerWidth;
       const viewportH = window.innerHeight;
@@ -296,7 +302,7 @@ export default function useSelectionBox({
     const w = window.innerWidth; const h = window.innerHeight;
     if (e.clientX < 0 || e.clientY < 0 || e.clientX >= w || e.clientY >= h) {
       leftWindowRef.current = true;
-      endSelection({ fadeToEdge: true });
+      endSelection({ fadeToEdge: true, commitSelection: true });
       return;
     }
     if (e.buttons === 0) { endSelection(); return; }
@@ -349,7 +355,7 @@ export default function useSelectionBox({
   const onWindowLeft = React.useCallback(() => {
     if (!isSelectingRef.current) return;
     leftWindowRef.current = true;
-    endSelection({ fadeToEdge: true });
+    endSelection({ fadeToEdge: true, commitSelection: true });
   }, [endSelection]);
 
   const onWindowReenter = React.useCallback(() => {
@@ -367,14 +373,14 @@ export default function useSelectionBox({
     const toElement = e.relatedTarget || e.toElement;
     if (!toElement && isSelectingRef.current) {
       leftWindowRef.current = true;
-      endSelection({ fadeToEdge: true });
+      endSelection({ fadeToEdge: true, commitSelection: true });
     }
   }, [endSelection]);
 
   const onVisibilityChange = React.useCallback(() => {
     if (document.visibilityState !== 'visible' && isSelectingRef.current) {
       leftWindowRef.current = true;
-      endSelection({ fadeToEdge: true });
+      endSelection({ fadeToEdge: true, commitSelection: true });
     }
   }, [endSelection]);
 

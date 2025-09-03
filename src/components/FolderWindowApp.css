@@ -166,7 +166,7 @@
 /* 遊戲網格 - React-window 虛擬化容器 */
 .games-grid {
   width: 100%;
-  height: calc(100vh - 76px); /* 統一高度計算：與桌面視圖一致 */
+  height: 100%; /* 填滿 folder-window-content 容器 */
   overflow: hidden; /* react-window 處理滾動 */
   position: relative;
   display: flex;

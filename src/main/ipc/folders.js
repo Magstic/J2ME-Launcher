@@ -365,6 +365,15 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll }) {
         if (updatedFolder) broadcastToAll('folder-updated', updatedFolder); 
       } catch (_) {}
       
+      // 立即廣播完整遊戲列表更新，確保桌面同步
+      setImmediate(() => {
+        try {
+          const { getAllGamesFromSql } = require('../sql/read');
+          const sqlGames = getAllGamesFromSql();
+          broadcastToAll('games-updated', addUrlToGames(sqlGames));
+        } catch (_) {}
+      });
+      
       return { success: true, count: resolvedPaths.length };
     } catch (error) {
       console.error('批次移除遊戲失敗:', error);

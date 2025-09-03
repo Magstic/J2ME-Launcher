@@ -104,13 +104,10 @@ body {
 .content-area {
   flex-grow: 1;
   overflow: hidden; /* 由子視圖自行滾動 */
-  padding: 6px;
-  padding-top: 10px; /* 頂部間距由搜索欄的 margin-bottom 提供 */
+  padding: 0; /* 移除內邊距，讓子容器直接貼合邊緣 */
   display: flex; /* 讓內部主容器能夠填滿高度 */
   flex-direction: column;
   position: relative;
-  /* 為垂直滾動條預留穩定空間，並在左右兩側保留等寬凹槽，避免右側看起來比左側寬 */
-  scrollbar-gutter: stable both-edges;
 }
 
 /* 懸浮操作按鈕 (FAB) 容器 */

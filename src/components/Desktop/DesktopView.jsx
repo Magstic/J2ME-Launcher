@@ -225,29 +225,27 @@ const DesktopView = ({
       onMouseUp={undefined}
       ref={rootRef}
     >
-      {/* 桌面網格（已統一） - 包裹層僅用於視覺平移，避免影響 fixed/overlay 的定位 */}
-      <div className="desktop-shift-layer">
-        <DesktopGridUnified
-          games={games}
-          folders={[]}
-          onGameSelect={onGameSelect}
-          onFolderOpen={onFolderOpen}
-          onCreateFolder={onCreateFolder}
-          onEditFolder={onEditFolder}
-          onDeleteFolder={onDeleteFolder}
-          onAddToFolder={onAddToFolder}
-          onGameInfo={onGameInfo}
-          onRefresh={onRefresh}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-          onDropOnFolder={handleDropOnFolder}
-          dragState={dragState}
-          externalDragActive={externalDragActive}
-          isLoading={isLoading}
-          disableFlip={isSwitchingToDesktop || disableFlipExtra}
-          gameCardExtraProps={gameCardExtraProps}
-        />
-      </div>
+      {/* 桌面網格（已統一） */}
+      <DesktopGridUnified
+        games={games}
+        folders={[]}
+        onGameSelect={onGameSelect}
+        onFolderOpen={onFolderOpen}
+        onCreateFolder={onCreateFolder}
+        onEditFolder={onEditFolder}
+        onDeleteFolder={onDeleteFolder}
+        onAddToFolder={onAddToFolder}
+        onGameInfo={onGameInfo}
+        onRefresh={onRefresh}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDropOnFolder={handleDropOnFolder}
+        dragState={dragState}
+        externalDragActive={externalDragActive}
+        isLoading={isLoading}
+        disableFlip={isSwitchingToDesktop || disableFlipExtra}
+        gameCardExtraProps={gameCardExtraProps}
+      />
       
       
 

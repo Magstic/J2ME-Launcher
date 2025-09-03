@@ -1,6 +1,6 @@
 import React from 'react';
 import FolderCard from '../Folder/FolderCard';
-import useUnifiedContextMenu from '../shared/hooks/useUnifiedContextMenu';
+import useUnifiedContextMenu from '@shared/hooks/useUnifiedContextMenu';
 import './FolderDrawer.css';
 
 /**

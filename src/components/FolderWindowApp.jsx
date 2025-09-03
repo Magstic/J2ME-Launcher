@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { GameLaunchDialog } from '@components';
 import GameInfoDialog from './Desktop/GameInfoDialog';
 import FolderGridUnified from './FolderGrid.Unified';
-import { useGamesByFolder, useSelectedGames, useDragState, useGameActions } from '../hooks/useGameStore';
+import { useGamesByFolder, useSelectedGames, useDragState, useGameActions } from '@hooks/useGameStore';
 import './FolderWindowApp.css';
 import './Desktop/Desktop.css';
 

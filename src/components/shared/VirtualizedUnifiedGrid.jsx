@@ -4,8 +4,8 @@ import { FixedSizeGrid as Grid } from 'react-window';
 import GameCard from '../GameCard';
 import FolderCard from '../Folder/FolderCard';
 import { CARD_WIDTH, CARD_HEIGHT, GRID_GAP, ITEM_WIDTH, ITEM_HEIGHT, VIRTUALIZATION_THRESHOLD, FLIP_DURATION } from '@config/perf';
-import useSelectionBox from './hooks/useSelectionBox';
-import useDragSession from './hooks/useDragSession';
+import useSelectionBox from '@shared/hooks/useSelectionBox';
+import useDragSession from '@shared/hooks/useDragSession';
 
 /**
  * VirtualizedUnifiedGrid - React-window 真正虛擬化實現
@@ -147,9 +147,8 @@ const VirtualizedUnifiedGrid = ({
     const containerWidth = containerRef.current.clientWidth;
     const containerHeight = containerRef.current.clientHeight;
     
-    // 預留滾動條空間以避免橫向滾動
-    const scrollbarWidth = 17;
-    const availableWidth = containerWidth - scrollbarWidth;
+    // 使用全寬度，讓 react-window 自己處理滾動條
+    const availableWidth = containerWidth;
     
     // 計算基礎列數（基於最小寬度）
     const minItemWidth = CARD_WIDTH + GRID_GAP; // 120 + 20 = 140
@@ -165,13 +164,17 @@ const VirtualizedUnifiedGrid = ({
     const totalItems = items.length;
     const rowCount = Math.max(1, Math.ceil(totalItems / baseColumnCount));
     
+    // 為了避免水平滾動條，暫時移除居中偏移
+    // Grid 寬度使用實際計算的網格寬度
+    const gridTotalWidth = baseColumnCount * adaptiveItemWidth;
+    
     return {
-      width: actualGridWidth,
+      width: gridTotalWidth,
       height: containerHeight,
       columnCount: baseColumnCount,
       rowCount,
       itemWidth: adaptiveItemWidth,
-      leftOffset
+      leftOffset: 0 // 暫時移除居中偏移以避免水平滾動條
     };
   }, [items.length]);
 
@@ -337,21 +340,23 @@ const VirtualizedUnifiedGrid = ({
       style={{ scrollbarGutter: 'stable', overflow: 'hidden auto' }}
     >
       {virtEnabled ? (
-        <div style={{ marginLeft: gridDimensions.leftOffset || 0 }}>
-          <Grid
-            columnCount={gridDimensions.columnCount}
-            columnWidth={gridDimensions.itemWidth}
-            height={gridDimensions.height}
-            rowCount={rowCount}
-            rowHeight={ITEM_HEIGHT}
-            width={gridDimensions.width}
-            itemData={itemData}
-            overscanRowCount={2}
-            overscanColumnCount={1}
-          >
-            {GridCell}
-          </Grid>
-        </div>
+        <Grid
+          columnCount={gridDimensions.columnCount}
+          columnWidth={gridDimensions.itemWidth}
+          height={gridDimensions.height}
+          rowCount={rowCount}
+          rowHeight={ITEM_HEIGHT}
+          width={gridDimensions.width}
+          itemData={itemData}
+          overscanRowCount={2}
+          overscanColumnCount={1}
+          style={{ 
+            overflowX: 'hidden',
+            marginLeft: gridDimensions.leftOffset || 0
+          }}
+        >
+          {GridCell}
+        </Grid>
       ) : (
         <div className="regular-grid" style={{ 
           position: 'relative',

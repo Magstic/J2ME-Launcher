@@ -50,7 +50,7 @@
 // ✅ 推薦：使用別名匯入共享組件
 import { ModalWithFooter, Collapsible } from '@ui';
 import { DesktopManager, DirectoryManager } from '@components';
-import { controllerBindings } from '@config/controllerBindings'; // 手把支援
+import { perf } from '@config/perf'; // 性能配置
 
 // ✅ 可接受：本地組件使用相對路徑
 import LocalPart from './LocalPart';
@@ -70,8 +70,8 @@ const { ModalWithFooter, Collapsible } = ui;
 
 ```javascript
 // ✅ 安全的 IPC 相關匯入
-import { safeIpcCall } from '@hooks/useIpcSafety';
-import { serializeGameData } from '@shared/serialization';
+import { useAppEventListeners } from '@hooks/useAppEventListeners';
+import { useDesktopManager } from '@hooks/useDesktopManager';
 
 // 使用範例
 const handleAddToFolder = async (games, folderId) => {
