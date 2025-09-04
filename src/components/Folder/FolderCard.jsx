@@ -3,7 +3,7 @@ import './Folder.css';
 
 /**
  * 資料夾卡片組件
- * 在桌面上顯示資料夾，支持拖拽放置和雙擊打開
+ * 在抽屜中顯示資料夾，支持拖拽放置和雙擊打開
  */
 const FolderCard = ({
   folder,

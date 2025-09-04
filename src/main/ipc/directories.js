@@ -90,6 +90,12 @@ function register({ ipcMain, dialog, DataStore, processDirectory, processMultipl
         } catch (e) {
           console.warn('[SQL purge] remove-directory failed to purge games:', e.message);
         }
+        // 清理目錄刪除後遺留的圖標快取檔案（異步）
+        try {
+          setImmediate(() => {
+            try { DataStore.cleanupOrphanIcons(); } catch (_) {}
+          });
+        } catch (_) {}
       }
       // 广播更新后的游戏列表
       try {

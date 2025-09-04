@@ -2,10 +2,10 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { FixedSizeGrid as Grid } from 'react-window';
 import GameCard from '../GameCard';
-import FolderCard from '../Folder/FolderCard';
 import { CARD_WIDTH, CARD_HEIGHT, GRID_GAP, ITEM_WIDTH, ITEM_HEIGHT, VIRTUALIZATION_THRESHOLD, FLIP_DURATION } from '@config/perf';
 import useSelectionBox from '@shared/hooks/useSelectionBox';
 import useDragSession from '@shared/hooks/useDragSession';
+import { AppIconSvg } from '@/assets/icons';
 
 /**
  * VirtualizedUnifiedGrid - React-window 真正虛擬化實現
@@ -16,13 +16,13 @@ import useDragSession from '@shared/hooks/useDragSession';
 const GridCell = React.memo(({ columnIndex, rowIndex, style, data }) => {
   const { items, columns, itemWidth, selectedSet, onItemClick, onItemContextMenu, onItemMouseDown, onItemDragStart, onItemDragEnd, dragState, gameCardExtraProps } = data;
   const index = rowIndex * columns + columnIndex;
-  
+
   if (index >= items.length) return <div style={style} />;
-  
+
   const item = items[index];
-  const isSelected = selectedSet?.has(item.type === 'folder' ? item.id : item.filePath);
-  const isDraggingSelf = dragState?.isDragging && dragState?.draggedType === item.type && 
-    (item.type === 'folder' ? dragState?.draggedItem?.id === item.id : dragState?.draggedItem?.filePath === item.filePath);
+  const isSelected = selectedSet?.has(item.filePath);
+  const isDraggingSelf = dragState?.isDragging && dragState?.draggedType === item.type &&
+    dragState?.draggedItem?.filePath === item.filePath;
 
   // 調整樣式以匹配自適應寬度
   const cellStyle = {
@@ -33,19 +33,7 @@ const GridCell = React.memo(({ columnIndex, rowIndex, style, data }) => {
     padding: `${GRID_GAP / 2}px`,
   };
 
-  if (item.type === 'folder') {
-    return (
-      <div style={cellStyle}>
-        <FolderCard
-          folder={item}
-          onClick={() => onItemClick?.(item)}
-          onContextMenu={(e) => onItemContextMenu?.(e, item)}
-          className="folder-card"
-          data-folderid={item.id}
-        />
-      </div>
-    );
-  }
+  // 桌面只顯示遊戲，不會有資料夾項目
 
   if (item.type === 'game') {
     const extra = (typeof gameCardExtraProps === 'function') ? (gameCardExtraProps(item) || {}) : (gameCardExtraProps || {});
@@ -78,19 +66,15 @@ const GridCell = React.memo(({ columnIndex, rowIndex, style, data }) => {
 const VirtualizedUnifiedGrid = ({
   // 資料
   games = [],
-  folders = [],
 
   // 點擊/右鍵
   onGameClick,
-  onFolderOpen,
   onGameContextMenu,
-  onFolderContextMenu,
   onBlankContextMenu,
 
   // 拖拽
   onDragStart,
   onDragEnd,
-  onDropOnFolder,
   dragState = { isDragging: false, draggedItem: null, draggedType: null },
   externalDragActive = false,
 
@@ -132,42 +116,39 @@ const VirtualizedUnifiedGrid = ({
   React.useEffect(() => { selectedRef.current = sel.selected; }, [sel.selected]);
   const { handleGameDragStart, endDragSession } = useDragSession({ selectedRef, games, source: dragSource });
 
-  // 合併並標記項目類型
+  // 桌面只顯示遊戲，不處理資料夾
   const items = React.useMemo(() => {
-    const result = [];
-    folders.forEach(folder => result.push({ ...folder, type: 'folder' }));
-    games.forEach(game => result.push({ ...game, type: 'game' }));
-    return result;
-  }, [folders, games]);
+    return games.map(game => ({ ...game, type: 'game' }));
+  }, [games]);
 
   // 計算網格尺寸
   const calculateGridDimensions = React.useCallback(() => {
     if (!containerRef.current) return { width: 800, height: 600, columnCount: 5, rowCount: 1, itemWidth: ITEM_WIDTH };
-    
+
     const containerWidth = containerRef.current.clientWidth;
     const containerHeight = containerRef.current.clientHeight;
-    
+
     // 使用全寬度，讓 react-window 自己處理滾動條
     const availableWidth = containerWidth;
-    
+
     // 計算基礎列數（基於最小寬度）
     const minItemWidth = CARD_WIDTH + GRID_GAP; // 120 + 20 = 140
     const baseColumnCount = Math.max(1, Math.floor(availableWidth / minItemWidth));
-    
+
     // 計算自適應項目寬度（確保整數寬度避免亞像素問題）
     const adaptiveItemWidth = Math.floor(availableWidth / baseColumnCount);
-    
+
     // 計算實際網格寬度並居中
     const actualGridWidth = baseColumnCount * adaptiveItemWidth;
     const leftOffset = Math.floor((availableWidth - actualGridWidth) / 2);
-    
+
     const totalItems = items.length;
     const rowCount = Math.max(1, Math.ceil(totalItems / baseColumnCount));
-    
+
     // 為了避免水平滾動條，暫時移除居中偏移
     // Grid 寬度使用實際計算的網格寬度
     const gridTotalWidth = baseColumnCount * adaptiveItemWidth;
-    
+
     return {
       width: gridTotalWidth,
       height: containerHeight,
@@ -183,10 +164,10 @@ const VirtualizedUnifiedGrid = ({
       const gridDimensions = calculateGridDimensions();
       setGridDimensions(gridDimensions);
     };
-    
+
     updateDimensions();
     window.addEventListener('resize', updateDimensions);
-    
+
     return () => window.removeEventListener('resize', updateDimensions);
   }, [calculateGridDimensions]);
 
@@ -206,29 +187,20 @@ const VirtualizedUnifiedGrid = ({
   const anchorIndexRef = React.useRef(null);
 
   const onItemClick = React.useCallback((item) => {
-    if (item.type === 'folder' && onFolderOpen) {
-      onFolderOpen(item);
-    } else if (item.type === 'game' && onGameClick) {
+    if (item.type === 'game' && onGameClick) {
       onGameClick(item);
     }
-  }, [onFolderOpen, onGameClick]);
+  }, [onGameClick]);
 
   const onItemContextMenu = React.useCallback((e, item) => {
-    if (item.type === 'folder' && onFolderContextMenu) {
-      onFolderContextMenu(e, item);
-    } else if (item.type === 'game' && onGameContextMenu) {
+    if (item.type === 'game' && onGameContextMenu) {
       let useList = [item.filePath];
-      try {
-        const has = sel.selected && sel.selected.has && sel.selected.has(item.filePath);
-        const cur = Array.from(sel.selected || []);
-        if (has && cur.length > 0) useList = cur;
-        if (!has) {
-          try { sel.setSelected && sel.setSelected(new Set([item.filePath])); } catch (_) {}
-        }
-      } catch (_) {}
-      onGameContextMenu(e, { ...item, selectedFilePaths: useList });
+      if (sel.selected.size > 1 && sel.selected.has(item.filePath)) {
+        useList = Array.from(sel.selected);
+      }
+      onGameContextMenu(e, item, useList);
     }
-  }, [onFolderContextMenu, onGameContextMenu, sel.selected, sel.setSelected]);
+  }, [onGameContextMenu, sel.selected]);
 
   const onItemMouseDown = React.useCallback((filePath, e) => {
     e.stopPropagation();
@@ -279,9 +251,9 @@ const VirtualizedUnifiedGrid = ({
   }, [games, handleGameDragStart, onDragStart]);
 
   const onItemDragEnd = React.useCallback((e) => {
-    try { setTimeout(() => { try { endDragSession(); } catch (_) {} }, 800); } catch (_) {}
+    try { setTimeout(() => { try { endDragSession(); } catch (_) { } }, 800); } catch (_) { }
     if (onDragEnd) {
-      try { setTimeout(() => { try { onDragEnd(e); } catch (_) {} }, 150); } catch (_) {}
+      try { setTimeout(() => { try { onDragEnd(e); } catch (_) { } }, 150); } catch (_) { }
     }
   }, [endDragSession, onDragEnd]);
 
@@ -302,8 +274,8 @@ const VirtualizedUnifiedGrid = ({
 
   // 右鍵處理
   const onContextMenu = (e) => {
-    try { e.preventDefault(); } catch (_) {}
-    try { e.stopPropagation(); } catch (_) {}
+    try { e.preventDefault(); } catch (_) { }
+    try { e.stopPropagation(); } catch (_) { }
     onBlankContextMenu && onBlankContextMenu(e);
   };
 
@@ -323,7 +295,17 @@ const VirtualizedUnifiedGrid = ({
     return (
       <div className="desktop-grid empty">
         <div className="empty-state">
-          <div className="empty-icon">📁</div>
+          <div className="empty-icon">
+            <img
+              src={AppIconSvg}
+              alt="J2ME Launcher Icon"
+              style={{
+                width: '128px',
+                height: '128px',
+                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
+              }}
+            />
+          </div>
         </div>
       </div>
     );
@@ -350,7 +332,7 @@ const VirtualizedUnifiedGrid = ({
           itemData={itemData}
           overscanRowCount={2}
           overscanColumnCount={1}
-          style={{ 
+          style={{
             overflowX: 'hidden',
             marginLeft: gridDimensions.leftOffset || 0
           }}
@@ -358,7 +340,7 @@ const VirtualizedUnifiedGrid = ({
           {GridCell}
         </Grid>
       ) : (
-        <div className="regular-grid" style={{ 
+        <div className="regular-grid" style={{
           position: 'relative',
           width: gridDimensions.width,
           height: gridDimensions.height,
@@ -374,10 +356,10 @@ const VirtualizedUnifiedGrid = ({
               width: gridDimensions.itemWidth,
               height: ITEM_HEIGHT
             };
-            
+
             return (
               <GridCell
-                key={item.type === 'folder' ? `folder:${item.id}` : `game:${item.filePath}`}
+                key={`game:${item.filePath}`}
                 columnIndex={columnIndex}
                 rowIndex={rowIndex}
                 style={style}

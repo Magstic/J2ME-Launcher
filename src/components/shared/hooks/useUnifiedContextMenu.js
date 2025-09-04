@@ -20,9 +20,10 @@ export default function useUnifiedContextMenu(callbacks = {}) {
    * @param {MouseEvent} event
    * @param {any} target 原始目標（game 或 folder 或 null）
    * @param {Object} ctx
-   * @param {'desktop'|'folder-window'} ctx.view 當前視圖
+   * @param {'desktop'|'folder-window'|'drawer'} ctx.view 當前視圖
    * @param {'blank'|'game'|'folder'|'game-grid'} ctx.kind 目標類型
    * @param {Object=} ctx.extra 額外資訊（例如 folderId）
+   * @param {string[]=} ctx.selectedFilePaths 若為多選，包含當前選集的所有 filePath
    */
   const openMenu = useCallback((event, target, ctx) => {
     if (!ctx || !ctx.view || !ctx.kind) return;
@@ -48,6 +49,15 @@ export default function useUnifiedContextMenu(callbacks = {}) {
         // 目前資料夾視圖空白區域不顯示菜單，保持現狀。如需顯示可將其映射為 'desktop' 並在 ContextMenu 中增加條件過濾
         return;
       }
+    } else if (ctx.view === 'drawer') {
+      // 抽屜視圖：主要用於資料夾右鍵菜單
+      if (ctx.kind === 'folder') menuType = 'folder';
+      else if (ctx.kind === 'blank') return; // 抽屜空白區域不顯示菜單
+    }
+
+    // 附加多選資料：若有提供 selectedFilePaths，將其附加到目標上
+    if (finalTarget && Array.isArray(ctx?.selectedFilePaths) && ctx.selectedFilePaths.length > 0) {
+      finalTarget = { ...finalTarget, selectedFilePaths: ctx.selectedFilePaths };
     }
 
     if (!menuType) return;

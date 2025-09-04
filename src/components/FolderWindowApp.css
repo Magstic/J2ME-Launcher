@@ -63,6 +63,7 @@
 
 .folder-name {
   font-weight: 600;
+  justify-content: center;
   color: var(--text-primary);
 }
 

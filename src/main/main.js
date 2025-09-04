@@ -1,3 +1,4 @@
+require('../utils/logger.cjs');
 const { app, BrowserWindow, ipcMain, dialog, Menu, session, protocol, shell } = require('electron');
 const path = require('path');
 const { processDirectory, processMultipleDirectories, performAutoIncrementalScan } = require('./jar-parser.js');

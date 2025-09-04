@@ -95,26 +95,12 @@ export const useDesktopView = ({
     });
   }, []);
 
-  // 處理拖拽到資料夾
-  const handleDropOnFolder = useCallback((folderId) => {
-    const api = window.electronAPI;
-    if (api?.dropDragSession) {
-      try {
-        Promise.resolve(api.dropDragSession({ type: 'folder', id: folderId }))
-          .finally(() => {
-            try { api.endDragSession && api.endDragSession(); } catch (_) {}
-          });
-      } catch (_) {
-        try { api.endDragSession && api.endDragSession(); } catch (_) {}
-      }
-    }
-    handleDragEnd();
-  }, [dragState.draggedItem, dragState.draggedType, handleDragEnd]);
 
   const handleRootDragOver = useCallback((e) => {
     if (externalDragActive) {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
+      e.dataTransfer.effectAllowed = 'move';
     }
   }, [externalDragActive]);
 
@@ -128,9 +114,7 @@ export const useDesktopView = ({
   // 將 hasFolder 作為額外屬性傳入 GameCard
   const gameCardExtraProps = useCallback(
     (game) => ({ 
-      hasFolder: !!(game && memberSet.has(game.filePath)),
-      showPublisher: false,
-      showVersion: false
+      hasFolder: !!(game && memberSet.has(game.filePath))
     }),
     [memberSet]
   );
@@ -188,7 +172,6 @@ export const useDesktopView = ({
     // Actions
     handleDragStart,
     handleDragEnd,
-    handleDropOnFolder,
     handleRootDragOver,
     handleRootDrop,
     refreshMemberSet,

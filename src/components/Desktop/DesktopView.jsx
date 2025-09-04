@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import DesktopGridUnified from './DesktopGrid.Unified';
 import './Desktop.css';
 
@@ -19,9 +19,7 @@ function closestInteractive(target) {
  */
 const DesktopView = ({ 
   games = [], 
-  folders = [], 
   onGameSelect,
-  onFolderOpen,
   onCreateFolder,
   onEditFolder,
   onDeleteFolder,
@@ -31,24 +29,12 @@ const DesktopView = ({
   onRefresh,
   searchQuery = '',
   isLoading = false,
-  isSwitchingToDesktop = false,
   disableFlipExtra = false,
 }) => {
   // 已切換至統一右鍵菜單（由 DesktopGrid.Unified 內部的 useUnifiedContextMenu 管理）
 
   const [externalDragActive, setExternalDragActive] = useState(false);
   const rootRef = useRef(null);
-
-  // 在視圖切換回桌面期間，鎖定上一幀的資料夾列表，避免資料夾短暫被移除再加入導致的佈局跳動
-  const [latchedFolders, setLatchedFolders] = useState(folders);
-  useEffect(() => {
-    if (!isSwitchingToDesktop) {
-      // 切換結束後才同步最新資料夾
-      setLatchedFolders(folders);
-    }
-    // 切換期間保持上一幀資料夾不變
-  }, [folders, isSwitchingToDesktop]);
-
 
   const handleRootDragOver = (e) => {
     if (externalDragActive) {
@@ -57,18 +43,12 @@ const DesktopView = ({
     }
   };
 
-
   const handleRootDrop = (e) => {
     if (!externalDragActive) return;
     e.preventDefault();
     try { window.electronAPI?.dropDragSession?.({ type: 'desktop' }); } catch (err) { console.warn(err); }
     try { window.electronAPI?.endDragSession?.(); } catch (e2) {}
   };
-
-
-
-
-
 
   // 監聽跨窗口拖拽會話開始/結束
   useEffect(() => {
@@ -111,27 +91,6 @@ const DesktopView = ({
     });
   };
 
-  // 處理拖拽到資料夾
-  const handleDropOnFolder = (folderId) => {
-    // 優先使用跨窗口拖拽會話（若存在）
-    const api = window.electronAPI;
-    if (api?.dropDragSession) {
-      // 確保 drop 先抵達主進程，再結束會話，避免 no-active-session 競態
-      try {
-        Promise.resolve(api.dropDragSession({ type: 'folder', id: folderId }))
-          .finally(() => {
-            try { api.endDragSession && api.endDragSession(); } catch (_) {}
-          });
-      } catch (_) {
-        try { api.endDragSession && api.endDragSession(); } catch (_) {}
-      }
-    } else if (dragState.draggedItem && dragState.draggedType === 'game') {
-      // 向後兼容：本窗口內移動
-      onGameDrop && onGameDrop(dragState.draggedItem.filePath, folderId);
-    }
-    // 結束本地拖拽狀態（會話在上方 finally 中結束）
-    handleDragEnd();
-  };
 
   // 過濾項目（根據搜索查詢）
   const filteredGames = games.filter(game => 
@@ -140,12 +99,6 @@ const DesktopView = ({
     game.vendor?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const sourceFolders = isSwitchingToDesktop ? latchedFolders : folders;
-  const filteredFolders = sourceFolders.filter(folder =>
-    !searchQuery ||
-    folder.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    folder.description?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   // ====== 遊戲是否屬於任一資料夾（顯示徽章）======
   const [memberSet, setMemberSet] = useState(() => new Set()); // Set<string:filePath>
@@ -195,42 +148,27 @@ const DesktopView = ({
     };
   }, [refreshMemberSet]);
 
-  // 當傳入的 folders 變化時，主動刷新徽章集合（保險機制）
-  useEffect(() => {
-    // 若主進程沒即時廣播事件，依賴 props 的變更也能觸發刷新
-    refreshMemberSet();
-  }, [refreshMemberSet, folders]);
-
   // 將 hasFolder 作為額外屬性傳入 GameCard，桌面視圖隱藏廠商和版本信息
   const gameCardExtraProps = useCallback(
     (game) => ({ 
       hasFolder: !!(game && memberSet.has(game.filePath)),
-      showPublisher: false,
-      showVersion: false
     }),
     [memberSet]
   );
 
   // 點擊空白區域關閉右鍵菜單
-  // 舊版右鍵菜單關閉監聽已移除
 
   return (
     <div 
-      className={`desktop-view ${isSwitchingToDesktop ? 'mounting' : ''}`} 
+      className="desktop-view" 
       onDragOver={handleRootDragOver}
       onDrop={handleRootDrop}
-      onMouseDown={undefined}
-      onClick={undefined}
-      onMouseMove={undefined}
-      onMouseUp={undefined}
       ref={rootRef}
     >
-      {/* 桌面網格（已統一） */}
+      {/* 桌面網格 */}
       <DesktopGridUnified
         games={games}
-        folders={[]}
         onGameSelect={onGameSelect}
-        onFolderOpen={onFolderOpen}
         onCreateFolder={onCreateFolder}
         onEditFolder={onEditFolder}
         onDeleteFolder={onDeleteFolder}
@@ -239,17 +177,12 @@ const DesktopView = ({
         onRefresh={onRefresh}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
-        onDropOnFolder={handleDropOnFolder}
         dragState={dragState}
         externalDragActive={externalDragActive}
         isLoading={isLoading}
-        disableFlip={isSwitchingToDesktop || disableFlipExtra}
+        disableFlip={disableFlipExtra}
         gameCardExtraProps={gameCardExtraProps}
       />
-      
-      
-
-      {/* 拖拽覆蓋層已移除，改用原生 setDragImage 預覽 */}
     </div>
   );
 };

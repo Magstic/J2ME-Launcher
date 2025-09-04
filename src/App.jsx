@@ -16,8 +16,8 @@ import { FolderSelectDialog } from '@components';
 import GameInfoDialog from '@components/Desktop/GameInfoDialog';
 import ConfirmDialog from '@components/Common/ConfirmDialog';
 import { ModalWithFooter, ModalHeaderOnly } from '@ui';
-import { useTranslation } from '@hooks/useTranslation';
 import { 
+  useTranslation,
   useDesktopManager, 
   useAppDialogs, 
   useGameLauncher, 
@@ -26,7 +26,7 @@ import {
   useDesktopView, 
   useThemeManager, 
   useWelcomeGuide 
-} from './hooks';
+} from '@hooks';
 import '@components/Desktop/Desktop.css';
 import NotificationBubble from './components/ui/NotificationBubble';
 import AboutDialog from './components/ui/dialogs/AboutDialog';
@@ -44,7 +44,6 @@ function DesktopViewDirect({
   onGameInfo,
   onRefresh,
   isLoading = false,
-  isSwitchingToDesktop = false,
   disableFlipExtra = false,
 }) {
 
@@ -56,7 +55,6 @@ function DesktopViewDirect({
     gameCardExtraProps,
     handleDragStart,
     handleDragEnd,
-    handleDropOnFolder,
     handleRootDragOver,
     handleRootDrop,
     ContextMenuElement,
@@ -71,7 +69,7 @@ function DesktopViewDirect({
 
   return (
     <div 
-      className={`desktop-view ${isSwitchingToDesktop ? 'mounting' : ''}`} 
+      className="desktop-view" 
       onDragOver={handleRootDragOver}
       onDrop={handleRootDrop}
       ref={rootRef}
@@ -80,15 +78,14 @@ function DesktopViewDirect({
         games={games}
         folders={[]}
         onGameClick={onGameSelect}
-        onGameContextMenu={(e, game) => openMenu(e, game, { view: 'desktop', kind: 'game' })}
+        onGameContextMenu={(e, game, selectedList) => openMenu(e, game, { view: 'desktop', kind: 'game', selectedFilePaths: selectedList })}
         onBlankContextMenu={(e) => openMenu(e, null, { view: 'desktop', kind: 'blank' })}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
-        onDropOnFolder={handleDropOnFolder}
         dragState={dragState}
         externalDragActive={externalDragActive}
         isLoading={isLoading}
-        disableFlip={isSwitchingToDesktop || disableFlipExtra}
+        disableFlip={disableFlipExtra}
         gameCardExtraProps={gameCardExtraProps}
       />
       {ContextMenuElement}

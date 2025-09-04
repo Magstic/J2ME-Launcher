@@ -15,9 +15,6 @@ function GameCard({
   className = '',
   isSelected = false,
   isDraggingSelf = false,
-  showPublisher = true,
-  showVersion = true,
-  folderView = false,
   disableAppear = false,
   hasFolder = false,
   ...rest
@@ -117,8 +114,6 @@ function GameCard({
         <h3 className="game-name" title={game.gameName}>
           {game.gameName || 'Unknown Game'}
         </h3>
-        {showPublisher && game.vendor && <p className="game-vendor">{game.vendor}</p>}
-        {showVersion && game.version && <p className="game-version">v{game.version}</p>}
       </div>
     </div>
   );

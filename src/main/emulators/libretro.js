@@ -1,11 +1,7 @@
 const path = require('path');
 
-// Minimal RetroArch (libretro) adapter
-// Only requires the RetroArch executable path and the core (.dll) path.
 // Command shape (Windows):
 //   retroarch.exe -L core.dll <content>
-//
-// We intentionally do NOT add extra flags to mirror KE's minimalism.
 
 const id = 'libretro';
 const name = '【Alpha】Libretro Core (FreeJ2ME-Plus)';
@@ -31,7 +27,6 @@ function buildCommand({ retroarchPath, corePath, gameFilePath }) {
   // Use RetroArch directory as cwd so any relative paths in RA configs still work
   const cwd = path.dirname(retroarchPath);
 
-  // No extra args: keep it minimal as requested
   return {
     command: retroarchPath,
     args: ['-L', corePath, gameFilePath],
@@ -40,7 +35,7 @@ function buildCommand({ retroarchPath, corePath, gameFilePath }) {
 }
 
 /**
- * Prepare content path. Like KE, we only ensure the MD5-cached JAR when the helper is available.
+ * Prepare content path.
  * @param {Object} params
  * @param {string} params.gameFilePath
  * @param {Object} params.utils
@@ -51,9 +46,6 @@ async function prepareGame({ gameFilePath, utils }) {
   return { preparedGamePath };
 }
 
-/**
- * Minimal schema to drive the UI (matches existing pattern of other adapters)
- */
 function getConfigSchema() {
   return {
     id,

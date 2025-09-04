@@ -5,6 +5,7 @@ import FolderGridUnified from './FolderGrid.Unified';
 import { useGamesByFolder, useSelectedGames, useDragState, useGameActions } from '@hooks/useGameStore';
 import './FolderWindowApp.css';
 import './Desktop/Desktop.css';
+import { AppIconSvg } from '@/assets/icons';
 
 // 已切換至統一網格（UnifiedGrid）
 
@@ -69,10 +70,10 @@ const FolderWindowApp = () => {
       // 從URL參數獲取
       const urlParams = new URLSearchParams(window.location.search);
       const folderIdFromUrl = urlParams.get('folderId');
-      
+
       // 從Electron參數獲取（備用方案）
       const folderIdFromElectron = window.electronAPI?.getCurrentFolderId?.();
-      
+
       return folderIdFromUrl || folderIdFromElectron;
     };
 
@@ -247,13 +248,11 @@ const FolderWindowApp = () => {
   }, [onGlobalMouseMove, onGlobalMouseUp, onWindowLeft, onGlobalCancel, onWindowReenter, onDocumentMouseOut, onVisibilityChange]);
 
   // 本地 mousemove/up 改為全域監聽，不再使用
-  const onGridMouseMove = undefined;
-  const onGridMouseUp = undefined;
 
   // 載入資料夾內容
   const loadFolderContents = useCallback(async () => {
     if (!folderId || !window.electronAPI?.getFolderContents) return;
-    
+
     // 初次載入才顯示 loading，其後刷新不切換 loading，避免整體閃爍
     if (!hasLoadedRef.current) setIsLoading(true);
     try {
@@ -262,7 +261,7 @@ const FolderWindowApp = () => {
       // Load games and sync folder membership
       const games = result.games || [];
       gameActions.loadGames(games);
-      
+
       // Sync folder membership for all games in this folder
       if (games.length > 0) {
         const filePaths = games.map(game => game.filePath);
@@ -342,7 +341,7 @@ const FolderWindowApp = () => {
     }
   }, [externalDragActive, folderId]);
 
-  
+
 
   // 窗口控制
   const handleMinimize = () => {
@@ -423,11 +422,21 @@ const FolderWindowApp = () => {
           </button>
         </div>
       </div>
-      
+
       <div className="folder-window-content" onDragOver={handleExternalDragOver} onDrop={handleExternalDrop}>
         {games.length === 0 ? (
           <div className="empty-folder">
-            <div className="empty-icon">📂</div>
+            <div className="empty-icon">
+              <img
+                src={AppIconSvg}
+                alt="J2ME Launcher Icon"
+                style={{
+                  width: '128px',
+                  height: '128px',
+                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
+                }}
+              />
+            </div>
           </div>
         ) : (
           <FolderGridUnified
@@ -445,7 +454,7 @@ const FolderWindowApp = () => {
 
                 // 使用新的批次移除 API，避免多次 IPC 調用與全量刷新
                 const result = await window.electronAPI?.batchRemoveGamesFromFolder?.(batchList, folderId);
-                
+
                 if (result?.success) {
                   // 重新載入內容
                   await loadFolderContents();
@@ -460,7 +469,7 @@ const FolderWindowApp = () => {
             onDragStart={() => setDragState({ isDragging: true, draggedItems: [] })}
             onDragEnd={() => {
               setDragState({ isDragging: false, draggedItems: [] });
-              try { window.electronAPI?.endDragSession?.(); } catch (e) {}
+              try { window.electronAPI?.endDragSession?.(); } catch (e) { }
             }}
             dragState={dragState}
             externalDragActive={externalDragActive}

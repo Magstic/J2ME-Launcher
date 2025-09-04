@@ -183,7 +183,7 @@
     },
     "confirmDelete": {
       "title": "Delete Folder",
-      "message": "Are you sure you want to delete the folder ‘{{name}}’?\nAfter deletion, the games in it will be released to the desktop.",
+      "message": "Are you sure you want to delete the folder ‘{{name}}’?\n\nAfter deletion, the games in it will be released to the desktop.",
       "confirm": "Delete",
       "cancel": "Cancel"
     },

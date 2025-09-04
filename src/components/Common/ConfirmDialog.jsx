@@ -53,7 +53,7 @@ const ConfirmDialog = ({
         { key: 'confirm', label: confirmText, variant: variant === 'danger' ? 'danger' : 'primary', onClick: handleConfirmClick, autoFocus: true, allowFocusRing: true },
       ]}
     >
-      <div className="modal-message">{message}</div>
+      <div className="modal-message" style={{ whiteSpace: 'pre-line' }}>{message}</div>
     </ModalWithFooter>
   );
 };

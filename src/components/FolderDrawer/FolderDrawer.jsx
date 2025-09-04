@@ -107,7 +107,7 @@ const FolderDrawer = ({
             <FolderCard
               folder={folder}
               onClick={() => onOpenFolder && onOpenFolder(folder)}
-              onContextMenu={(e) => openMenu && openMenu(e, folder, { view: 'desktop', kind: 'folder' })}
+              onContextMenu={(e) => openMenu && openMenu(e, folder, { view: 'drawer', kind: 'folder' })}
               className={`folder-card ${jiggleFolderId === folder.id ? 'jiggle' : ''}`}
               isDropTarget={hoverFolderId === folder.id}
               onDragOver={(e) => handleDragOverFolder(e, folder)}

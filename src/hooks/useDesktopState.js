@@ -8,6 +8,8 @@ export const useDesktopState = () => {
   // 核心資料狀態
   const [folders, setFolders] = useState([]);
   const [desktopItems, setDesktopItems] = useState([]);
+  const [desktopItemsLoaded, setDesktopItemsLoaded] = useState(false);
+  const [desktopItemsSupported] = useState(() => !!(window?.electronAPI?.getDesktopItems));
   
   // 批次操作狀態
   const [bulkMutating, setBulkMutating] = useState(false);
@@ -37,14 +39,22 @@ export const useDesktopState = () => {
   // 載入桌面資料（遊戲 + 資料夾）
   const loadDesktopItems = useCallback(async () => {
     try {
-      if (window.electronAPI?.getDesktopItems) {
+      if (desktopItemsSupported) {
         const items = await window.electronAPI.getDesktopItems();
-        setDesktopItems(items);
+        setDesktopItems(items || []);
+        setDesktopItemsLoaded(true);
+      } else {
+        // 舊版或不支援：標記未載入以便上層能使用回退
+        setDesktopItems([]);
+        setDesktopItemsLoaded(false);
       }
     } catch (error) {
       console.error('載入桌面資料失敗:', error);
+      // 失敗時保持回退邏輯（標記為未載入）
+      setDesktopItems([]);
+      setDesktopItemsLoaded(false);
     }
-  }, []);
+  }, [desktopItemsSupported]);
 
   // 初始化資料
   useEffect(() => {
@@ -83,36 +93,29 @@ export const useDesktopState = () => {
     if (searchQuery && searchQuery.trim()) {
       return games;
     }
-    // 非搜索狀態：如果有桌面資料，使用桌面資料中的遊戲
-    if (desktopItems.length > 0) {
-      return desktopItems.filter(item => item.type === 'game');
+    // 非搜索狀態
+    if (desktopItemsSupported) {
+      // 支援桌面 API：
+      // - 已載入：使用桌面資料（即使為空）
+      // - 未載入：避免錯誤顯示，暫時返回空陣列
+      return desktopItemsLoaded
+        ? desktopItems.filter(item => item.type === 'game')
+        : [];
     }
-    // 否則返回所有遊戲（向後兼容）
+    // 不支援桌面 API：返回所有遊戲（向後兼容）
     return games;
-  }, [desktopItems]);
+  }, [desktopItems, desktopItemsLoaded, desktopItemsSupported]);
 
   // 獲取桌面上的資料夾
-  const getDesktopFolders = useCallback((searchQuery) => {
-    // 在搜索狀態下，為了聚焦結果，暫時不展示資料夾
-    if (searchQuery && searchQuery.trim()) {
-      return [];
-    }
-    // 非搜索狀態：如果有桌面資料，使用桌面資料中的資料夾
-    if (desktopItems.length > 0) {
-      return desktopItems.filter(item => item.type === 'folder');
-    }
-    // 否則返回所有資料夾（向後兼容）
-    return folders;
-  }, [folders, desktopItems]);
+  // 桌面不顯示資料夾，始終返回空陣列
+  const getDesktopFolders = useCallback(() => {
+    return [];
+  }, []);
 
-  // 抽屜使用的資料夾列表（不受搜尋影響）
+  // 抽屜使用的資料夾列表（直接使用 folders 狀態）
   const getDrawerFolders = useCallback(() => {
-    // 若有桌面資料，仍以桌面資料中的資料夾為準，確保順序/來源一致
-    if (desktopItems.length > 0) {
-      return desktopItems.filter(item => item.type === 'folder');
-    }
     return folders;
-  }, [folders, desktopItems]);
+  }, [folders]);
 
   return {
     // 狀態
@@ -120,6 +123,9 @@ export const useDesktopState = () => {
     setFolders,
     desktopItems,
     setDesktopItems,
+    desktopItemsLoaded,
+    setDesktopItemsLoaded,
+    desktopItemsSupported,
     bulkMutating,
     setBulkMutating,
     bulkStatus,

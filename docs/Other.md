@@ -218,3 +218,159 @@ affectedGames.push(...changes.updated);
 3. 同步時機差異
 拖動：立即同步快取 + 立即廣播增量更新
 右鍵加入：SQL操作 + 異步廣播（setImmediate）
+
+
+# 桌面視圖右鍵菜單多選功能修復文檔
+
+## 問題概述
+
+桌面直連渲染路徑中，多選右鍵菜單無法正確獲取選中項目列表，導致批次操作功能失效。
+
+## 問題根因
+
+**桌面直連渲染路徑**（`App.jsx` 的 `DesktopViewDirect`）未正確轉發 `VirtualizedUnifiedGrid` 提供的第三參數 `selectedList`，導致多選數據在桌面右鍵菜單中丟失。
+
+其他路徑（`DesktopGrid.Unified.jsx`、`FolderGrid.Unified.jsx`）已正確轉發，所以：
+- ✅ 資料夾視圖正常
+- ✅ 桌面封裝視圖正常  
+- ❌ 直連桌面視圖異常
+
+## 修復方案
+
+### 1. 桌面視圖事件轉發修正
+
+**檔案位置**：`src/App.jsx`
+
+**修正內容**：在 `DesktopViewDirect` 中正確轉發 `selectedList` 參數
+
+```javascript
+// 修正前
+onGameContextMenu={(e, game) => openMenu(e, game, { 
+  view: 'desktop', 
+  kind: 'game' 
+})}
+
+// 修正後
+onGameContextMenu={(e, game, selectedList) => openMenu(e, game, { 
+  view: 'desktop', 
+  kind: 'game', 
+  selectedFilePaths: selectedList 
+})}
+```
+
+**關鍵影響**：桌面多選右鍵菜單能夠獲取完整選集數據。
+
+### 2. 統一右鍵菜單數據掛載
+
+**檔案位置**：`src/components/shared/hooks/useUnifiedContextMenu.js`
+
+**機制說明**：在 `openMenu()` 函數中，當 `ctx.selectedFilePaths` 存在時：
+
+1. 將選中列表掛載到目標對象：`finalTarget.selectedFilePaths = ctx.selectedFilePaths`
+2. 根據視圖類型自動選擇菜單類型：
+   - 桌面 `game` → `game`
+   - 資料夾視窗 `game` → `game-folder`，並補充 `folderInfo.folderId`
+
+**數據來源**：`ctx.extra.folderId` 來自上下文參數
+
+**結果**：確保所有菜單處理器能透明獲取多選數據。
+
+### 3. 數據來源統一
+
+**檔案位置**：`src/components/shared/VirtualizedUnifiedGrid.jsx`
+
+**實作邏輯**：在 `onItemContextMenu()` 中：
+
+```javascript
+// 根據當前選集決定使用的列表
+const useList = determineSelectedList();
+
+// 以第三參數傳遞給回調
+onGameContextMenu(e, item, useList)
+```
+
+**架構特點**：這是多選資訊的唯一來源，符合「唯一實現 VirtualizedUnifiedGrid.jsx」的設計原則。
+
+### 4. 封裝層對齊處理
+
+#### 桌面封裝層
+**檔案位置**：`src/components/Desktop/DesktopGrid.Unified.jsx`
+
+**狀態**：✅ 已正確轉發 `selectedList` 至 `openMenu(..., { selectedFilePaths: selectedList })`
+
+#### 資料夾封裝層  
+**檔案位置**：`src/components/FolderGrid.Unified.jsx`
+
+**實作**：同步轉發選中列表，並附加資料夾 ID：
+
+```javascript
+openMenu(e, game, { 
+  selectedFilePaths: selectedList,
+  extra: { folderId }
+})
+```
+
+**目的**：支援「從資料夾移除」功能。
+
+### 5. 下游消費者批次支援
+
+#### 加入資料夾功能
+**檔案位置**：`src/hooks/useDesktopDialogs.js`
+
+**實作**：`handleAddToFolder()` 讀取 `target.selectedFilePaths`，存入 `folderSelectDialog.selectedFilePaths`
+
+#### 建立捷徑功能
+**檔案位置**：
+- `src/components/shared/hooks/useCreateShortcut.js`
+- `src/hooks/useDesktopView.js`
+
+**實作**：`handleCreateShortcut()` 支援 `game.selectedFilePaths` 批次建立捷徑
+
+**功能覆蓋**：
+- ✅ 加入資料夾（批次）
+- ✅ 從資料夾移除（批次）
+- ✅ 建立捷徑（批次）
+
+## 修復結果
+
+### 修復前
+- ❌ 桌面多選右鍵菜單無法獲取選中項目
+- ❌ 批次操作功能失效
+- ✅ 資料夾視圖正常工作
+
+### 修復後  
+- ✅ 桌面多選右鍵菜單正確獲取選集
+- ✅ 所有批次操作功能正常
+- ✅ 所有視圖模式統一行為
+
+## 測試驗證
+
+### 測試場景
+1. **桌面多選**：在桌面視圖中選擇多個遊戲，右鍵開啟選單
+2. **批次加入資料夾**：驗證多個遊戲可同時加入資料夾
+3. **批次建立捷徑**：驗證多個遊戲可同時建立捷徑
+4. **資料夾批次移除**：驗證從資料夾中批次移除功能
+
+### 預期結果
+所有多選相關功能在桌面視圖與資料夾視圖中保持一致的行為表現。
+
+## 技術架構說明
+
+### 數據流向
+```
+VirtualizedUnifiedGrid.jsx (數據源)
+    ↓ selectedList
+App.jsx / DesktopGrid.Unified.jsx / FolderGrid.Unified.jsx (封裝層)
+    ↓ selectedFilePaths
+useUnifiedContextMenu.js (統一處理)
+    ↓ finalTarget.selectedFilePaths  
+各功能 hooks (消費者)
+```
+
+### 設計原則
+- **單一數據源**：選集資訊統一由 `VirtualizedUnifiedGrid.jsx` 提供
+- **透明傳遞**：各封裝層透明轉發選集數據
+- **統一處理**：`useUnifiedContextMenu.js` 統一掛載選集到目標對象
+- **批次支援**：所有下游功能 hooks 支援批次操作
+
+這個修復確保了桌面視圖與資料夾視圖在多選功能上的一致性，維護了整體架構的統一性。

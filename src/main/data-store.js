@@ -11,7 +11,7 @@ class DataStore {
   }
 
   /**
-   * 获取所有游戏数据（僅從 SQLite 讀取）
+   * SQLite 中的所有遊戲資料
    * @returns {Array<object>} 游戏对象数组
    */
   getAllGames() {
@@ -25,9 +25,9 @@ class DataStore {
   }
 
   /**
-   * 获取指定的游戏数据（僅從 SQLite 讀取）
-   * @param {string} filePath - JAR 文件的绝对路径
-   * @returns {object | undefined} 游戏数据
+   * SQLite 中的指定遊戲資料
+   * @param {string} filePath - JAR 的絕對路徑
+   * @returns {object | undefined} 游戲資料
    */
   getGame(filePath) {
     try {
@@ -53,9 +53,9 @@ class DataStore {
   }
 
   /**
-   * 添加或更新游戏数据（僅寫入 SQLite）
-   * @param {string} filePath - JAR 文件的绝对路径
-   * @param {object} gameData - 游戏元数据
+   * SQLite 中添加或更新遊戲資料
+   * @param {string} filePath - JAR 的絕對路徑
+   * @param {object} gameData - 遊戲元資料
    */
   setGame(filePath, gameData) {
     try {
@@ -69,8 +69,8 @@ class DataStore {
   }
 
   /**
-   * 移除游戏数据
-   * @param {string} filePath - JAR 文件的绝对路径
+   * 移除遊戲資料
+   * @param {string} filePath - JAR 的絕對路徑
    */
   removeGame(filePath) {
     const game = this.getGame(filePath);
@@ -102,8 +102,8 @@ class DataStore {
   }
 
   /**
-   * 获取图标缓存目录的路径
-   * @returns {string} 图标缓存目录路径
+   * 获取圖標快取資料夾的路徑
+   * @returns {string} 圖標快取資料夾的路徑
    */
   getIconCachePath() {
     return iconCachePath;
@@ -112,8 +112,8 @@ class DataStore {
   // ==================== 目錄管理功能 ====================
 
   /**
-   * 获取所有配置的目录（僅從 SQLite 讀取）
-   * @returns {Array<object>} 目录配置数组
+   * SQLite 中的所有目錄配置
+   * @returns {Array<object>} 目錄配置數組
    */
   getDirectories() {
     try {
@@ -127,14 +127,14 @@ class DataStore {
 
   /**
    * 添加新目录到配置（委託給 SQL 層）
-   * @param {string} directoryPath - 目录路径
+   * @param {string} directoryPath - 目錄路徑
    * @returns {boolean} 是否添加成功
    */
   addDirectory(directoryPath) {
     try {
       const { addDirectory: sqlAddDirectory } = require('./sql/directories');
       sqlAddDirectory(directoryPath);
-      console.log(`已添加目录: ${directoryPath}`);
+      console.log(`已添加目錄: ${directoryPath}`);
       return true;
     } catch (e) {
       console.error('[DataStore] addDirectory SQL write failed:', e.message);
@@ -143,8 +143,8 @@ class DataStore {
   }
 
   /**
-   * 移除目录配置（委託給 SQL 層處理）
-   * @param {string} directoryPath - 目录路径
+   * 移除目錄配置（委託給 SQL 層處理）
+   * @param {string} directoryPath - 目錄路徑
    * @returns {boolean} 是否移除成功
    */
   removeDirectory(directoryPath) {
