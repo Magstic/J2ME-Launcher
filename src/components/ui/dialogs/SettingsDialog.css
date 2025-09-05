@@ -10,7 +10,7 @@
 .theme-card:hover,
 .language-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 4px 12px rgb(0, 0, 0/ 10%) !important;
   border-color: var(--accent-color-light) !important;
 }
 
@@ -47,7 +47,7 @@
   font-weight: 700;
   color: white;
   background: var(--accent-color);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 6px rgb(0,0,0/20%);
   transition: transform 0.25s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.2s ease;
   transform: scale(0);
   opacity: 0;

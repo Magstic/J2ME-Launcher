@@ -1,0 +1,180 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*.*.*' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint (ESLint + Stylelint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run stylelint
+
+  build_vite:
+    name: Build Frontend (Vite)
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Build (production)
+        run: npm run build:prod
+        env:
+          NODE_ENV: production
+      - name: Verify dist artifacts
+        run: npm run verify:dist
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          retention-days: 1
+
+  package_windows:
+    name: Package (Windows)
+    runs-on: windows-latest
+    needs: build_vite
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - name: Install dependencies (with rebuild)
+        run: npm ci
+      - name: Add Windows certificate (from secrets)
+        id: win_cert
+        uses: timheuer/base64-to-file@v1
+        with:
+          fileName: 'win-certificate.pfx'
+          encodedString: ${{ secrets.CERTIFICATE_WINDOWS_PFX }}
+        continue-on-error: true
+      - name: Verify dist presence
+        run: npm run verify:dist
+      - name: Package Windows (electron-builder, signed)
+        if: ${{ steps.win_cert.outputs.filePath != '' }}
+        run: npx electron-builder --publish=never --win --config.artifactName "J2ME-Launcher-nightly-${os}-${arch}.${ext}"
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          CSC_LINK: ${{ steps.win_cert.outputs.filePath }}
+          CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_PFX_PASSWORD }}
+      - name: Package Windows (electron-builder, unsigned)
+        if: ${{ steps.win_cert.outputs.filePath == '' }}
+        run: npx electron-builder --publish=never --win --config.artifactName "J2ME-Launcher-nightly-${os}-${arch}.${ext}"
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Upload Windows NSIS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-nsis
+          path: release/*.exe
+          retention-days: 90
+
+  package_linux:
+    name: Package (Linux)
+    runs-on: ubuntu-latest
+    needs: build_vite
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxkbfile-dev libsecret-1-dev fakeroot rpm
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - name: Install dependencies (with rebuild)
+        run: npm ci
+      - name: Package Linux (electron-builder)
+        run: npx electron-builder --publish=never --linux --config.artifactName "J2ME-Launcher-nightly-${os}-${arch}.${ext}"
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Upload Linux DEB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-deb
+          path: release/*.deb
+          retention-days: 90
+      - name: Upload Linux RPM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-rpm
+          path: release/*.rpm
+          retention-days: 90
+      - name: Upload Linux TAR.GZ artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-targz
+          path: release/*.tar.gz
+          retention-days: 90
+
+  prune_artifacts:
+    name: Prune workflow artifacts
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    needs: [package_windows, package_linux]
+    permissions:
+      actions: write
+    steps:
+      - name: Delete all old artifacts for this repo
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const namesToDelete = new Set(['windows-nsis', 'linux-deb', 'linux-rpm', 'linux-targz', 'dist']);
+            // Collect current run's artifact IDs so we do NOT delete them
+            const runId = context.runId;
+            const { data: curr } = await github.rest.actions.listWorkflowRunArtifacts({ owner: context.repo.owner, repo: context.repo.repo, run_id: runId, per_page: 100 });
+            const keepIds = new Set((curr.artifacts || []).map(a => a.id));
+
+            let page = 1;
+            while (true) {
+              const { data } = await github.rest.actions.listArtifactsForRepo({ owner: context.repo.owner, repo: context.repo.repo, per_page: 100, page });
+              const artifacts = data.artifacts || [];
+              for (const a of artifacts) {
+                if (!namesToDelete.has(a.name)) continue;
+                if (keepIds.has(a.id)) {
+                  core.info(`Keeping current run artifact ${a.name} (#${a.id})`);
+                  continue;
+                }
+                try {
+                  await github.rest.actions.deleteArtifact({ owner: context.repo.owner, repo: context.repo.repo, artifact_id: a.id });
+                  core.info(`Deleted artifact ${a.name} (#${a.id})`);
+                } catch (e) {
+                  core.warning(`Failed to delete artifact ${a.name} (#${a.id}): ${e.message}`);
+                }
+              }
+              if (!data || !data.artifacts || data.artifacts.length < 100) break;
+              page++;
+            }

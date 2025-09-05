@@ -49,6 +49,7 @@
       "dist/**/*",
       "src/main/**/*",
       "src/shared/**/*",
+      "src/utils/**/*",
       "src/assets/**/*",
       "src/image/**/*",
       "public/**/*",
@@ -66,10 +67,7 @@
       "icon": "build/icons/icon.ico",
       "executableName": "J2ME_Launcher",
       "publisherName": "Magstic",
-      "legalTrademarks": "Magstic",
-      "signAndEditExecutable": true,
-      "certificateFile": "build/Magstic.pfx",
-      "certificatePassword": ""
+      "legalTrademarks": "Magstic"
     },
     "nsis": {
       "artifactName": "${productName}-${version}-${os}-${arch}-nsis.${ext}",

@@ -172,6 +172,7 @@
   position: relative;
   display: flex;
   justify-content: center; /* 讓 react-window 容器居中 */
+
   /* 使用 scrollbar-gutter 為滾動條預留空間，保持居中 */
   scrollbar-gutter: stable;
 }

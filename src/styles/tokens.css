@@ -49,6 +49,7 @@
   --border-radius-lg: 12px;
 
   /* === 附加語義別名（清理後僅保留必要例外） === */
+
   /* Keep shadow strength token */
   --shadow-lg-strong: 0 8px 24px rgb(0 0 0 / 50%);
 
@@ -67,6 +68,7 @@
   --gradient-info-header-dark: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
 
   /* === 統一命名 與 向後兼容別名 === */
+
   /* Shadows 統一層級 */
   --shadow-xl: 0 20px 40px rgb(0 0 0 / 30%); /* 對話框等大型陰影 */
 
@@ -92,6 +94,7 @@
   --scrollbar-thumb-hover: rgb(0 0 0 / 30%);
 
   /* === Unified neutral overlays (for maintenance) === */
+  
   /* White overlays (foreground lines, tracks, subtle surfaces) */
   --overlay-on-light-05: rgb(255 255 255 / 5%);
   --overlay-on-light-08: rgb(255 255 255 / 8%);
@@ -151,13 +154,8 @@
 }
 
 
-/* ==============================================
-   Light Theme Overrides (optional)
-   Apply by setting data-theme="light" on a root element
-   Minimal changes to preserve layout while ensuring contrast
-   ============================================== */
+/* Light Theme Overrides (optional) */
 [data-theme="light"] {
-
   /* === Backgrounds === */
   --background-primary: #f7f7f8;      /* 主內容區域背景 */
   --background-secondary: #fff;       /* 卡片、面板背景 */
@@ -221,6 +219,7 @@
   --gradient-info-header-dark: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
 
   /* === 統一命名 與 向後兼容別名 === */
+
   /* Shadows 統一層級 */
   --shadow-xl: 0 20px 40px rgb(0 0 0 / 30%); /* 對話框等大型陰影 */
 
