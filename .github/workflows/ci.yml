@@ -89,11 +89,15 @@ jobs:
         run: npx electron-builder --publish=never --win --config.artifactName "J2ME-Launcher-nightly-${os}-${arch}.${ext}"
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: List release directory (Windows)
+        run: |
+          echo "Release dir contents:"
+          dir release
       - name: Upload Windows NSIS artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-nsis
-          path: release/*.exe
+          path: release/*-nsis.exe
           retention-days: 90
 
   package_linux:
@@ -118,26 +122,38 @@ jobs:
       - name: Install dependencies (with rebuild)
         run: npm ci
       - name: Package Linux (electron-builder)
-        run: npx electron-builder --publish=never --linux --config.artifactName "J2ME-Launcher-nightly-${os}-${arch}.${ext}"
+        run: npx electron-builder --publish=never --linux deb rpm tar.gz --config.artifactName "J2ME-Launcher-nightly-${os}-${arch}.${ext}"
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: List release directory (Linux)
+        run: |
+          echo "Release dir contents:"
+          ls -la release || true
+          echo "All files under release:"
+          find release -maxdepth 2 -type f -print || true
       - name: Upload Linux DEB artifact
         uses: actions/upload-artifact@v4
         with:
           name: linux-deb
-          path: release/*.deb
+          path: |
+            release/*.deb
+            release/**/*.deb
           retention-days: 90
       - name: Upload Linux RPM artifact
         uses: actions/upload-artifact@v4
         with:
           name: linux-rpm
-          path: release/*.rpm
+          path: |
+            release/*.rpm
+            release/**/*.rpm
           retention-days: 90
       - name: Upload Linux TAR.GZ artifact
         uses: actions/upload-artifact@v4
         with:
           name: linux-targz
-          path: release/*.tar.gz
+          path: |
+            release/*.tar.gz
+            release/**/*.tar.gz
           retention-days: 90
 
   prune_artifacts:
