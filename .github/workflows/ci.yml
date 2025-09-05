@@ -79,14 +79,14 @@ jobs:
         run: npm run verify:dist
       - name: Package Windows (electron-builder, signed)
         if: ${{ steps.win_cert.outputs.filePath != '' }}
-        run: npx electron-builder --publish=never --win --config.artifactName "J2ME-Launcher-nightly-${os}-${arch}.${ext}"
+        run: npx electron-builder --publish=never --win
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
           CSC_LINK: ${{ steps.win_cert.outputs.filePath }}
           CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_PFX_PASSWORD }}
       - name: Package Windows (electron-builder, unsigned)
         if: ${{ steps.win_cert.outputs.filePath == '' }}
-        run: npx electron-builder --publish=never --win --config.artifactName "J2ME-Launcher-nightly-${os}-${arch}.${ext}"
+        run: npx electron-builder --publish=never --win
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       - name: List release directory (Windows)
@@ -122,7 +122,7 @@ jobs:
       - name: Install dependencies (with rebuild)
         run: npm ci
       - name: Package Linux (electron-builder)
-        run: npx electron-builder --publish=never --linux deb rpm tar.gz --config.artifactName "J2ME-Launcher-nightly-${os}-${arch}.${ext}"
+        run: npx electron-builder --publish=never --linux deb rpm tar.gz
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       - name: List release directory (Linux)
