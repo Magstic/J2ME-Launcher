@@ -40,18 +40,26 @@ export function useCreateShortcut(games, selectedGames, setSelectedGames, logPre
       const successful = results.filter(r => r.status === 'fulfilled' && r.value?.ok);
       const failed = results.filter(r => r.status === 'rejected' || !r.value?.ok);
       
-      // 發送通知事件
+      // 發送通知事件（僅在 window 上派發，避免 document 與冒泡造成的重複接收）
       if (successful.length > 0) {
-        window.dispatchEvent(new CustomEvent('shortcut-created', {
-          detail: { count: successful.length }
-        }));
+        try { console.debug(`[${logPrefix}] Dispatching event: shortcut-created x${successful.length}`); } catch (_) {}
+        const evt = new CustomEvent('shortcut-created', {
+          detail: { count: successful.length },
+          bubbles: true,
+          composed: true,
+        });
+        try { window.dispatchEvent(evt); } catch (_) {}
       }
       
       if (failed.length > 0) {
         const errorMsg = failed[0].reason?.message || failed[0].value?.error || '未知錯誤';
-        window.dispatchEvent(new CustomEvent('shortcut-error', {
-          detail: { count: failed.length, error: errorMsg }
-        }));
+        try { console.debug(`[${logPrefix}] Dispatching event: shortcut-error x${failed.length}, message=${errorMsg}`); } catch (_) {}
+        const evt = new CustomEvent('shortcut-error', {
+          detail: { count: failed.length, error: errorMsg },
+          bubbles: true,
+          composed: true,
+        });
+        try { window.dispatchEvent(evt); } catch (_) {}
       }
       
       // 清空選擇狀態

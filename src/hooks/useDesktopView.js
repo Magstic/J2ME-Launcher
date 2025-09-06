@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import useUnifiedContextMenu from '@shared/hooks/useUnifiedContextMenu';
+import useCreateShortcut from '@shared/hooks/useCreateShortcut';
+import { useSelectedGames } from '@hooks/useGameStore';
 
 /**
  * 桌面視圖邏輯
@@ -119,34 +121,9 @@ export const useDesktopView = ({
     [memberSet]
   );
 
-  // 捷徑創建邏輯
-  const handleCreateShortcut = useCallback(async (game) => {
-    const filePaths = game.selectedFilePaths || [game.filePath];
-    try {
-      const results = await Promise.all(
-        filePaths.map(async (filePath) => {
-          const targetGame = games.find(g => g.filePath === filePath);
-          if (!targetGame) return null;
-          
-          const payload = {
-            filePath: targetGame.filePath,
-            title: targetGame.gameName || targetGame.displayName || targetGame.name,
-            iconPngPath: targetGame.iconPath
-          };
-          
-          // 如果有快取圖標，使用快取名稱
-          if (targetGame.iconUrl && targetGame.iconUrl.startsWith('safe-file://')) {
-            payload.iconCacheName = targetGame.iconUrl.replace('safe-file://', '');
-          }
-          
-          return await window.electronAPI.createShortcut(payload);
-        })
-      );
-      console.log('捷徑創建結果:', results);
-    } catch (error) {
-      console.error('建立捷徑失敗:', error);
-    }
-  }, [games]);
+  // 捷徑創建邏輯（使用共享 hook，統一事件派發與錯誤處理）
+  const [selectedGames, setSelectedGames] = useSelectedGames();
+  const handleCreateShortcut = useCreateShortcut(games, selectedGames, setSelectedGames, 'DesktopView');
 
   // 統一右鍵菜單（桌面上下文）
   const { ContextMenuElement, openMenu, closeMenu } = useUnifiedContextMenu({

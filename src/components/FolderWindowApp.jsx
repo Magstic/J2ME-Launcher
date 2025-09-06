@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { GameLaunchDialog } from '@components';
 import GameInfoDialog from './Desktop/GameInfoDialog';
-import FolderGridUnified from './FolderGrid.Unified';
+import VirtualizedUnifiedGrid from '@shared/VirtualizedUnifiedGrid';
+import useUnifiedContextMenu from '@shared/hooks/useUnifiedContextMenu';
+import useCreateShortcut from '@shared/hooks/useCreateShortcut';
 import { useGamesByFolder, useSelectedGames, useDragState, useGameActions } from '@hooks/useGameStore';
 import './FolderWindowApp.css';
 import './Desktop/Desktop.css';
 import { AppIconSvg } from '@/assets/icons';
+import NotificationBubble from './ui/NotificationBubble';
 
 // 已切換至統一網格（UnifiedGrid）
 
@@ -62,7 +65,30 @@ const FolderWindowApp = () => {
   const startPointRef = useRef({ x: 0, y: 0 });
   const [selectionRect, setSelectionRect] = useState(null);
   const [gameInfoDialog, setGameInfoDialog] = useState({ isOpen: false, game: null });
-  // 右鍵菜單由 FolderGridUnified 內部的 useUnifiedContextMenu 統一管理
+  // 右鍵菜單：改為直接在此處使用 useUnifiedContextMenu
+  const createShortcut = useCreateShortcut(games, selectedGames, setSelectedGames, 'FolderWindow');
+  const { ContextMenuElement, openMenu } = useUnifiedContextMenu({
+    onGameLaunch: (game) => handleGameLaunch(game),
+    onGameConfigure: (game) => setGameLaunchDialog({ isOpen: true, game, configureOnly: true }),
+    onRemoveFromFolder: async (game) => {
+      if (!folderId || !game) return;
+      try {
+        const batchList = Array.isArray(game.selectedFilePaths) && game.selectedFilePaths.length > 0
+          ? game.selectedFilePaths
+          : [game.filePath];
+        const result = await window.electronAPI?.batchRemoveGamesFromFolder?.(batchList, folderId);
+        if (result?.success) {
+          await loadFolderContents();
+        } else {
+          console.error('批次移除失敗:', result?.error);
+        }
+      } catch (err) {
+        console.error('從資料夾移除失敗:', err);
+      }
+    },
+    onGameInfo: (game) => setGameInfoDialog({ isOpen: true, game }),
+    onCreateShortcut: createShortcut,
+  });
 
   // 獲取當前資料夾ID
   useEffect(() => {
@@ -83,7 +109,7 @@ const FolderWindowApp = () => {
     }
   }, []);
 
-  // 右鍵菜單統一由 FolderGridUnified 內部處理（useUnifiedContextMenu）
+  // 右鍵選單由 useUnifiedContextMenu 統一處理（folder-window 視圖）
 
   // 單擊/多選（Ctrl/Cmd）
   const handleCardMouseDown = useCallback((e, game) => {
@@ -439,48 +465,26 @@ const FolderWindowApp = () => {
             </div>
           </div>
         ) : (
-          <FolderGridUnified
-            folderId={folderId}
-            games={games}
-            onGameLaunch={(game) => handleGameLaunch(game)}
-            onGameConfigure={(game) => setGameLaunchDialog({ isOpen: true, game, configureOnly: true })}
-            onRemoveFromFolder={async (game) => {
-              if (!folderId || !game) return;
-              try {
-                // UnifiedGrid 會在 targetItem 上附帶 selectedFilePaths（若右鍵於選集內）
-                const batchList = Array.isArray(game.selectedFilePaths) && game.selectedFilePaths.length > 0
-                  ? game.selectedFilePaths
-                  : [game.filePath];
-
-                // 使用新的批次移除 API，避免多次 IPC 調用與全量刷新
-                const result = await window.electronAPI?.batchRemoveGamesFromFolder?.(batchList, folderId);
-
-                if (result?.success) {
-                  // 重新載入內容
-                  await loadFolderContents();
-                } else {
-                  console.error('批次移除失敗:', result?.error);
-                }
-              } catch (err) {
-                console.error('從資料夾移除失敗:', err);
-              }
-            }}
-            onGameInfo={(game) => setGameInfoDialog({ isOpen: true, game })}
-            onDragStart={() => setDragState({ isDragging: true, draggedItems: [] })}
-            onDragEnd={() => {
-              setDragState({ isDragging: false, draggedItems: [] });
-              try { window.electronAPI?.endDragSession?.(); } catch (e) { }
-            }}
-            dragState={dragState}
-            externalDragActive={externalDragActive}
-            isLoading={showLoadingUI && isLoading}
-            selectedSet={selected}
-            onSelectedChange={setSelectedGames}
-            externalSelectionRect={selectionRect}
-            externalBoxSelecting={boxSelecting}
-            externalSelectionFading={selectionFading}
-            disableFlip={boxSelecting || dragState.isDragging}
-          />
+          <>
+            <VirtualizedUnifiedGrid
+              games={games}
+              onGameClick={(game) => handleGameLaunch(game)}
+              onGameContextMenu={(e, game, selectedList) => openMenu(e, game, { view: 'folder-window', kind: 'game', selectedFilePaths: selectedList, extra: { folderId } })}
+              onDragStart={() => setDragState({ isDragging: true, draggedItems: [] })}
+              onDragEnd={() => {
+                setDragState({ isDragging: false, draggedItems: [] });
+                try { window.electronAPI?.endDragSession?.(); } catch (e) { }
+              }}
+              dragState={dragState}
+              externalDragActive={externalDragActive}
+              isLoading={showLoadingUI && isLoading}
+              selectionControlled={false}
+              disableFlip={boxSelecting || dragState.isDragging}
+              containerClassName="games-grid"
+              dragSource={{ type: 'folder', id: folderId }}
+            />
+            {ContextMenuElement}
+          </>
         )}
       </div>
       <GameInfoDialog
@@ -501,6 +505,8 @@ const FolderWindowApp = () => {
           }
         }}
       />
+      {/* 左下角通知氣泡（在資料夾視窗也顯示） */}
+      <NotificationBubble />
     </div>
   );
 };

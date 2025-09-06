@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import './NotificationBubble.css';
 import { useTranslation } from '@hooks/useTranslation';
 
@@ -21,26 +22,29 @@ const NotificationBubble = () => {
 
   // 監聽全域事件
   useEffect(() => {
-    const handleShortcutSuccess = (data) => {
-      const { count = 1 } = data;
-      addNotification(`✅ ${t('notification.success')}`, 'success');
+    try { console.debug('[NotificationBubble] Mounting and attaching listeners'); } catch (_) {}
+    const handleShortcutSuccess = (e) => {
+      const { count = 1 } = (e && e.detail) || {};
+      try { console.debug('[NotificationBubble] Received shortcut-created', { count }); } catch (_) {}
+      addNotification(`✅ ${t('notification.success')}${count > 1 ? ` ×${count}` : ''}`, 'success');
     };
 
-    const handleShortcutError = (data) => {
-      const { count = 1, error } = data;
-      
+    const handleShortcutError = (e) => {
+      const { count = 1, error } = (e && e.detail) || {};
+      try { console.debug('[NotificationBubble] Received shortcut-error', { count, error }); } catch (_) {}
       if (count === 1) {
-        addNotification(`❌ ${t('notification.failure')}: ${error}`, 'error', 5000);
+        addNotification(`❌ ${t('notification.failure')}: ${error || ''}`.trim(), 'error', 5000);
       } else {
-        addNotification(`⚠️ ${t('notification.partialFailure')}: ${error}`, 'warning', 5000);
+        addNotification(`⚠️ ${t('notification.partialFailure')}: ${error || ''}`.trim(), 'warning', 5000);
       }
     };
 
-    const handleDropboxUrlCopied = (data) => {
+    const handleDropboxUrlCopied = () => {
+      try { console.debug('[NotificationBubble] Received dropbox-url-copied'); } catch (_) {}
       addNotification(`📃 ${t('notification.dropboxUrlCopied')}`, 'warning', 10000);
     };
 
-    // 註冊全域事件監聽器
+    // 註冊全域事件監聽器（僅 window，避免與 document 冒泡造成重複觸發）
     window.addEventListener('shortcut-created', handleShortcutSuccess);
     window.addEventListener('shortcut-error', handleShortcutError);
     window.addEventListener('dropbox-url-copied', handleDropboxUrlCopied);
@@ -54,7 +58,7 @@ const NotificationBubble = () => {
 
   if (notifications.length === 0) return null;
 
-  return (
+  return createPortal(
     <div className="notification-container">
       {notifications.map(notification => (
         <div 
@@ -64,7 +68,8 @@ const NotificationBubble = () => {
           <span className="notification-message">{notification.message}</span>
         </div>
       ))}
-    </div>
+    </div>,
+    document.body
   );
 };
 

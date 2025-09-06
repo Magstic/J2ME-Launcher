@@ -1,10 +1,8 @@
 export { useAppDialogs } from './useAppDialogs';
 export { useAppEventListeners } from './useAppEventListeners';
-export { useBatchOperationState } from './useBatchOperationState';
 export { useDesktopActions } from './useDesktopActions';
 export { useDesktopDialogs } from './useDesktopDialogs';
 export { useDesktopEventListeners } from './useDesktopEventListeners';
-export { useDesktopFolders } from './useDesktopFolders';
 export { useDesktopManager } from './useDesktopManager';
 export { useDesktopState } from './useDesktopState';
 export { useDesktopView } from './useDesktopView';
