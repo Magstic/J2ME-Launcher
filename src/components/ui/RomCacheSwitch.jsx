@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from '@hooks/useTranslation';
-import ToggleSwitch from '@ui';
+import { ToggleSwitch } from '@ui';
 
 export default function RomCacheSwitch({ checked = false, onChange, disabled = false, className = '' }) {
   const { t } = useTranslation();
