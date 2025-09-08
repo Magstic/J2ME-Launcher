@@ -176,10 +176,6 @@
   overflow-y: scroll !important;
 }
 
-/* 僅對含有動作按鈕的彈窗，強制內部滾動並始終預留滾動條寬度，避免寬度跳動 */
-
-
-
 /* 防止彈窗內常見容器在內容溢出時撐開寬度，導致 modal-body 重新計算行寬 */
 .section,
 .section-header,
@@ -306,10 +302,6 @@ input[type="radio"], input[type="checkbox"] {
   background: radial-gradient(circle at center, var(--accent-color) 45%, transparent 46%);
 }
 
-/* Grid utilities moved to utility.css */
-
-/* Table-like grid moved to theme.css */
-
 /* Conflict dialog scoped utilities */
 .conflict-dialog .chips.limited {
   max-height: 180px; /* ~5-6 rows of chips */
@@ -327,10 +319,6 @@ input[type="radio"], input[type="checkbox"] {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-/* Inline code styling moved to theme.css */
-
-/* Chip components moved to theme.css */
 
 /* Selection list rows (no UL/LI) */
 .select-list {
@@ -442,10 +430,6 @@ input[type="radio"], input[type="checkbox"] {
 .section-body {
   margin-top: 12px;
 }
-
-/* Number input styling moved to theme.css */
-
-/* Grid responsive styles moved to utility.css */
 
 /* 操作按鈕區（佈局保留，樣式使用全域 buttons.css） */
 .action-buttons {
@@ -563,52 +547,11 @@ input[type="radio"], input[type="checkbox"] {
   height: 0;
 }
 
-.toggle-slider {
-  position: absolute;
-  cursor: pointer;
-  inset: 0;
-  background-color: var(--background-tertiary);
-  transition: 0.3s;
-  border-radius: 24px;
-  border: 1px solid var(--border-color);
-}
-
 /* 在 .modal-body 內的 Select 按鈕外觀，與對話框容器一致 */
 .modal-body .select-button {
   border-color: var(--dialog-border);
   background: var(--dialog-bg);
 }
-
-
-/* 對話框上下文：僅在彈窗內將切換開關邊框對齊對話框邊界色 */
-.modal-body .toggle-slider {
-  border-color: var(--dialog-border);
-}
-
-.toggle-slider::before {
-  position: absolute;
-  content: "";
-  height: 18px;
-  width: 18px;
-  left: 2px;
-  bottom: 2px;
-  background-color: var(--text-secondary);
-  transition: 0.3s;
-  border-radius: 50%;
-}
-
-input:checked + .toggle-slider {
-  background-color: var(--accent-color);
-}
-
-input:checked + .toggle-slider::before {
-  transform: translateX(20px);
-  background-color: var(--text-on-accent);
-}
-
-/* 空狀態：使用全域樣式 */
-
-/* 右側按鈕組：使用全域 push-right 工具類 */
 
 /* 資料夾/目錄管理彈窗：底部按鈕靠右，且移除頂部分隔線 */
 .directory-manager .modal-footer {

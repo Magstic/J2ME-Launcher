@@ -1,25 +1,26 @@
 import React from 'react';
 
 /**
- * ToggleSwitch 通用開關（鍵盤可操作，無外部樣式依賴）
+ * ToggleSwitch 通用開關
  */
 export default function ToggleSwitch({ checked = false, onChange, disabled = false, label, className = '' }) {
   const trackStyle = {
     width: 42,
     height: 24,
     borderRadius: 12,
-    background: checked ? '#4caf50' : '#999',
+    background: checked ? 'var(--accent-color)' : 'var(--background-tertiary)',
     position: 'relative',
     cursor: disabled ? 'not-allowed' : 'pointer',
     transition: 'background 0.2s ease',
     flex: '0 0 auto',
     opacity: disabled ? 0.6 : 1,
+    border: '1px solid var(--border-color)',
   };
   const knobStyle = {
     width: 20,
     height: 20,
     borderRadius: '50%',
-    background: '#fff',
+    background: 'var(--toggle-knob, #fff)',
     position: 'absolute',
     top: 2,
     left: checked ? 20 : 2,

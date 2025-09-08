@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { getScrollParent } from '@/utils/dom/scroll';
+import useWheelTouchLock from '@shared/hooks/useWheelTouchLock';
+import './Select.css';
 
 // Global event name to coordinate multiple Select instances
 const SELECT_OPEN_EVENT = 'ui-select-open';
 let __selectIdSeed = 1;
-import './Select.css';
 
 /**
  * Select (Custom dropdown)
@@ -32,26 +34,15 @@ export default function Select({
   const rootRef = useRef(null);
   const buttonRef = useRef(null);
   const listRef = useRef(null);
-  const lastTouchYRef = useRef(0);
   // 平滑滾動控制（避免彈出時「硬滾動」）
   const smoothingRef = useRef(false);
   const smoothRafRef = useRef(0);
   const smoothTimerRef = useRef(0);
 
-  // 尋找最近可滾動容器（與 Collapsible 同理）：
-  // 優先找設有 overflowY: auto/scroll 且可滾動的父層；找不到時退回 document.scrollingElement
-  const getScrollParent = (node) => {
-    if (!node) return null;
-    let el = node.parentElement;
-    while (el) {
-      const style = window.getComputedStyle(el);
-      const overflowY = style.overflowY;
-      const canScroll = (overflowY === 'auto' || overflowY === 'scroll');
-      if (canScroll && el.scrollHeight > el.clientHeight) return el;
-      el = el.parentElement;
-    }
-    return document.scrollingElement || document.documentElement;
-  };
+  // getScrollParent 已抽象至 '@/utils/dom/scroll'
+
+  // 在開啟期間鎖定滾輪/觸摸滾動到下拉列表內部，避免頁面滾動
+  useWheelTouchLock({ enabled: (open || isClosing), insideRef: listRef });
 
   // 以時間函數執行平滑滾動
   const animateScrollBy = (el, delta, duration = 200) => {
@@ -151,47 +142,6 @@ export default function Select({
         closeWithAnimation();
       }
     };
-    // Scroll lock: allow scrolling only inside the dropdown list
-    const isInsideList = (target) => {
-      const list = listRef.current;
-      return !!(list && target && (list === target || list.contains(target)));
-    };
-    const handleWheel = (e) => {
-      const list = listRef.current;
-      if (!list) { e.preventDefault(); return; }
-      if (!isInsideList(e.target)) {
-        // Wheel outside the popover while open: block page scroll
-        e.preventDefault();
-        return;
-      }
-      // Inside the list: only allow scrolling if not at edges in that direction
-      const deltaY = e.deltaY;
-      const atTop = list.scrollTop <= 0;
-      const atBottom = Math.ceil(list.scrollTop + list.clientHeight) >= list.scrollHeight;
-      if ((deltaY < 0 && atTop) || (deltaY > 0 && atBottom)) {
-        e.preventDefault();
-      }
-      // else: let it scroll the list
-    };
-    const handleTouchStart = (e) => {
-      lastTouchYRef.current = e.touches && e.touches.length ? e.touches[0].clientY : 0;
-    };
-    const handleTouchMove = (e) => {
-      const list = listRef.current;
-      const currentY = e.touches && e.touches.length ? e.touches[0].clientY : 0;
-      const deltaY = lastTouchYRef.current - currentY;
-      lastTouchYRef.current = currentY;
-      if (!list) { e.preventDefault(); return; }
-      if (!isInsideList(e.target)) {
-        e.preventDefault();
-        return;
-      }
-      const atTop = list.scrollTop <= 0;
-      const atBottom = Math.ceil(list.scrollTop + list.clientHeight) >= list.scrollHeight;
-      if ((deltaY < 0 && atTop) || (deltaY > 0 && atBottom)) {
-        e.preventDefault();
-      }
-    };
     const onKeyDown = (e) => {
       if (!(open || isClosing)) return;
       if (e.key === 'Escape') { closeWithAnimation(); return; }
@@ -208,18 +158,11 @@ export default function Select({
     document.addEventListener('mousedown', onDocClick, true);
     document.addEventListener('click', onDocClick, true);
     document.addEventListener('keydown', onKeyDown, { capture: true });
-    // Use non-passive listeners to allow preventDefault
-    document.addEventListener('wheel', handleWheel, { passive: false });
-    document.addEventListener('touchstart', handleTouchStart, { passive: false });
-    document.addEventListener('touchmove', handleTouchMove, { passive: false });
     return () => {
       document.removeEventListener('pointerdown', onDocClick, true);
       document.removeEventListener('mousedown', onDocClick, true);
       document.removeEventListener('click', onDocClick, true);
       document.removeEventListener('keydown', onKeyDown, { capture: true });
-      document.removeEventListener('wheel', handleWheel, { passive: false });
-      document.removeEventListener('touchstart', handleTouchStart, { passive: false });
-      document.removeEventListener('touchmove', handleTouchMove, { passive: false });
     };
   }, [open, isClosing, options, highlightIndex]);
 

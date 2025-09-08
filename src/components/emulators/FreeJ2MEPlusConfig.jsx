@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, RomCacheSwitch, Select } from '@ui';
+import { Card, RomCacheSwitch, Select, ToggleSwitch } from '@ui';
 import { useTranslation } from '@hooks/useTranslation';
 
 // FreeJ2ME-Plus configuration block used by both EmulatorConfig and GameLaunch dialogs.
@@ -163,15 +163,11 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
                 <div className="form-row">
                   <label className="form-label">{t('emulatorConfig.freej2mePlus.sf2')}</label>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', flex: '1 1 auto' }}>
-                    <label className="toggle-switch" title="使用自訂音源">
-                      <input
-                        type="checkbox"
-                        checked={(values.soundfont ?? 'Default') === 'Custom'}
-                        onChange={e => setVal('soundfont', e.target.checked ? 'Custom' : 'Default')}
-                        disabled={disabled}
-                      />
-                      <span className="toggle-slider"></span>
-                    </label>
+                    <ToggleSwitch
+                      checked={(values.soundfont ?? 'Default') === 'Custom'}
+                      onChange={(checked) => setVal('soundfont', checked ? 'Custom' : 'Default')}
+                      disabled={disabled}
+                    />
                     <button
                       type="button"
                       className="btn btn-secondary"
@@ -194,15 +190,11 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
                 <div className="form-row">
                   <label className="form-label">{t('emulatorConfig.freej2mePlus.font')}</label>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', flex: '1 1 auto' }}>
-                    <label className="toggle-switch" title="使用自訂字體">
-                      <input
-                        type="checkbox"
-                        checked={(values.textfont ?? 'Default') === 'Custom'}
-                        onChange={e => setVal('textfont', e.target.checked ? 'Custom' : 'Default')}
-                        disabled={disabled}
-                      />
-                      <span className="toggle-slider"></span>
-                    </label>
+                    <ToggleSwitch
+                      checked={(values.textfont ?? 'Default') === 'Custom'}
+                      onChange={(checked) => setVal('textfont', checked ? 'Custom' : 'Default')}
+                      disabled={disabled}
+                    />
                     <button
                       type="button"
                       className="btn btn-secondary"
@@ -242,102 +234,70 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
           {/* 相容性選項 */}
           <div className="form-row">
             <label className="form-label">{t('emulatorConfig.freej2mePlus.compatfantasyzonefix')}</label>
-            <label className="toggle-switch" title="compatfantasyzonefix">
-              <input
-                type="checkbox"
-                checked={(values.compatfantasyzonefix ?? 'off') === 'on'}
-                onChange={e => setVal('compatfantasyzonefix', e.target.checked ? 'on' : 'off')}
-                disabled={disabled}
-              />
-              <span className="toggle-slider"></span>
-            </label>
+            <ToggleSwitch
+              checked={(values.compatfantasyzonefix ?? 'off') === 'on'}
+              onChange={(checked) => setVal('compatfantasyzonefix', checked ? 'on' : 'off')}
+              disabled={disabled}
+            />
           </div>
           <div className="form-row">
             <label className="form-label">{t('emulatorConfig.freej2mePlus.compatimmediaterepaints')}</label>
-            <label className="toggle-switch" title="compatimmediaterepaints">
-              <input
-                type="checkbox"
-                checked={(values.compatimmediaterepaints ?? 'off') === 'on'}
-                onChange={e => setVal('compatimmediaterepaints', e.target.checked ? 'on' : 'off')}
-                disabled={disabled}
-              />
-              <span className="toggle-slider"></span>
-            </label>
+            <ToggleSwitch
+              checked={(values.compatimmediaterepaints ?? 'off') === 'on'}
+              onChange={(checked) => setVal('compatimmediaterepaints', checked ? 'on' : 'off')}
+              disabled={disabled}
+            />
           </div>
           <div className="form-row">
             <label className="form-label">{t('emulatorConfig.freej2mePlus.compatoverrideplatchecks')}</label>
-            <label className="toggle-switch" title="compatoverrideplatchecks">
-              <input
-                type="checkbox"
-                checked={(values.compatoverrideplatchecks ?? 'on') === 'on'}
-                onChange={e => setVal('compatoverrideplatchecks', e.target.checked ? 'on' : 'off')}
-                disabled={disabled}
-              />
-              <span className="toggle-slider"></span>
-            </label>
+            <ToggleSwitch
+              checked={(values.compatoverrideplatchecks ?? 'on') === 'on'}
+              onChange={(checked) => setVal('compatoverrideplatchecks', checked ? 'on' : 'off')}
+              disabled={disabled}
+            />
           </div>
           <div className="form-row">
             <label className="form-label">{t('emulatorConfig.freej2mePlus.compatsiemensfriendlydrawing')}</label>
-            <label className="toggle-switch" title="compatsiemensfriendlydrawing">
-              <input
-                type="checkbox"
-                checked={(values.compatsiemensfriendlydrawing ?? 'off') === 'on'}
-                onChange={e => setVal('compatsiemensfriendlydrawing', e.target.checked ? 'on' : 'off')}
-                disabled={disabled}
-              />
-              <span className="toggle-slider"></span>
-            </label>
+            <ToggleSwitch
+              checked={(values.compatsiemensfriendlydrawing ?? 'off') === 'on'}
+              onChange={(checked) => setVal('compatsiemensfriendlydrawing', checked ? 'on' : 'off')}
+              disabled={disabled}
+            />
           </div>
           <div className="form-row">
             <label className="form-label">{t('emulatorConfig.freej2mePlus.compattranstooriginonreset')}</label>
-            <label className="toggle-switch" title="compattranstooriginonreset">
-              <input
-                type="checkbox"
-                checked={(values.compattranstooriginonreset ?? 'off') === 'on'}
-                onChange={e => setVal('compattranstooriginonreset', e.target.checked ? 'on' : 'off')}
-                disabled={disabled}
-              />
-              <span className="toggle-slider"></span>
-            </label>
+            <ToggleSwitch
+              checked={(values.compattranstooriginonreset ?? 'off') === 'on'}
+              onChange={(checked) => setVal('compattranstooriginonreset', checked ? 'on' : 'off')}
+              disabled={disabled}
+            />
           </div>
           {/* 模擬手機聲音 sound */}
           <div className="form-row">
             <label className="form-label">{t('emulatorConfig.freej2mePlus.sound')}</label>
-            <label className="toggle-switch" title="sound">
-              <input
-                type="checkbox"
-                checked={(values.sound ?? 'on') === 'on'}
-                onChange={e => setVal('sound', e.target.checked ? 'on' : 'off')}
-                disabled={disabled}
-              />
-              <span className="toggle-slider"></span>
-            </label>
+            <ToggleSwitch
+              checked={(values.sound ?? 'on') === 'on'}
+              onChange={(checked) => setVal('sound', checked ? 'on' : 'off')}
+              disabled={disabled}
+            />
           </div>
           {/* 無 Alpha 空白影像 spdhacknoalpha */}
           <div className="form-row">
             <label className="form-label">{t('emulatorConfig.freej2mePlus.spdhacknoalpha')}</label>
-            <label className="toggle-switch" title="spdhacknoalpha">
-              <input
-                type="checkbox"
-                checked={(values.spdhacknoalpha ?? 'off') === 'on'}
-                onChange={e => setVal('spdhacknoalpha', e.target.checked ? 'on' : 'off')}
-                disabled={disabled}
-              />
-              <span className="toggle-slider"></span>
-            </label>
+            <ToggleSwitch
+              checked={(values.spdhacknoalpha ?? 'off') === 'on'}
+              onChange={(checked) => setVal('spdhacknoalpha', checked ? 'on' : 'off')}
+              disabled={disabled}
+            />
           </div>
           {/* 全螢幕 fullscreen */}
           <div className="form-row">
             <label className="form-label">{t('emulatorConfig.freej2mePlus.fullscreen')}</label>
-            <label className="toggle-switch" title="fullscreen">
-              <input
-                type="checkbox"
-                checked={(values.fullscreen ?? 0) === 1}
-                onChange={e => setVal('fullscreen', e.target.checked ? 1 : 0)}
-                disabled={disabled}
-              />
-              <span className="toggle-slider"></span>
-            </label>
+            <ToggleSwitch
+              checked={(values.fullscreen ?? 0) === 1}
+              onChange={(checked) => setVal('fullscreen', checked ? 1 : 0)}
+              disabled={disabled}
+            />
           </div>
         </div>
       </Card>

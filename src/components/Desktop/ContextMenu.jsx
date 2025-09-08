@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useI18n } from '../../contexts/I18nContext';
+import useOutsideClick from '@shared/hooks/useOutsideClick';
 
 /**
  * 右鍵菜單組件
@@ -27,6 +28,11 @@ const ContextMenu = ({
 }) => {
   const menuRef = useRef(null);
   const { t } = useI18n();
+
+  // Close when clicking outside the menu
+  useOutsideClick(menuRef, () => {
+    onClose && onClose();
+  }, { events: ['pointerdown', 'mousedown', 'click'], capture: true });
 
   // 調整菜單位置，確保不會超出屏幕邊界
   useLayoutEffect(() => {

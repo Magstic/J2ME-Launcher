@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { getScrollParent } from '@/utils/dom/scroll';
 
 // Reusable collapsible container using existing .section, .section-header, .section-body, .caret styles
 // Props:
@@ -23,18 +24,7 @@ export default function Collapsible({ title, open, defaultOpen = false, onToggle
   const rafIdRef = useRef(0);
   const stopTimerRef = useRef(0);
 
-  const getScrollParent = (node) => {
-    if (!node) return null;
-    let el = node.parentElement;
-    while (el) {
-      const style = window.getComputedStyle(el);
-      const overflowY = style.overflowY;
-      const canScroll = (overflowY === 'auto' || overflowY === 'scroll');
-      if (canScroll && el.scrollHeight > el.clientHeight) return el;
-      el = el.parentElement;
-    }
-    return document.scrollingElement || document.documentElement;
-  };
+  // getScrollParent 已抽象至 '@/utils/dom/scroll'
 
   const captureAnchorBeforeToggle = () => {
     try {

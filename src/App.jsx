@@ -8,7 +8,6 @@ import '@styles/buttons.css';
 import '@styles/focus-ring.css';
 import { TitleBar, DirectoryManager, SearchBar, EmulatorConfigDialog } from '@components';
 import { I18nProvider } from './contexts/I18nContext';
-import { DragProvider } from '@components/DragDrop/DragProvider';
 import VirtualizedUnifiedGrid from '@shared/VirtualizedUnifiedGrid';
 import FolderDrawer from '@components/FolderDrawer/FolderDrawer';
 import CreateFolderDialog from '@components/Folder/CreateFolderDialog';
@@ -140,8 +139,7 @@ function DesktopManagerHooks({ games, searchQuery, isLoading, onGameLaunch }) {
   } = useDesktopManager({ games, searchQuery, onGameLaunch });
 
   return (
-    <DragProvider>
-      <div className={`desktop-manager`} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div className={`desktop-manager`} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         {/* 相對定位的包裹層：抽屜與內容區同級（抽屜固定顯示） */}
         <div ref={contentWrapRef} className="content-wrap" style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
           <div className="content-area" style={{ height: '100%' }}>
@@ -312,7 +310,6 @@ function DesktopManagerHooks({ games, searchQuery, isLoading, onGameLaunch }) {
           </div>
         ) : null}
       </div>
-    </DragProvider>
   );
 }
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './DirectoryManager.css';
-import { ModalWithFooter } from '@ui';
+import { ModalWithFooter, ToggleSwitch } from '@ui';
 import { useTranslation } from '@hooks/useTranslation';
 
 function DirectoryManager({ isOpen, onClose, onDirectoriesChanged }) {
@@ -236,14 +236,10 @@ function DirectoryManager({ isOpen, onClose, onDirectoriesChanged }) {
                   </div>
                   
                   <div className="directory-actions">
-                    <label className="toggle-switch">
-                      <input
-                        type="checkbox"
-                        checked={directory.enabled}
-                        onChange={(e) => handleToggleDirectory(directory.path, e.target.checked)}
-                      />
-                      <span className="toggle-slider"></span>
-                    </label>
+                    <ToggleSwitch
+                      checked={directory.enabled}
+                      onChange={(checked) => handleToggleDirectory(directory.path, checked)}
+                    />
                     
                     <button
                       className="btn-icon btn-danger"

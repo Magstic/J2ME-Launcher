@@ -26,20 +26,6 @@ export default function useContextMenu(callbacks = {}) {
     setState(prev => ({ ...prev, isVisible: false }));
   }, []);
 
-  // 點擊外部自動關閉（忽略在菜單內部的點擊）
-  useEffect(() => {
-    if (!state.isVisible) return;
-    const handleDocClick = (e) => {
-      const el = e.target;
-      if (el && el.closest && el.closest('.context-menu')) return; // 點在菜單內，不關閉
-      close();
-    };
-    document.addEventListener('click', handleDocClick, true);
-    return () => {
-      document.removeEventListener('click', handleDocClick, true);
-    };
-  }, [state.isVisible, close]);
-
   const Element = state.isVisible ? (
     <ContextMenu
       position={state.position}

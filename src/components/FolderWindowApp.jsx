@@ -29,7 +29,7 @@ const FolderWindowApp = () => {
   const [folderId, setFolderId] = useState(null);
   const [gameLaunchDialog, setGameLaunchDialog] = useState({ isOpen: false, game: null, configureOnly: false });
   const [externalDragActive, setExternalDragActive] = useState(false);
-  const gridRef = useRef(null);
+  
 
   // Use unified state management
   const games = useGamesByFolder(folderId);
@@ -50,20 +50,7 @@ const FolderWindowApp = () => {
       console.error('啟動遊戲失敗:', e);
     }
   }, []);
-  // Convert Set to Array for compatibility with existing code
-  const selected = selectedGames;
-  const selectedRef = useRef(new Set());
-  useEffect(() => { selectedRef.current = selectedGames; }, [selectedGames]);
-  const [boxSelecting, setBoxSelecting] = useState(false);
-  const [selectionFading, setSelectionFading] = useState(false);
-  const isSelectingRef = useRef(false);
-  const rafIdRef = useRef(0);
-  const pendingPosRef = useRef(null);
-  const leftWindowRef = useRef(false);
-  const fadeTimerRef = useRef(0);
-  // Remove manual object reconciliation - now handled by unified store
-  const startPointRef = useRef({ x: 0, y: 0 });
-  const [selectionRect, setSelectionRect] = useState(null);
+  // 選取邏輯改由 VirtualizedUnifiedGrid 內建處理（selectionControlled=false）
   const [gameInfoDialog, setGameInfoDialog] = useState({ isOpen: false, game: null });
   // 右鍵菜單：改為直接在此處使用 useUnifiedContextMenu
   const createShortcut = useCreateShortcut(games, selectedGames, setSelectedGames, 'FolderWindow');
@@ -110,170 +97,6 @@ const FolderWindowApp = () => {
   }, []);
 
   // 右鍵選單由 useUnifiedContextMenu 統一處理（folder-window 視圖）
-
-  // 單擊/多選（Ctrl/Cmd）
-  const handleCardMouseDown = useCallback((e, game) => {
-    e.stopPropagation();
-    if (e.button === 2) return; // 右鍵忽略
-    setBoxSelecting(false);
-    const isSelected = selectedRef.current.has(game.filePath);
-    if (e.ctrlKey || e.metaKey) {
-      const next = new Set(selectedGames);
-      if (next.has(game.filePath)) next.delete(game.filePath); else next.add(game.filePath);
-      setSelectedGames(next);
-    } else {
-      // 若點擊的是已選中項且已有多選，保持當前多選不變
-      if (isSelected && selectedRef.current.size > 1) {
-        return;
-      }
-      setSelectedGames(new Set([game.filePath]));
-    }
-  }, []);
-
-  // 計算並更新選框與選中集合（含視窗邊界夾取）
-  const computeSelection = useCallback((pos) => {
-    const w = window.innerWidth; const h = window.innerHeight;
-    const x2 = Math.max(0, Math.min(w - 1, pos.x));
-    const y2 = Math.max(0, Math.min(h - 1, pos.y));
-    const x1 = startPointRef.current.x;
-    const y1 = startPointRef.current.y;
-    const left = Math.min(x1, x2);
-    const top = Math.min(y1, y2);
-    const width = Math.abs(x2 - x1);
-    const height = Math.abs(y2 - y1);
-    const rect = new DOMRect(left, top, width, height);
-    setSelectionRect({ left, top, width, height });
-    // 命中測試：資料夾視圖中所有 .game-card
-    const cards = gridRef.current?.querySelectorAll?.('.game-card');
-    const next = new Set();
-    if (cards) {
-      cards.forEach((el) => {
-        const r = el.getBoundingClientRect();
-        const overlap = !(rect.right < r.left || rect.left > r.right || rect.bottom < r.top || rect.top > r.bottom);
-        if (overlap) {
-          const fp = el.getAttribute('data-filepath');
-          if (fp) next.add(fp);
-        }
-      });
-    }
-    setSelectedGames(next);
-  }, []);
-
-  const endSelection = useCallback((opts = { fadeToEdge: false }) => {
-    isSelectingRef.current = false;
-    setBoxSelecting(false);
-    if (fadeTimerRef.current) { clearTimeout(fadeTimerRef.current); fadeTimerRef.current = 0; }
-    if (opts.fadeToEdge && selectionRect) {
-      // 將目前矩形夾到邊緣後觸發淡出
-      const w = window.innerWidth; const h = window.innerHeight;
-      const clamped = {
-        left: Math.max(0, Math.min(selectionRect.left, w - selectionRect.width)),
-        top: Math.max(0, Math.min(selectionRect.top, h - selectionRect.height)),
-        width: Math.min(selectionRect.width, w),
-        height: Math.min(selectionRect.height, h)
-      };
-      setSelectionRect(clamped);
-      setSelectionFading(true);
-      fadeTimerRef.current = window.setTimeout(() => {
-        setSelectionRect(null);
-        setSelectionFading(false);
-        fadeTimerRef.current = 0;
-      }, 180);
-    } else {
-      setSelectionRect(null);
-      setSelectionFading(false);
-    }
-    if (rafIdRef.current) { cancelAnimationFrame(rafIdRef.current); rafIdRef.current = 0; }
-    window.removeEventListener('mousemove', onGlobalMouseMove);
-    window.removeEventListener('mouseup', onGlobalMouseUp);
-    window.removeEventListener('mouseleave', onWindowLeft);
-    window.removeEventListener('pointerleave', onWindowLeft);
-    window.removeEventListener('pointerup', onGlobalMouseUp);
-    window.removeEventListener('pointercancel', onGlobalCancel);
-    window.removeEventListener('mouseenter', onWindowReenter, true);
-    window.removeEventListener('blur', onWindowLeft);
-    document.removeEventListener('mouseout', onDocumentMouseOut, true);
-    document.removeEventListener('visibilitychange', onVisibilityChange, true);
-  }, [selectionRect]);
-
-  const onGlobalMouseMove = useCallback((e) => {
-    if (!isSelectingRef.current) return;
-    const w = window.innerWidth; const h = window.innerHeight;
-    if (e.clientX < 0 || e.clientY < 0 || e.clientX >= w || e.clientY >= h) {
-      leftWindowRef.current = true;
-      endSelection({ fadeToEdge: true });
-      return;
-    }
-    if (e.buttons === 0) { endSelection(); return; }
-    pendingPosRef.current = { x: e.clientX, y: e.clientY };
-    if (!rafIdRef.current) {
-      rafIdRef.current = window.requestAnimationFrame(() => {
-        rafIdRef.current = 0;
-        if (pendingPosRef.current) computeSelection(pendingPosRef.current);
-      });
-    }
-  }, [computeSelection, endSelection]);
-
-  const onGlobalMouseUp = useCallback(() => {
-    if (!isSelectingRef.current) return;
-    endSelection();
-  }, [endSelection]);
-
-  const onWindowLeft = useCallback(() => {
-    if (!isSelectingRef.current) return;
-    leftWindowRef.current = true;
-    endSelection({ fadeToEdge: true });
-  }, [endSelection]);
-
-  const onWindowReenter = useCallback(() => {
-    if (!leftWindowRef.current) return;
-    endSelection();
-  }, [endSelection]);
-
-  const onGlobalCancel = useCallback(() => {
-    if (!isSelectingRef.current) return;
-    endSelection();
-  }, [endSelection]);
-
-  const onDocumentMouseOut = useCallback((e) => {
-    if (!isSelectingRef.current) return;
-    if (!e.relatedTarget) {
-      leftWindowRef.current = true;
-      endSelection({ fadeToEdge: true });
-    }
-  }, [endSelection]);
-
-  const onVisibilityChange = useCallback(() => {
-    if (document.hidden && isSelectingRef.current) {
-      leftWindowRef.current = true;
-      endSelection({ fadeToEdge: true });
-    }
-  }, [endSelection]);
-
-  // 橡皮筋框選：在空白區域按下啟動（使用全域監聽與 rAF 節流）
-  const onGridMouseDown = useCallback((e) => {
-    if (e.target.closest && e.target.closest('.game-card')) return;
-    if (e.button !== 0) return;
-    setSelectedGames(new Set());
-    setBoxSelecting(true);
-    setSelectionFading(false);
-    leftWindowRef.current = false;
-    isSelectingRef.current = true;
-    startPointRef.current = { x: e.clientX, y: e.clientY };
-    setSelectionRect({ left: e.clientX, top: e.clientY, width: 0, height: 0 });
-    window.addEventListener('mousemove', onGlobalMouseMove, { passive: true });
-    window.addEventListener('mouseup', onGlobalMouseUp, { passive: true });
-    window.addEventListener('mouseleave', onWindowLeft, { passive: true });
-    window.addEventListener('pointerleave', onWindowLeft, { passive: true });
-    window.addEventListener('pointerup', onGlobalMouseUp, { passive: true });
-    window.addEventListener('pointercancel', onGlobalCancel, { passive: true });
-    window.addEventListener('mouseenter', onWindowReenter, true);
-    window.addEventListener('blur', onWindowLeft, { passive: true });
-    document.addEventListener('mouseout', onDocumentMouseOut, true);
-    document.addEventListener('visibilitychange', onVisibilityChange, true);
-  }, [onGlobalMouseMove, onGlobalMouseUp, onWindowLeft, onGlobalCancel, onWindowReenter, onDocumentMouseOut, onVisibilityChange]);
-
-  // 本地 mousemove/up 改為全域監聽，不再使用
 
   // 載入資料夾內容
   const loadFolderContents = useCallback(async () => {
@@ -479,7 +302,7 @@ const FolderWindowApp = () => {
               externalDragActive={externalDragActive}
               isLoading={showLoadingUI && isLoading}
               selectionControlled={false}
-              disableFlip={boxSelecting || dragState.isDragging}
+              disableFlip={dragState.isDragging}
               containerClassName="games-grid"
               dragSource={{ type: 'folder', id: folderId }}
             />
