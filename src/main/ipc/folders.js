@@ -113,10 +113,20 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll }) {
       const arr = Array.isArray(gameIdsOrPaths) ? gameIdsOrPaths : [];
       if (!folderId || arr.length === 0) return { success: true, note: 'empty' };
       const filePaths = resolveManyFilePaths(arr);
+      try { console.log('[folders:add-batch] folderId=', folderId, 'count=', filePaths.length, 'sample=', filePaths.slice(0, 5)); } catch {}
       sqlAddGamesToFolderBatch(folderId, filePaths, {});
       // 廣播控制：若非 quiet，才進行一次廣播
       if (!options?.quiet) {
-        try { const updatedFolder = sqlGetFolderById(folderId); if (updatedFolder) broadcastToAll('folder-updated', updatedFolder); } catch (_) {}
+        try { 
+          const updatedFolder = sqlGetFolderById(folderId); 
+          if (updatedFolder) {
+            const { getDB } = require('../db');
+            const db = getDB();
+            const rawCnt = db.prepare(`SELECT COUNT(1) as c FROM folder_games WHERE folderId=?`).get(folderId)?.c || 0;
+            console.log('[folders:add-batch] folder counts after add:', { id: folderId, raw: rawCnt, visible: updatedFolder.gameCount });
+            broadcastToAll('folder-updated', updatedFolder);
+          }
+        } catch (_) {}
         // 異步廣播，避免阻塞 UI
         setImmediate(() => {
           try {
@@ -239,9 +249,18 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll }) {
   ipcMain.handle('add-game-to-folder', (event, gameId, folderId) => {
     try {
       const filePath = resolveFilePath(gameId);
+      try { console.log('[folders:add-one] folderId=', folderId, 'gameId=', gameId, 'resolvedPath=', filePath); } catch {}
       sqlAddGameToFolder(folderId, filePath);
       broadcastToAll('game-folder-changed', { gameId, folderId, action: 'add' });
-      try { const updatedFolder = sqlGetFolderById(folderId); if (updatedFolder) broadcastToAll('folder-updated', updatedFolder); } catch (_) {}
+      try { 
+        const updatedFolder = sqlGetFolderById(folderId); 
+        if (updatedFolder) {
+          const db = getDB();
+          const rawCnt = db.prepare(`SELECT COUNT(1) as c FROM folder_games WHERE folderId=?`).get(folderId)?.c || 0;
+          console.log('[folders:add-one] folder counts after add:', { id: folderId, raw: rawCnt, visible: updatedFolder.gameCount });
+          broadcastToAll('folder-updated', updatedFolder); 
+        }
+      } catch (_) {}
       // 異步廣播最新遊戲列表，避免阻塞 UI
       setImmediate(() => {
         try {

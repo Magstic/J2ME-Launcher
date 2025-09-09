@@ -109,7 +109,14 @@ export const useDesktopView = ({
   const handleRootDrop = useCallback((e) => {
     if (!externalDragActive) return;
     e.preventDefault();
-    try { window.electronAPI?.dropDragSession?.({ type: 'desktop' }); } catch (err) { console.warn(err); }
+    try {
+      let types = [];
+      let filesLen = 0;
+      try { types = Array.from((e.dataTransfer && e.dataTransfer.types) ? e.dataTransfer.types : []); filesLen = e.dataTransfer?.files ? e.dataTransfer.files.length : 0; } catch {}
+      const hasInternalMIME = types.includes('application/x-j2me-internal') || types.includes('application/x-j2me-filepath');
+      const internalHint = !!(hasInternalMIME || (types.length === 0 && filesLen === 0));
+      window.electronAPI?.dropDragSession?.({ type: 'desktop', internal: internalHint });
+    } catch (err) { console.warn(err); }
     try { window.electronAPI?.endDragSession?.(); } catch (e2) {}
   }, [externalDragActive]);
 

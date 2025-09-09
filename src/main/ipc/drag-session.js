@@ -3,7 +3,7 @@
 
 const path = require('path');
 const { addGameToFolder: sqlAddGameToFolder, removeGameFromFolder: sqlRemoveGameFromFolder } = require('../sql/folders-write');
-const { getFolderById: sqlGetFolderById } = require('../sql/folders-read');
+const { getFolderById: sqlGetFolderById, getFolderGameCount: sqlGetFolderGameCount } = require('../sql/folders-read');
 const { getDB } = require('../db');
 const { batchAddGamesToFolder } = require('../utils/batch-operations');
 const { getGameStateCache } = require('../utils/game-state-cache');
@@ -15,13 +15,35 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWi
     const n = path.normalize(p);
     return process.platform === 'win32' ? n.replace(/\//g, '\\') : n;
   };
+
+  // Debug helper: check if a file path is under any enabled directory
+  const isUnderEnabledDirectory = (filePath) => {
+    try {
+      const db = getDB();
+      const row = db.prepare(`
+        SELECT 1 AS ok
+        FROM directories d
+        WHERE d.enabled = 1 AND ? LIKE (d.path || '%')
+        LIMIT 1
+      `).get(filePath);
+      return !!(row && row.ok === 1);
+    } catch (e) {
+      try { console.log('[drag-session][debug] enabled-dir check error:', e && e.message); } catch (_) {}
+      return null;
+    }
+  };
   const probeCanonicalPath = (normalized) => {
     try {
       const db = getDB();
       const alt = process.platform === 'win32' ? normalized.replace(/\\/g, '/') : normalized.replace(/\//g, '\\');
       const row = db.prepare('SELECT filePath FROM games WHERE filePath IN (?, ?) LIMIT 1').get(normalized, alt);
-      return row?.filePath || normalized;
-    } catch (_) { return normalized; }
+      if (row && row.filePath) {
+        try { console.log('[drag-session][canon] hit canonical filePath from DB:', row.filePath); } catch {}
+        return row.filePath;
+      }
+      try { console.log('[drag-session][canon] miss, fallback normalized:', normalized, 'alt:', alt); } catch {}
+      return normalized;
+    } catch (e) { try { console.log('[drag-session][canon] error:', e && e.message); } catch (_) {} return normalized; }
   };
   const resolveFilePath = (gameIdOrPath) => {
     if (looksLikePath(gameIdOrPath)) return probeCanonicalPath(normalizePath(gameIdOrPath));
@@ -61,22 +83,39 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWi
     items: [], // [{ gameId, filePath }]
     source: null, // { type: 'desktop'|'folder', id: string|null }
     startedByWindowId: null,
-    lastPosition: null
+    lastPosition: null,
+    token: 0 // increments per start to guard against stale end timers
   };
   // Grace period timer to tolerate rapid end->drop ordering
   let endTimer = null;
+  let sessionSeq = 0; // monotonic counter
+  // Keep a recent snapshot to tolerate rare races
+  let lastSessionSnapshot = { items: [], source: null, token: 0, startedAt: 0, endedAt: 0 };
 
   ipcMain.handle('drag-session:start', (event, payload) => {
     try {
       const { items, source } = payload || {};
       console.log('[drag-session:start]', { count: items?.length || 0, source });
+      // Cancel any pending end timer from previous session to avoid stale cleanup killing the new session
+      if (endTimer) { try { clearTimeout(endTimer); } catch (_) {} endTimer = null; }
+      const newToken = ++sessionSeq;
       dragSession = {
         active: true,
         items: Array.isArray(items) ? items : [],
         source: source || null,
         startedByWindowId: BrowserWindow.fromWebContents(event.sender)?.id || null,
-        lastPosition: null
+        lastPosition: null,
+        token: newToken
       };
+      try {
+        lastSessionSnapshot = {
+          items: [...dragSession.items],
+          source: dragSession.source ? { ...dragSession.source } : null,
+          token: dragSession.token,
+          startedAt: Date.now(),
+          endedAt: 0
+        };
+      } catch (_) {}
       broadcastToAll('drag-session:started', { items: dragSession.items, source: dragSession.source }, dragSession.startedByWindowId);
       return { success: true };
     } catch (err) {
@@ -103,10 +142,42 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWi
       // If an end has been scheduled, cancel it because we have a real drop
       if (endTimer) { clearTimeout(endTimer); endTimer = null; }
       if (!dragSession.active) {
-        console.warn('[drag-session:drop] no-active-session', target);
-        return { success: false, error: 'no-active-session' };
+        // Tolerate a short race: start may still be in-flight
+        try { console.log('[drag-session:drop] not active, waiting briefly for start...'); } catch {}
+        const until = Date.now() + 200;
+        while (!dragSession.active && Date.now() < until) {
+          await new Promise(r => setTimeout(r, 20));
+        }
+        if (!dragSession.active) {
+          // As a last resort, tolerate a very recent end by using the last snapshot
+          const internalOnly = !!(target && target.internal === true);
+          if (!internalOnly) {
+            console.warn('[drag-session:drop] no-active-session and target not internal; refusing snapshot fallback');
+            return { success: false, error: 'no-active-session' };
+          }
+          const now = Date.now();
+          const snapshotAge = Math.min(
+            lastSessionSnapshot.endedAt ? (now - lastSessionSnapshot.endedAt) : Infinity,
+            lastSessionSnapshot.startedAt ? (now - lastSessionSnapshot.startedAt) : Infinity
+          );
+          const canFallback = Array.isArray(lastSessionSnapshot.items) && lastSessionSnapshot.items.length > 0 && snapshotAge <= 2000;
+          if (!canFallback) {
+            console.warn('[drag-session:drop] no-active-session', target);
+            return { success: false, error: 'no-active-session' };
+          }
+          try { console.log('[drag-session:drop] using lastSessionSnapshot fallback; age(ms)=', snapshotAge, 'items=', lastSessionSnapshot.items.length, 'source=', lastSessionSnapshot.source); } catch {}
+          // Synthesize a pseudo-active session from snapshot for this drop
+          dragSession = {
+            active: false,
+            items: [...lastSessionSnapshot.items],
+            source: lastSessionSnapshot.source ? { ...lastSessionSnapshot.source } : null,
+            startedByWindowId: dragSession.startedByWindowId,
+            lastPosition: dragSession.lastPosition,
+            token: lastSessionSnapshot.token
+          };
+        }
       }
-      console.log('[drag-session:drop]', { target, items: dragSession.items?.length || 0, source: dragSession.source });
+      console.log('[drag-session:drop] begin', { target, items: dragSession.items?.length || 0, source: dragSession.source });
       const items = dragSession.items || [];
       const source = dragSession.source || {};
       const targetType = target?.type;
@@ -115,6 +186,7 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWi
       const { addGameToFolder, addGamesToFolderBatch } = createBatchOperations();
 
       let allOk = true;
+      try { console.log('[drag-session:drop] group start'); } catch {}
       
       // 按操作類型分組處理
       const addToFolderItems = items.filter(item => 
@@ -126,11 +198,16 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWi
       const removeItems = items.filter(item => 
         source.type === 'folder' && targetType === 'desktop' && source.id && (item.gameId || item.filePath || item.id)
       );
+      try { console.log('[drag-session:drop] groups:', { add: addToFolderItems.length, move: moveItems.length, remove: removeItems.length }); } catch {}
 
       // 批次加入資料夾
       if (addToFolderItems.length > 0) {
         try {
           const filePaths = addToFolderItems.map(item => resolveFilePath(item.gameId || item.filePath || item.id));
+          try {
+            const checks = filePaths.slice(0, 10).map(fp => ({ fp, enabledDir: isUnderEnabledDirectory(fp) }));
+            console.log('[drag-session:drop] add->filePaths sample (first10):', checks);
+          } catch {}
           
           // 如果數量較多，廣播進度開始事件
           if (filePaths.length > 30) {
@@ -148,6 +225,7 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWi
             addGameToFolder,
             addGamesToFolderBatch
           });
+          try { console.log('[drag-session:drop] add result:', result); } catch {}
           
           // 廣播進度完成事件
           if (filePaths.length > 30) {
@@ -245,6 +323,7 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWi
         source.type === 'folder' && targetType === 'folder' && source.id === targetId
       );
       if (sameFolder.length > 0) {
+        try { console.log('[drag-session:drop] same-folder no-op count:', sameFolder.length); } catch {}
         // 同資料夾內移動，視為成功
       }
 
@@ -284,6 +363,7 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWi
             removed: removeItems.length
           }
         });
+        try { console.log('[drag-session:drop] incremental-update sent:', { affected: affectedGames.length, source: source.id, target: targetId }); } catch {}
       }
 
       // 發送資料夾變更（簡化為通用事件）
@@ -291,17 +371,45 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWi
 
       // 若涉及到目標/來源資料夾，單獨更新
       if (source?.id) {
-        try { const fromFolder = sqlGetFolderById(source.id); if (fromFolder) broadcastToAll('folder-updated', fromFolder); } catch (_) {}
+        try {
+          const fromFolder = sqlGetFolderById(source.id);
+          if (fromFolder) {
+            const rawDb = getDB();
+            const rawCnt = rawDb.prepare(`SELECT COUNT(1) as c FROM folder_games WHERE folderId=?`).get(source.id)?.c || 0;
+            const visCnt = sqlGetFolderGameCount(source.id);
+            console.log('[drag-session:drop] source folder counts:', { id: source.id, raw: rawCnt, visible: visCnt });
+            broadcastToAll('folder-updated', fromFolder);
+          }
+        } catch (_) {}
       }
       if (targetType === 'folder' && targetId) {
-        try { const toFolder = sqlGetFolderById(targetId); if (toFolder) broadcastToAll('folder-updated', toFolder); } catch (_) {}
+        try {
+          const toFolder = sqlGetFolderById(targetId);
+          if (toFolder) {
+            const rawDb = getDB();
+            const rawCnt = rawDb.prepare(`SELECT COUNT(1) as c FROM folder_games WHERE folderId=?`).get(targetId)?.c || 0;
+            const visCnt = sqlGetFolderGameCount(targetId);
+            console.log('[drag-session:drop] target folder counts:', { id: targetId, raw: rawCnt, visible: visCnt });
+            broadcastToAll('folder-updated', toFolder);
+          }
+        } catch (_) {}
       }
 
       // 結束會話
-      dragSession = { active: false, items: [], source: null, startedByWindowId: null, lastPosition: null };
+      try {
+        lastSessionSnapshot = {
+          items: [...(dragSession.items || [])],
+          source: dragSession.source ? { ...dragSession.source } : null,
+          token: dragSession.token,
+          startedAt: lastSessionSnapshot.startedAt || Date.now(),
+          endedAt: Date.now()
+        };
+      } catch (_) {}
+      dragSession = { active: false, items: [], source: null, startedByWindowId: null, lastPosition: null, token: dragSession.token };
       broadcastToAll('drag-session:ended');
       if (endTimer) { clearTimeout(endTimer); endTimer = null; }
 
+      try { console.log('[drag-session:drop] done, success=', allOk); } catch {}
       return { success: allOk };
     } catch (err) {
       console.error('drag-session:drop error:', err);
@@ -320,10 +428,16 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWi
 
       // Debounce/Grace: schedule a short cleanup, allow late drop to win
       if (endTimer) { clearTimeout(endTimer); endTimer = null; }
+      const scheduledToken = dragSession.token;
       endTimer = setTimeout(() => {
         try {
+          // Only end if session is still the same one that scheduled this timer
           if (!dragSession.active) { endTimer = null; return; }
-          dragSession = { active: false, items: [], source: null, startedByWindowId: null, lastPosition: null };
+          if (dragSession.token !== scheduledToken) {
+            try { console.log('[drag-session:end] skip stale end timer; currentToken=', dragSession.token, 'scheduledToken=', scheduledToken); } catch {}
+            endTimer = null; return;
+          }
+          dragSession = { active: false, items: [], source: null, startedByWindowId: null, lastPosition: null, token: dragSession.token };
           broadcastToAll('drag-session:ended');
         } finally {
           endTimer = null;

@@ -10,6 +10,8 @@ export default function useDragSession({ selectedRef, games, source = { type: 'd
   const handleGameDragStart = React.useCallback((event, game) => {
     event.dataTransfer.effectAllowed = 'move';
     event.dataTransfer.setData('text/plain', game.filePath);
+    try { event.dataTransfer.setData('application/x-j2me-filepath', game.filePath); } catch (_) {}
+    try { event.dataTransfer.setData('application/x-j2me-internal', '1'); } catch (_) {}
 
     // 準備多選項目
     const currentSel = new Set(selectedRef.current || []);
@@ -24,11 +26,14 @@ export default function useDragSession({ selectedRef, games, source = { type: 'd
       name: g.gameName,
       iconUrl: g.iconUrl
     }));
+    try { console.log('[DRAG_UI] dragStart for', game && game.filePath, 'selected=', currentSel.size, 'items.len=', items.length, 'source=', source); } catch {}
 
     // 啟動跨窗口拖拽會話（多選）
     try {
       const ctx = source || { type: 'desktop', id: null };
-      window.electronAPI?.startDragSession?.(items, ctx);
+      const p = window.electronAPI?.startDragSession?.(items, ctx);
+      try { console.log('[DRAG_UI] startDragSession invoked with items=', items.length, 'source=', ctx); } catch {}
+      try { p && p.then?.((res) => { try { console.log('[DRAG_UI] startDragSession result:', res); } catch {} })?.catch?.((err) => { try { console.warn('[DRAG_UI] startDragSession error:', err && err.message); } catch {} }); } catch {}
     } catch (e) {
       console.warn('startDragSession failed:', e);
     }

@@ -16,13 +16,22 @@
 - `vite.config.js` → `resolve.alias`
 - `jsconfig.json` → `compilerOptions.paths`
 
-目前映射：
+目前映射（Vite：`vite.config.js`）：
 - `@` → `src`
 - `@components` → `src/components`
 - `@ui` → `src/components/ui`
 - `@shared` → `src/components/shared`
 - `@hooks` → `src/hooks`
 - `@config` → `src/config`
+- `@styles` → `src/styles`
+
+JS 路徑提示（`jsconfig.json`）：
+- `@/*` → `src/*`
+- `@components/*` → `src/components/*`
+- `@ui/*` → `src/components/ui/*`
+- `@shared/*` → `src/components/shared/*`
+- `@hooks/*` → `src/hooks/*`
+- `@config/*` → `src/config/*`
 
 注意：
 - `@shared` 指向 UI 層的共享元件資料夾 `src/components/shared`。
@@ -49,7 +58,7 @@
 ```javascript
 // ✅ 推薦：使用別名匯入共享組件
 import { ModalWithFooter, Collapsible } from '@ui';
-import { DesktopManager, DirectoryManager } from '@components';
+import { DirectoryManager, GameLaunchDialog } from '@components';
 import { perf } from '@config/perf'; // 性能配置
 
 // ✅ 可接受：本地組件使用相對路徑
@@ -126,7 +135,6 @@ const handleAddToFolder = async (games, folderId) => {
       - `TitleBar`
       - `DirectoryManager`
       - `SearchBar`
-      - `DesktopManager`
       - `GameInfoDialog`
       - `EmulatorConfigDialog`
       - `FolderWindowApp`
@@ -142,7 +150,7 @@ const handleAddToFolder = async (games, folderId) => {
       - `export * as ui from './ui/index.js'`
   - 用法：
     ```js
-    import { DesktopManager, DirectoryManager, GameLaunchDialog } from '@components';
+    import { DirectoryManager, GameLaunchDialog } from '@components';
     import { ui } from '@components';
     // ui.ModalWithFooter, ui.Collapsible, ...
     ```
@@ -163,9 +171,12 @@ const handleAddToFolder = async (games, folderId) => {
 
 - `src/components/shared/hooks/index.js`
   - 共享 hooks 彙總出口：
+    - `useCreateShortcut`
     - `useDragSession`
+    - `useOutsideClick`
     - `useSelectionBox`
     - `useUnifiedContextMenu`
+    - `useWheelTouchLock`
   - 用法：
     ```js
     import { useSelectionBox, useDragSession } from '@shared/hooks';

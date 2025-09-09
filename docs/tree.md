@@ -22,11 +22,9 @@
 │          webdav.svg
 │
 ├─components
-│  │  DesktopManager.jsx
 │  │  DirectoryManager.css
 │  │  DirectoryManager.jsx
 │  │  EmulatorConfigDialog.jsx
-│  │  FolderGrid.Unified.jsx
 │  │  FolderWindowApp.css
 │  │  FolderWindowApp.jsx
 │  │  GameCard.jsx
@@ -41,13 +39,13 @@
 │  ├─Desktop
 │  │      ContextMenu.jsx
 │  │      Desktop.css
-│  │      DesktopGrid.Unified.jsx
-│  │      DesktopView.jsx
 │  │      GameInfoDialog.css
 │  │      GameInfoDialog.jsx
 │  │
-│  ├─DragDrop
-│  │      DragProvider.jsx
+│  ├─emulators
+│  │      FreeJ2MEPlusConfig.jsx
+│  │      KEmulator.jsx
+│  │      LibretroFJPlus.jsx
 │  │
 │  ├─Folder
 │  │      CreateFolderDialog.jsx
@@ -59,54 +57,43 @@
 │  │      FolderDrawer.jsx
 │  │      NeonStrip.jsx
 │  │
-│  ├─freej2meplus
-│  │      FreeJ2MEPlusConfig.jsx
-│  │
-│  ├─GameLauncher
-│  ├─kemulator
-│  │      KEmulator.jsx
-│  │
-│  ├─libretro
-│  │      LibretroFJPlus.jsx
-│  │
 │  ├─shared
 │  │  │  VirtualizedUnifiedGrid.jsx
 │  │  │
 │  │  └─hooks
 │  │          index.js
+│  │          useCreateShortcut.js
 │  │          useDragSession.js
+│  │          useOutsideClick.js
 │  │          useSelectionBox.js
 │  │          useUnifiedContextMenu.js
+│  │          useWheelTouchLock.js
 │  │
-│  ├─ShortcutManager
-│  ├─ui
-│  │  │  AboutNetworkCard.jsx
-│  │  │  Card.jsx
-│  │  │  Collapsible.jsx
-│  │  │  index.js
-│  │  │  ModalHeaderOnly.jsx
-│  │  │  ModalWithFooter.jsx
-│  │  │  NotificationBubble.css
-│  │  │  NotificationBubble.jsx
-│  │  │  RomCacheSwitch.jsx
-│  │  │  Select.css
-│  │  │  Select.jsx
-│  │  │  ToggleSwitch.jsx
-│  │  │
-│  │  └─dialogs
-│  │          AboutDialog.jsx
-│  │          BackupDialog.jsx
-│  │          ConflictResolveDialog.jsx
-│  │          EmulatorNotConfiguredDialog.jsx
-│  │          FolderSelectDialog.css
-│  │          FolderSelectDialog.jsx
-│  │          GameLaunchDialog.jsx
-│  │          SettingsDialog.css
-│  │          SettingsDialog.jsx
-│  │          WelcomeGuideDialog.jsx
-│  │
-│  └─_shared
-│          FormRenderer.jsx
+│  └─ui
+│      │  AboutNetworkCard.jsx
+│      │  Card.jsx
+│      │  Collapsible.jsx
+│      │  index.js
+│      │  ModalHeaderOnly.jsx
+│      │  ModalWithFooter.jsx
+│      │  NotificationBubble.css
+│      │  NotificationBubble.jsx
+│      │  RomCacheSwitch.jsx
+│      │  Select.css
+│      │  Select.jsx
+│      │  ToggleSwitch.jsx
+│      │
+│      └─dialogs
+│              AboutDialog.jsx
+│              BackupDialog.jsx
+│              ConflictResolveDialog.jsx
+│              EmulatorNotConfiguredDialog.jsx
+│              FolderSelectDialog.css
+│              FolderSelectDialog.jsx
+│              GameLaunchDialog.jsx
+│              SettingsDialog.css
+│              SettingsDialog.jsx
+│              WelcomeGuideDialog.jsx
 │
 ├─config
 │      perf.js
@@ -118,11 +105,9 @@
 │      index.js
 │      useAppDialogs.js
 │      useAppEventListeners.js
-│      useBatchOperationState.js
 │      useDesktopActions.js
 │      useDesktopDialogs.js
 │      useDesktopEventListeners.js
-│      useDesktopFolders.js
 │      useDesktopManager.js
 │      useDesktopState.js
 │      useDesktopView.js
@@ -243,8 +228,12 @@
 │      utility.css
 │
 └─utils
-        i18n.js
-        memory-pool.js
+    │  i18n.js
+    │  logger.cjs
+    │  logger.js
+    │
+    └─dom
+            scroll.js
 ```
 
 ## 附註說明（Annotated Tree）
@@ -252,10 +241,10 @@
 以下為每個目錄與關鍵檔案的用途簡述，方便後續維護與導覽。
 
 > **重要提醒**：該附註說明會定期更新以反映當前專案狀態，但仍可能存在滯後，請以實際程式碼為準。  
-> **最後更新**：2025-09-03（React Hooks 系統重構、模組化架構優化、未使用變數清理）
+> **最後更新**：2025-09-09（Hook 化整合至 App.jsx、統一虛擬化網格、UI barrel 更新）
 
 - __根目錄（src/）__
-  - `App.jsx`：Renderer 主頁（桌面視圖）入口，掛載應用、註冊全域樣式與路由/狀態。
+  - `App.jsx`：Renderer 主頁（桌面視圖）入口，掛載應用、註冊全域樣式並整合狀態 hooks。
   - `folder-main.jsx`：資料夾窗口頁面的入口（對應 Electron 獨立 BrowserWindow）。
   - `main.jsx`：一般入口（桌面頁面）啟動點，載入 React DOM Client。
   - `App.css`：全域基本樣式覆蓋。
@@ -265,10 +254,9 @@
     - 相關別名：`resolve.alias` 包含 `@`、`@components`、`@ui`、`@shared`、`@hooks`、`@config`。
 
 - __`components/`（Renderer UI 組件）__
-  - `DesktopManager.jsx`：協調桌面場景，管理桌面/資料夾對話框與全域操作。
+  - `App.jsx` 中的 `DesktopManagerHooks` 與 `DesktopViewDirect`：整合 `useDesktopManager` 等 hooks，協調桌面/資料夾對話框與全域操作，並使用 `@shared/VirtualizedUnifiedGrid` 進行渲染。
   - `DirectoryManager.jsx` / `DirectoryManager.css`：資料夾來源管理 UI 與樣式。
   - `EmulatorConfigDialog.jsx`：模擬器設定對話框，使用 `@ui/Collapsible`，讀取 schema/IPC。
-  - `FolderGrid.Unified.jsx`：資料夾窗口用網格（以 `@shared/VirtualizedUnifiedGrid` 實現統一選取/拖拽）。
   - `FolderWindowApp.jsx` / `FolderWindowApp.css`：資料夾窗口頁面（獨立 BrowserWindow 渲染端）。
   - `GameCard.jsx`：遊戲卡片元件（桌面/資料夾共用樣式與選取覆蓋）。
   - `SearchBar.jsx`：搜尋列元件。
@@ -280,35 +268,31 @@
 
   - `Desktop/ContextMenu.jsx`：桌面專用右鍵選單。
   - `Desktop/Desktop.css`：桌面視圖樣式。
-    - 抽屜開啟時，桌面網格（`.desktop-shift-layer`）會套用位移以讓出空間：
-      - `.desktop-manager.drawer-open .content-area-inner > .desktop-view .desktop-shift-layer { transform: translateX(60px); }`
-      - 與 `DesktopManager.jsx` 之 `drawerOpen` 狀態同步（根容器會加上 `drawer-open` 類）。
-      - 若需調整位移距離，請同步考量抽屜/把手尺寸（見 `DesktopManager.jsx` 內常數）。
-  - `Desktop/DesktopGrid.Unified.jsx`：桌面網格（以 `@shared/VirtualizedUnifiedGrid` 統一行為）。
-  - `Desktop/DesktopView.jsx`：桌面主視圖容器。
   - `Desktop/GameInfoDialog.jsx` / `.css`：遊戲資訊對話框。
-  - 桌面已啟用「無資料夾模式」：不再於桌面渲染資料夾或提供資料夾相關交互（建立、拖入、右鍵等）。
 
-  - `DragDrop/DragProvider.jsx`：拖放 Context Provider（封裝拖放狀態）。
+  
 
   - `Folder/CreateFolderDialog.jsx`：建立資料夾對話框（使用共享 modal 樣式）。
   - `Folder/FolderCard.jsx` / `Folder.css`：資料夾卡片與其樣式。
   - `FolderDrawer/FolderDrawer.jsx` / `FolderDrawer.css`：左側資料夾抽屜（唯一的資料夾管理入口）。
     - 接受從桌面拖拽的遊戲放入資料夾，支援跨視窗拖拽會話（`electronAPI.dropDragSession`）。
     - 放入成功會觸發輕微抖動動畫；已移除「放置到這裡」文字提示。
-    - 抽屜把手與重疊寬度常數定義於 `DesktopManager.jsx`，請與上文 `.desktop-shift-layer` 位移保持一致。
+    - 抽屜把手與抽屜寬度參數由 `hooks/useDrawerPositioning.js` 與 `App.jsx` 統一管理。
     - `NeonStrip.jsx`：抽屜視覺裝飾（霓虹條）。
 
-  - `freej2meplus/FreeJ2MEPlusConfig.jsx`：FreeJ2ME-Plus 特定設定 UI。
-  - `kemulator/KEmulator.jsx`：KEmulator 相關 UI。
-  - `libretro/LibretroFJPlus.jsx`：Libretro（FJPlus）相關 UI/整合元件。
+  - `emulators/FreeJ2MEPlusConfig.jsx`：FreeJ2ME-Plus 特定設定 UI。
+  - `emulators/KEmulator.jsx`：KEmulator 相關 UI。
+  - `emulators/LibretroFJPlus.jsx`：Libretro（FJPlus）相關 UI/整合元件。
 
   - `shared/VirtualizedUnifiedGrid.jsx`：統一的虛擬化網格元件（智能虛擬化、選取框、右鍵、拖拽整合）。採用單一布局系統，非虛擬化模式使用絕對定位模擬 react-window 行為，消除雙重布局架構。最近調整：拖拽結束不再立刻關閉會話，依賴 `drop` IPC 完成（含 800ms 安全超時），`dragend` 進行資料夾命中測試並呼叫 `dropDragSession`，且含 IPC 重試以降低競態失敗。
   - `shared/hooks/`：共享 hooks（提供 `@shared/hooks` 彙總匯出）：
     - `index.js`：hooks 彙總匯出檔案。
-    - `useSelectionBox.js`：框選行為（最小拖動距離閾值 2px，提升快速拖放時的選取靈敏度）。
+    - `useCreateShortcut.js`：建立捷徑的共享邏輯（批次處理、錯誤收斂）。
     - `useDragSession.js`：拖曳會話管理。
+    - `useOutsideClick.js`：外點擊關閉偵測。
+    - `useSelectionBox.js`：框選行為（最小拖動距離閾值 2px，提升快速拖放時的選取靈敏度）。
     - `useUnifiedContextMenu.js`：桌面/資料夾語境對應的統一選單。
+    - `useWheelTouchLock.js`：在彈出層開啟時鎖定滾動至內部容器。
 
   - `ui/`：可重用 UI 元件集合與 barrel：
     - `index.js`：`@ui` barrel。
@@ -328,10 +312,9 @@
     - `ui/dialogs/SettingsDialog.jsx` / `SettingsDialog.css`：軟體配置對話框（主題切換等設定選項）。
     - `ui/dialogs/WelcomeGuideDialog.jsx`：歡迎引導對話框（首次使用設定向導，支援多語言與主題預覽）。
 
-  - `_shared/FormRenderer.jsx`：通用 Schema 表單渲染器（選項標籤/型別註冊，服務於對話框）。支援多種欄位類型（文字、數字、布林、選項等），用於模擬器設定與其他表單對話框。
+  
 
 - __`config/`__
-  - `controllerBindings.js`：手把按鍵對應設定（僅用於桌面模式的手把支援）。
   - `perf.js`：效能相關常數/參數。
 
 - __`contexts/`__
@@ -341,11 +324,9 @@
   - `index.js`：hooks 彙總出口（barrel exports）。
   - `useAppDialogs.js`：應用級對話框狀態管理。
   - `useAppEventListeners.js`：應用級事件監聽器。
-  - `useBatchOperationState.js`：批次操作狀態管理。
   - `useDesktopActions.js`：桌面操作邏輯。
   - `useDesktopDialogs.js`：桌面對話框管理。
   - `useDesktopEventListeners.js`：桌面事件監聽器。
-  - `useDesktopFolders.js`：桌面資料夾操作。
   - `useDesktopManager.js`：桌面管理器主 hook（整合所有子 hooks）。
   - `useDesktopState.js`：桌面狀態管理。
   - `useDesktopView.js`：桌面視圖邏輯（拖拽、右鍵選單、資料夾徽章）。
@@ -448,12 +429,13 @@
 
 - __`utils/`（渲染進程工具）__
   - `i18n.js`：國際化工具函數。
-  - `memory-pool.js`：記憶體池管理（用於大量遊戲的記憶體優化）。
+  - `logger.js` / `logger.cjs`：日誌工具。
+  - `dom/scroll.js`：滾動相關工具（`getScrollParent()` 等）。
 
 ## 架構特色與設計理念
 
 ### 性能優化策略
-- **虛擬化渲染**：`VirtualizedGameGrid` 支援 10k+ 遊戲的流暢渲染
+- **虛擬化渲染**：`shared/VirtualizedUnifiedGrid.jsx` 支援 10k+ 遊戲的流暢渲染
 - **增量更新**：`incremental-updates.js` 實現 Linus-style 最小化更新
 - **統一快取**：`unified-cache.js` 提供單一真實來源的快取系統
 - **批次操作**：`batch-folder-operations.js` 優化大量資料夾操作

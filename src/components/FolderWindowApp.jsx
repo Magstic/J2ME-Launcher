@@ -184,7 +184,12 @@ const FolderWindowApp = () => {
     e.preventDefault();
     if (!externalDragActive || !folderId) return;
     try {
-      await window.electronAPI?.dropDragSession?.({ type: 'folder', id: folderId });
+      let types = [];
+      let filesLen = 0;
+      try { types = Array.from((e.dataTransfer && e.dataTransfer.types) ? e.dataTransfer.types : []); filesLen = e.dataTransfer?.files ? e.dataTransfer.files.length : 0; } catch {}
+      const hasInternalMIME = types.includes('application/x-j2me-internal') || types.includes('application/x-j2me-filepath');
+      const internalHint = !!(hasInternalMIME || (types.length === 0 && filesLen === 0));
+      await window.electronAPI?.dropDragSession?.({ type: 'folder', id: folderId, internal: internalHint });
     } catch (err) {
       console.error('外部拖拽放置失敗:', err);
     }
@@ -296,7 +301,12 @@ const FolderWindowApp = () => {
               onDragStart={() => setDragState({ isDragging: true, draggedItems: [] })}
               onDragEnd={() => {
                 setDragState({ isDragging: false, draggedItems: [] });
-                try { window.electronAPI?.endDragSession?.(); } catch (e) { }
+                try {
+                  const ms = 2500;
+                  const ts = Date.now();
+                  try { console.log('[DRAG_UI] (FolderWindow) scheduled endDragSession in', ms, 'ms at', ts); } catch {}
+                  setTimeout(() => { try { console.log('[DRAG_UI] (FolderWindow) endDragSession now at', Date.now(), 'scheduledAt=', ts); window.electronAPI?.endDragSession?.(); } catch (_) {} }, ms);
+                } catch (_) {}
               }}
               dragState={dragState}
               externalDragActive={externalDragActive}

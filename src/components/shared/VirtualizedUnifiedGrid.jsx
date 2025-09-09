@@ -251,7 +251,17 @@ const VirtualizedUnifiedGrid = ({
   }, [games, handleGameDragStart, onDragStart]);
 
   const onItemDragEnd = React.useCallback((e) => {
-    try { setTimeout(() => { try { endDragSession(); } catch (_) { } }, 800); } catch (_) { }
+    try { 
+      const ms = 2500; 
+      const ts = Date.now(); 
+      try { console.log('[DRAG_UI] onItemDragEnd scheduled endDragSession in', ms, 'ms at', ts); } catch {}
+      setTimeout(() => { 
+        try { 
+          try { console.log('[DRAG_UI] onItemDragEnd -> endDragSession now at', Date.now(), 'scheduledAt=', ts); } catch {}
+          endDragSession(); 
+        } catch (_) { } 
+      }, ms); 
+    } catch (_) { }
     if (onDragEnd) {
       try { setTimeout(() => { try { onDragEnd(e); } catch (_) { } }, 150); } catch (_) { }
     }

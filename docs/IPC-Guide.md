@@ -42,6 +42,7 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
   - `selectDirectory()`
   - 事件：
     - `onGamesUpdated(callback)` → channel: `'games-updated'`，回傳 unsubscribe 函式
+    - `onGamesIncrementalUpdate(callback)` → channel: `'games-incremental-update'`，回傳 unsubscribe 函式
     - `onAutoScanCompleted(callback)` → channel: `'auto-scan-completed'`
   - 其他：
     - `removeAllListeners(channel)`
@@ -56,8 +57,10 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
 - __遊戲與資料夾關係__
   - `addGameToFolder(gameId, folderId)`
   - `addGamesToFolderBatch(gameIdsOrPaths, folderId, options)`
+  - `batchAddGamesToFolder(filePaths, folderId, options)`
   - `emitFolderBatchUpdates(folderId)`
   - `removeGameFromFolder(gameId, folderId)`
+  - `batchRemoveGamesFromFolder(filePaths, folderId)`
   - `moveGameBetweenFolders(gameId, fromFolderId, toFolderId)`
   - `getGamesByFolder(folderId)`
   - `getUncategorizedGames()`
@@ -69,6 +72,12 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
 
 - __統計__
   - `getFolderStats()`
+
+- __自訂名稱管理__
+  - `updateCustomName(filePath, customName)`
+  - `updateCustomVendor(filePath, customVendor)`
+  - `updateCustomData(filePath, customData)`
+  - `resetCustomNames(filePath)`
 
 - __遊戲啟動__
   - `launchGame(gameFilePath)`
@@ -94,15 +103,20 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
   - `onGameFolderChanged(callback)` → channel: `'game-folder-changed'`（回傳 unsubscribe）
   - `onFolderChanged(callback)` → channel: `'folder-changed'`（回傳 unsubscribe）
 
+- __批次操作事件監聽__
+  - `onBulkOperationStart(callback)` → channel: `'bulk-operation-start'`（回傳 unsubscribe）
+  - `onBulkOperationEnd(callback)` → channel: `'bulk-operation-end'`（回傳 unsubscribe）
+  - 其他：`offBulkOperationStart(callback)`、`offBulkOperationEnd(callback)`
+
 - __跨窗口拖拽會話__
   - `startDragSession(items, source)`
   - `updateDragSession(position)`
   - `dropDragSession(target)`
   - `endDragSession()`
   - 事件：
-    - `onDragSessionStarted(callback)` → channel: `'drag-session:started'`
-    - `onDragSessionUpdated(callback)` → channel: `'drag-session:updated'`
-    - `onDragSessionEnded(callback)` → channel: `'drag-session:ended'`
+    - `onDragSessionStarted(callback)` → channel: `'drag-session:started'`（回傳 unsubscribe）
+    - `onDragSessionUpdated(callback)` → channel: `'drag-session:updated'`（回傳 unsubscribe）
+    - `onDragSessionEnded(callback)` → channel: `'drag-session:ended'`（回傳 unsubscribe）
 
 - __獨立資料夾窗口__
   - `openFolderWindow(folderId)`
@@ -125,7 +139,7 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
   - `backupGetProviderParams(provider)`、`backupSetProviderParams(provider, params)`
   - `backupRun(payload)`
   - `backupRestorePlan(payload)`、`backupRestoreRun(payload)`
-  - `onBackupProgress(callback)` → channel: `'backup:progress'`
+  - `onBackupProgress(callback)` → channel: `'backup:progress'`（回傳 unsubscribe）
 
 - __Dropbox Auth__
   - `dropboxGetAuth()`、`dropboxGetAccount()`、`dropboxGetAccountPhoto(url)`
@@ -133,7 +147,142 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
 
 - __Windows 捷徑__
   - `createShortcut(payload)`
-  - `onShortcutLaunch(callback)` → channel: `'shortcut-launch'`
+  - `onShortcutLaunch(callback)` → channel: `'shortcut-launch'`（回傳 unsubscribe）
+
+- __Java 設定__
+  - `getJavaPath()`
+  - `setJavaPath(javaPath)`
+  - `validateJavaPath(javaPath)`
+  - `browseJavaExecutable()`
+
+## 附錄：API 與 IPC 通道對照表
+
+以下對照表以 `src/main/preload.js` 為準，標明每個 API 對應的 IPC 通道與型態（invoke/send）及事件通道。
+
+- __窗口控制__
+  - `minimizeWindow` → `'window-minimize'`（send）
+  - `maximizeWindow` → `'window-maximize'`（send）
+  - `closeWindow` → `'window-close'`（send）
+
+- __遊戲管理__
+  - `getInitialGames` → `'get-initial-games'`（invoke）
+
+- __目錄管理與事件__
+  - `getDirectories` → `'get-directories'`（invoke）
+  - `addDirectories` → `'add-directories'`（invoke）
+  - `removeDirectory` → `'remove-directory'`（invoke）
+  - `toggleDirectory` → `'toggle-directory'`（invoke）
+  - `scanDirectories` → `'scan-directories'`（invoke）
+  - `selectDirectory` → `'select-directory'`（invoke）
+  - `onGamesUpdated` → `'games-updated'`（event，return unsubscribe）
+  - `onGamesIncrementalUpdate` → `'games-incremental-update'`（event，return unsubscribe）
+  - `onAutoScanCompleted` → `'auto-scan-completed'`（event）
+  - `removeAllListeners(channel)` →（通用）
+
+- __自訂名稱管理__
+  - `updateCustomName` → `'update-custom-name'`（invoke）
+  - `updateCustomVendor` → `'update-custom-vendor'`（invoke）
+  - `updateCustomData` → `'update-custom-data'`（invoke）
+  - `resetCustomNames` → `'reset-custom-names'`（invoke）
+
+- __資料夾管理__
+  - `getFolders` → `'get-folders'`（invoke）
+  - `getFolderById` → `'get-folder-by-id'`（invoke）
+  - `createFolder` → `'create-folder'`（invoke）
+  - `updateFolder` → `'update-folder'`（invoke）
+  - `deleteFolder` → `'delete-folder'`（invoke）
+
+- __遊戲與資料夾關係__
+  - `addGameToFolder` → `'add-game-to-folder'`（invoke）
+  - `addGamesToFolderBatch` → `'add-games-to-folder-batch'`（invoke）
+  - `batchAddGamesToFolder` → `'batch-add-games-to-folder'`（invoke）
+  - `emitFolderBatchUpdates` → `'emit-folder-batch-updates'`（invoke）
+  - `removeGameFromFolder` → `'remove-game-from-folder'`（invoke）
+  - `batchRemoveGamesFromFolder` → `'batch-remove-games-from-folder'`（invoke）
+  - `moveGameBetweenFolders` → `'move-game-between-folders'`（invoke）
+  - `getGamesByFolder` → `'get-games-by-folder'`（invoke）
+  - `getUncategorizedGames` → `'get-uncategorized-games'`（invoke）
+  - `getGamesInAnyFolder` → `'get-games-in-any-folder'`（invoke）
+  - 事件：
+    - `onBulkOperationStart` → `'bulk-operation-start'`（return unsubscribe）
+    - `onBulkOperationEnd` → `'bulk-operation-end'`（return unsubscribe）
+
+- __桌面/資料夾數據與統計__
+  - `getDesktopItems` → `'get-desktop-items'`（invoke）
+  - `getFolderContents` → `'get-folder-contents'`（invoke）
+  - `getFolderStats` → `'get-folder-stats'`（invoke）
+
+- __遊戲啟動__
+  - `launchGame` → `'launch-game'`（invoke）
+
+- __模擬器設定與資產__
+  - `getEmulatorConfig` → `'get-emulator-config'`（invoke）
+  - `listEmulators` → `'list-emulators'`（invoke）
+  - `getEmulatorCapabilities` → `'get-emulator-capabilities'`（invoke）
+  - `getEmulatorSchema` → `'get-emulator-schema'`（invoke）
+  - `setEmulatorConfig` → `'set-emulator-config'`（invoke）
+  - `pickEmulatorBinary` → `'pick-emulator-binary'`（invoke）
+  - `getGameEmulatorConfig` → `'get-game-emulator-config'`（invoke）
+  - `setGameEmulatorConfig` → `'set-game-emulator-config'`（invoke）
+  - `updateFreej2meGameConf` → `'update-freej2me-game-conf'`（invoke）
+  - `pickFreej2meAsset` → `'freej2me:pick-asset'`（invoke）
+  - `importFreej2meAsset` → `'freej2me:import-asset'`（invoke）
+  - `getGameFolders` → `'get-game-folders'`（invoke）
+
+- __資料夾事件監聽__
+  - `onFolderUpdated` → `'folder-updated'`（event，return unsubscribe）
+  - `onFolderDeleted` → `'folder-deleted'`（event，return unsubscribe）
+  - `onGameFolderChanged` → `'game-folder-changed'`（event，return unsubscribe）
+  - `onFolderChanged` → `'folder-changed'`（event，return unsubscribe）
+
+- __跨窗口拖拽會話__
+  - `startDragSession` → `'drag-session:start'`（invoke）
+  - `updateDragSession` → `'drag-session:update'`（invoke）
+  - `dropDragSession` → `'drag-session:drop'`（invoke）
+  - `endDragSession` → `'drag-session:end'`（invoke）
+  - 事件：
+    - `onDragSessionStarted` → `'drag-session:started'`（return unsubscribe）
+    - `onDragSessionUpdated` → `'drag-session:updated'`（return unsubscribe）
+    - `onDragSessionEnded` → `'drag-session:ended'`（return unsubscribe）
+
+- __獨立資料夾窗口__
+  - `openFolderWindow` → `'open-folder-window'`（invoke）
+  - `closeFolderWindow` → `'close-folder-window'`（invoke）
+  - `minimizeFolderWindow` → `'folder-window-minimize'`（send）
+  - `maximizeFolderWindow` → `'folder-window-maximize'`（send）
+  - `closeFolderWindowSelf` → `'folder-window-close'`（send）
+  - `getCurrentFolderId` → 從 `process.argv` 解析（非 IPC）
+  - `folderWindowReady` → `'folder-window-ready'`（send）
+
+- __外部連結__
+  - `openExternal` → `'open-external'`（invoke）
+
+- __SQLite（可選）__
+  - `sqlGetAllGames` → `'sql:get-all-games'`（invoke）
+  - `sqlGetGame` → `'sql:get-game'`（invoke）
+  - `sqlSearchGames` → `'sql:games-searchByTitle'`（invoke）
+  - `sqlUpsertGames` → `'sql:games-upsertMany'`（invoke）
+
+- __雲端備份__
+  - `backupGetSpec` → `'backup:get-spec'`（invoke）
+  - `backupGetLast` → `'backup:get-last'`（invoke）
+  - `backupGetProviderParams` → `'backup:get-provider-params'`（invoke）
+  - `backupSetProviderParams` → `'backup:set-provider-params'`（invoke）
+  - `backupRun` → `'backup:run'`（invoke）
+  - `backupRestorePlan` → `'backup:restore-plan'`（invoke）
+  - `backupRestoreRun` → `'backup:restore-run'`（invoke）
+  - `onBackupProgress` → `'backup:progress'`（event，return unsubscribe）
+
+- __Dropbox Auth__
+  - `dropboxGetAuth` → `'dropbox:get-auth'`（invoke）
+  - `dropboxGetAccount` → `'dropbox:get-account'`（invoke）
+  - `dropboxGetAccountPhoto` → `'dropbox:get-account-photo'`（invoke）
+  - `dropboxOAuthStart` → `'dropbox:oauth-start'`（invoke）
+  - `dropboxUnlink` → `'dropbox:unlink'`（invoke）
+
+- __Windows 捷徑__
+  - `createShortcut` → `'create-shortcut'`（invoke）
+  - `onShortcutLaunch` → `'shortcut-launch'`（event，return unsubscribe）
 
 ## 序列化安全最佳實踐
 

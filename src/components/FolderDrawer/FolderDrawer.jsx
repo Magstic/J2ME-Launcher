@@ -52,26 +52,89 @@ const FolderDrawer = ({
     try { e.stopPropagation(); } catch {}
     const api = window.electronAPI;
     let handled = false;
+    try { console.log('[DROP_UI] drop on folder:', folder && folder.id); } catch {}
     // 優先走跨窗口拖拽會話
     try {
       if (api?.dropDragSession) {
-        await api.dropDragSession({ type: 'folder', id: folder.id });
-        handled = true;
+        // 先探測 dataTransfer 類型，推斷是否為內部拖拽
+        let types = [];
+        let filesLen = 0;
+        try {
+          types = Array.from((e.dataTransfer && e.dataTransfer.types) ? e.dataTransfer.types : []);
+          filesLen = e.dataTransfer?.files ? e.dataTransfer.files.length : 0;
+        } catch {}
+        const hasInternalMIME = types.includes('application/x-j2me-internal') || types.includes('application/x-j2me-filepath');
+        const internalHint = !!(hasInternalMIME || (types.length === 0 && filesLen === 0));
+        try { console.log('[DROP_UI] attempting dropDragSession to folder:', folder && folder.id, 'internal=', internalHint, 'types=', types); } catch {}
+        const dropRes = await api.dropDragSession({ type: 'folder', id: folder.id, internal: internalHint });
+        try { console.log('[DROP_UI] dropDragSession result:', dropRes); } catch {}
+        handled = !!(dropRes && dropRes.success === true);
       }
     } catch {}
 
     if (!handled) {
       // 後備：HTML5 內部拖拽（僅單個 text/plain 檔案路徑）
       try {
-        const filePath = e.dataTransfer?.getData && e.dataTransfer.getData('text/plain');
-        if (filePath) {
-          await api?.addGameToFolder?.(filePath, folder.id);
-          handled = true;
+        try {
+          const types = Array.from((e.dataTransfer && e.dataTransfer.types) ? e.dataTransfer.types : []);
+          console.log('[DROP_UI] dataTransfer.types=', types);
+          const filesLen = e.dataTransfer?.files ? e.dataTransfer.files.length : 0;
+          console.log('[DROP_UI] dataTransfer.files.length=', filesLen, filesLen > 0 ? ('first.path=' + (e.dataTransfer.files[0]?.path || '')) : '');
+        } catch {}
+        const raw = e.dataTransfer?.getData && e.dataTransfer.getData('text/plain');
+        let filePath = raw;
+        // 嘗試其它常見 MIME 類型
+        if (!filePath) {
+          try {
+            const altText = e.dataTransfer?.getData && e.dataTransfer.getData('text');
+            if (altText) filePath = altText;
+          } catch {}
+        }
+        if (!filePath) {
+          try {
+            const uriList = e.dataTransfer?.getData && e.dataTransfer.getData('text/uri-list');
+            if (uriList) filePath = uriList.split(/\r?\n/)[0];
+          } catch {}
+        }
+        if (!filePath) {
+          try {
+            const custom = e.dataTransfer?.getData && e.dataTransfer.getData('application/x-j2me-filepath');
+            if (custom) filePath = custom;
+          } catch {}
+        }
+        if (!filePath && e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+          try {
+            const f0 = e.dataTransfer.files[0];
+            const fpath = f0 && (f0.path || f0.name);
+            if (fpath) filePath = fpath;
+          } catch {}
+        }
+        // 兼容 GameCard 拖拽時寫入的 JSON payload
+        if (raw && typeof raw === 'string' && raw.trim().startsWith('{')) {
+          try {
+            const payload = JSON.parse(raw);
+            try { console.log('[DROP_UI] parsed JSON payload from text/plain:', payload && Object.keys(payload)); } catch {}
+            if (payload && payload.type === 'game') {
+              if (payload.game && typeof payload.game.filePath === 'string') filePath = payload.game.filePath;
+              else if (typeof payload.filePath === 'string') filePath = payload.filePath;
+            }
+          } catch (err) {
+            try { console.log('[DROP_UI] JSON.parse failed for text/plain payload:', err && err.message); } catch {}
+          }
+        }
+        if (filePath && typeof filePath === 'string') {
+          try { console.log('[DROP_UI] fallback addGameToFolder with filePath:', filePath, '→ folder:', folder && folder.id); } catch {}
+          const r = await api?.addGameToFolder?.(filePath, folder.id);
+          try { console.log('[DROP_UI] fallback addGameToFolder result:', r); } catch {}
+          handled = !!(r && r.success !== false);
+        } else {
+          try { console.log('[DROP_UI] fallback missing usable filePath, raw=', raw); } catch {}
         }
       } catch {}
     }
 
     // 結束會話
+    try { console.log('[DROP_UI] calling endDragSession()'); } catch {}
     try { api?.endDragSession?.(); } catch {}
     setHoverFolderId(null);
     if (handled) {

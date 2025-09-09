@@ -9,6 +9,7 @@ function register({ ipcMain, DataStore, toIconUrl }) {
     try {
       const games = sqlGetUncategorizedGames();
       const gameItems = games.map(g => ({ type: 'game', ...g, iconUrl: toIconUrl(g.iconPath) }));
+      try { console.log('[desktop:get-desktop-items] count=', gameItems.length, 'sample=', gameItems.slice(0, 5).map(x => x.filePath)); } catch {}
       return gameItems;
     } catch (error) {
       console.error('獲取桌面項目失敗:', error);
