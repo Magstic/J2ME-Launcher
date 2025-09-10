@@ -44,6 +44,7 @@ export const useDesktopManager = ({ onGameLaunch }) => {
   // 事件監聽
   useDesktopEventListeners({
     guardedRefresh: desktopState.guardedRefresh,
+    loadDesktopItems: desktopState.loadDesktopItems,
     setBulkMutating: desktopState.setBulkMutating,
     setBulkStatus: desktopState.setBulkStatus
   });

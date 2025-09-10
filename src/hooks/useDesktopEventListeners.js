@@ -7,6 +7,7 @@ import { useTranslation } from '@hooks/useTranslation';
  */
 export const useDesktopEventListeners = ({
   guardedRefresh,
+  loadDesktopItems,
   setBulkMutating,
   setBulkStatus
 }) => {
@@ -34,16 +35,25 @@ export const useDesktopEventListeners = ({
     }
   }, [guardedRefresh]);
 
-  // 監聽遊戲變更事件
+  // 監聽遊戲變更事件（僅重新載入桌面項目，避免與 App 層全量刷新重疊）
   useEffect(() => {
     if (window.electronAPI?.onGamesUpdated) {
-      const unsubscribe = window.electronAPI.onGamesUpdated(() => {
-        console.log('遊戲變更事件觸發');
-        guardedRefresh();
-      });
-      return unsubscribe;
+      let timer = null;
+      const handler = () => {
+        console.log('遊戲變更事件觸發（desktop）: 僅重新載入桌面項目');
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => {
+          try { loadDesktopItems && loadDesktopItems(); } catch (_) {}
+          timer = null;
+        }, 50);
+      };
+      const unsubscribe = window.electronAPI.onGamesUpdated(handler);
+      return () => {
+        if (timer) clearTimeout(timer);
+        return unsubscribe && unsubscribe();
+      };
     }
-  }, [guardedRefresh]);
+  }, [loadDesktopItems]);
 
   // 監聽批次操作事件
   useEffect(() => {

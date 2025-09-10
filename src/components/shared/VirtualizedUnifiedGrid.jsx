@@ -329,7 +329,7 @@ const VirtualizedUnifiedGrid = ({
       ref={containerRef}
       onMouseDown={containerMouseDown}
       onContextMenu={onContextMenu}
-      style={{ scrollbarGutter: 'stable', overflow: 'hidden auto' }}
+      style={{ overflow: 'hidden' }}
     >
       {virtEnabled ? (
         <Grid
