@@ -136,6 +136,7 @@
 
   /* 允許內部彈性項在容器內縮小，避免被撐開引起回流 */
   min-width: 0;
+
   /* 重要：在 flex 容器中允許自身縮小，從而啟用自身或子級滾動 */
   min-height: 0;
 }
@@ -144,6 +145,7 @@
 .modal-content.has-actions .modal-body {
   /* 上 右 下 左 */
   padding: 16px 8px 16px 14px;
+
   /* 用 auto 避免總是顯示滾動條，並與子級滾動更好協作 */
   overflow-y: auto;
 }
@@ -468,7 +470,9 @@ input[type="radio"], input[type="checkbox"] {
   overflow-y: auto;
 
   /* 佔滿剩餘高度，空狀態才能垂直置中 */
+
   flex: 1 1 auto;
+  
   /* 重要：允許在彈性容器中縮小，啟用自身滾動 */
   min-height: 0;
 }
