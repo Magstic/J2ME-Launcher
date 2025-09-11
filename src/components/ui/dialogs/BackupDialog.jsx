@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import '../../DirectoryManager.css';
-import { ModalWithFooter, Select, ToggleSwitch, ModalHeaderOnly } from '@ui';
+import { ModalWithFooter, Select, ToggleSwitch, ModalHeaderOnly, ProgressPanel } from '@ui';
 import ConflictResolveDialog from './ConflictResolveDialog.jsx';
 import { useTranslation } from '@hooks/useTranslation';
 
@@ -494,49 +494,16 @@ export default function BackupDialog({ isOpen, onClose }) {
         ))}
       </div>
 
-      {/* 進度條容器（預設顯示，初始為待命狀態） */}
-      <div className="card card-muted p-12  mb-12">
-          <div className="card-title">{t('sync.progress')}</div>
-          {/* 外框 */}
-          <div style={{ position: 'relative', height: 8, borderRadius: 6, background: 'var(--overlay-on-light-12)', overflow: 'hidden' }}>
-            {(() => {
-              const pct = (() => {
-                const t = Number(progress.total || 0);
-                const d = Number(progress.done || 0);
-                if (!t) return 0;
-                const v = Math.max(0, Math.min(1, d / t));
-                return Math.round(v * 100);
-              })();
-              return (
-                <div
-                  style={{
-                    position: 'absolute',
-                    left: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: `${Math.max(2, pct)}%`, // 最少顯示細條
-                    background: 'linear-gradient(90deg, rgba(87,161,255,0.9), rgba(87,161,255,0.6))',
-                    transform: 'translateZ(0)', // GPU-friendly
-                    transition: 'width 200ms ease-out',
-                  }}
-                />
-              );
-            })()}
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 12, opacity: 0.9 }}>
-            <div>
-              {t('sync.status')}{t(`sync.phase.${progress.phase || 'idle'}`)}
-            </div>
-            <div>
-              {t('sync.count', { done: Number(progress.done || 0), total: Number(progress.total || 0) })}
-            </div>
-          </div>
-          {progress.current ? (
-            <div style={{ marginTop: 6, fontSize: 12, opacity: 0.8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {t('sync.current')}{progress.current}
-            </div>
-          ) : null}
-        </div>
+      {/* 進度條容器（使用通用進度面板） */}
+      <ProgressPanel
+        title={t('sync.progress')}
+        done={Number(progress.done || 0)}
+        total={Number(progress.total || 0)}
+        status={`${t('sync.status')}${t(`sync.phase.${progress.phase || 'idle'}`)}`}
+        countText={t('sync.count', { done: Number(progress.done || 0), total: Number(progress.total || 0) })}
+        current={progress.current ? `${t('sync.current')}${progress.current}` : ''}
+        className="mb-12"
+      />
     </ModalWithFooter>
 
     {/* 衝突處理對話框 */}

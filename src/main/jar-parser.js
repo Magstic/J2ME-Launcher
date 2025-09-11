@@ -240,8 +240,18 @@ async function parseSingleJar(jarPath) {
 }
 
 // 增量掃描單個目錄
-async function processDirectory(directoryPath, isIncrementalScan = false) {
+async function processDirectory(directoryPath, isIncrementalScan = false, opts = {}) {
   console.log(`🚀 開始${isIncrementalScan ? '增量' : '全量'}處理目錄:`, directoryPath);
+  // Optional progress emitter
+  const emit = (payload) => {
+    try {
+      if (opts && typeof opts.emit === 'function') {
+        opts.emit({ directory: directoryPath, ...payload });
+      }
+    } catch (_) {}
+  };
+  // 初始階段：開始掃描（枚舉檔案）
+  emit({ phase: 'scanning', done: 0, total: 0 });
   
   const allFoundFiles = new Set();
   const filesToParse = [];
@@ -291,8 +301,12 @@ async function processDirectory(directoryPath, isIncrementalScan = false) {
 
   // 2. 解析需要更新的文件
   const newlyParsedGames = [];
+  let parsedCount = 0;
+  const totalToParse = filesToParse.length;
   if (filesToParse.length > 0) {
     console.log(`🔍 開始解析 ${filesToParse.length} 個檔案……`);
+    // 發出解析階段開始事件
+    emit({ phase: 'parsing', done: 0, total: totalToParse });
     
     for (const file of filesToParse) {
       try {
@@ -310,8 +324,15 @@ async function processDirectory(directoryPath, isIncrementalScan = false) {
         }
       } catch (error) {
         console.error(`解析文件失败 ${file.path}:`, error.message);
+      } finally {
+        // 無論成功與否，解析進度 +1
+        parsedCount += 1;
+        emit({ phase: 'parsing', done: parsedCount, total: totalToParse, current: file.path });
       }
     }
+  } else {
+    // 無需解析，也同步一次進度
+    emit({ phase: 'parsing', done: 0, total: 0 });
   }
 
   // 3. 只有當有新遊戲或非增量掃描時才更新掃描時間
@@ -329,6 +350,7 @@ async function processDirectory(directoryPath, isIncrementalScan = false) {
   }
   
   // 3.5 裁剪不存在於磁碟的舊記錄（外部刪除了 JAR 的情況）
+  emit({ phase: 'pruning', done: parsedCount, total: totalToParse });
   try {
     const normalizedDir = path.normalize(directoryPath).toLowerCase();
     const foundSet = new Set([...allFoundFiles].map(p => path.normalize(p).toLowerCase()));
@@ -376,6 +398,8 @@ async function processDirectory(directoryPath, isIncrementalScan = false) {
   
   // 資料已自動保存至 SQLite，無需手動保存
   console.log('💾 資料已保存至 SQLite');
+  // 最終階段：完成
+  emit({ phase: 'done', done: parsedCount, total: totalToParse });
 
   // 4. 返回本次掃描的結果統計
   const result = {
@@ -395,7 +419,7 @@ async function processDirectory(directoryPath, isIncrementalScan = false) {
 }
 
 // 多目錄增量掃描主函數
-async function processMultipleDirectories(directories = null, forceFullScan = false) {
+async function processMultipleDirectories(directories = null, forceFullScan = false, opts = {}) {
   console.log('🌍 開始多路徑掃描...');
   
   // 如果沒有指定目錄，從數據庫獲取啟用的目錄
@@ -450,7 +474,7 @@ async function processMultipleDirectories(directories = null, forceFullScan = fa
       
       // 执行掃描（除非強制全量掃描，否則使用增量掃描）
       const isIncremental = !forceFullScan;
-      const result = await processDirectory(directoryPath, isIncremental);
+      const result = await processDirectory(directoryPath, isIncremental, opts);
       
       results.push({
         ...result,

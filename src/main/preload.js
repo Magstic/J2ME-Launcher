@@ -18,6 +18,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 掃描功能
   scanDirectories: (forceFullScan = false) => ipcRenderer.invoke('scan-directories', forceFullScan),
   selectDirectory: () => ipcRenderer.invoke('select-directory'), // 保持向後相容
+  // 掃描進度事件
+  onScanProgress: (callback) => {
+    const ch = 'scan:progress';
+    const handler = (_e, payload) => callback && callback(payload);
+    ipcRenderer.on(ch, handler);
+    return () => ipcRenderer.removeListener(ch, handler);
+  },
   
   // 事件監聽
   onGamesUpdated: (callback) => {

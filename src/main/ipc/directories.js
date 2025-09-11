@@ -135,7 +135,11 @@ function register({ ipcMain, dialog, DataStore, processDirectory, processMultipl
     try {
       console.log(`🚀 开始${forceFullScan ? '全量' : '增量'}扫描所有目录...`);
 
-      const result = await processMultipleDirectories(null, forceFullScan);
+      const result = await processMultipleDirectories(null, forceFullScan, {
+        emit: (payload) => {
+          try { broadcastToAll('scan:progress', payload); } catch (_) {}
+        }
+      });
 
       if (result.success) {
         // 直接從 SQL 獲取並廣播遊戲列表
@@ -184,7 +188,11 @@ function register({ ipcMain, dialog, DataStore, processDirectory, processMultipl
     try { sqlAddDirectory(directoryPath); } catch (e) { console.warn('[SQL write] addDirectory (single) failed:', e.message); }
 
     try {
-      const result = await processDirectory(directoryPath, false);
+      const result = await processDirectory(directoryPath, false, {
+        emit: (payload) => {
+          try { broadcastToAll('scan:progress', payload); } catch (_) {}
+        }
+      });
       try {
         const sqlGames = getAllGamesFromSql();
         broadcastToAll('games-updated', addUrlToGames(sqlGames));

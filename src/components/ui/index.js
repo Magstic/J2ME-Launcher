@@ -15,3 +15,4 @@ export { default as AboutDialog } from './dialogs/AboutDialog.jsx';
 export { default as EmulatorNotConfiguredDialog } from './dialogs/EmulatorNotConfiguredDialog.jsx';
 export { default as SettingsDialog } from './dialogs/SettingsDialog.jsx';
 export { default as WelcomeGuideDialog } from './dialogs/WelcomeGuideDialog.jsx';
+export { default as ProgressPanel } from './ProgressPanel.jsx';

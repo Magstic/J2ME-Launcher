@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './DirectoryManager.css';
-import { ModalWithFooter, ToggleSwitch } from '@ui';
+import { ModalWithFooter, ToggleSwitch, ProgressPanel } from '@ui';
 import { useTranslation } from '@hooks/useTranslation';
 
 function DirectoryManager({ isOpen, onClose, onDirectoriesChanged }) {
@@ -9,6 +9,9 @@ function DirectoryManager({ isOpen, onClose, onDirectoriesChanged }) {
   const [directories, setDirectories] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [scanProgress, setScanProgress] = useState(null);
+  // 進度彙總：跨多個目錄彙總 done/total
+  const scanAggRef = useRef(new Map()); // directory -> { done, total }
+  const unsubScanRef = useRef(null);
   const requestCloseRef = useRef(null);
   // 刪除資料夾確認對話框
   const [confirmRemove, setConfirmRemove] = useState({ isOpen: false, directoryPath: null });
@@ -19,12 +22,47 @@ function DirectoryManager({ isOpen, onClose, onDirectoriesChanged }) {
     if (!isOpen) return;
   }, [isOpen]);
 
+  // 清理掃描進度訂閱：僅在元件卸載時取消（避免關閉彈窗中斷後臺掃描）
+  useEffect(() => {
+    return () => {
+      try { if (unsubScanRef.current) { unsubScanRef.current(); unsubScanRef.current = null; } } catch (_) {}
+    };
+  }, []);
+
   // 載入目錄列表
   useEffect(() => {
     if (isOpen) {
       loadDirectories();
     }
   }, [isOpen]);
+
+  // 當彈窗打開時，若尚未訂閱掃描進度，建立訂閱（避免關閉->重開後看起來「停止」）
+  useEffect(() => {
+    if (!isOpen) return;
+    if (unsubScanRef.current) return; // 已有訂閱
+    try {
+      unsubScanRef.current = window.electronAPI.onScanProgress((p) => {
+        try {
+          const dir = p && p.directory ? p.directory : 'global';
+          const prev = scanAggRef.current.get(dir) || { done: 0, total: 0 };
+          const next = {
+            done: (typeof p.done === 'number') ? p.done : prev.done,
+            total: (typeof p.total === 'number') ? p.total : prev.total,
+            current: p.current || prev.current,
+          };
+          scanAggRef.current.set(dir, next);
+          let sumDone = 0, sumTotal = 0;
+          for (const v of scanAggRef.current.values()) { sumDone += Number(v.done || 0); sumTotal += Number(v.total || 0); }
+          setScanProgress((prevState) => ({
+            message: prevState?.message || t('directoryManager.state'),
+            details: next.current || prevState?.details || '',
+            done: sumDone,
+            total: sumTotal,
+          }));
+        } catch (_) {}
+      });
+    } catch (_) {}
+  }, [isOpen, t]);
 
   const loadDirectories = async () => {
     try {
@@ -55,6 +93,8 @@ function DirectoryManager({ isOpen, onClose, onDirectoriesChanged }) {
       console.error('添加目錄失敗:', error);
     } finally {
       setIsLoading(false);
+      // 清理訂閱（保險）
+      try { if (unsubScanRef.current) { unsubScanRef.current(); unsubScanRef.current = null; } } catch (_) {}
     }
   };
 
@@ -97,15 +137,54 @@ function DirectoryManager({ isOpen, onClose, onDirectoriesChanged }) {
   // 執行掃描
   const handleScan = async (forceFullScan = false) => {
     setIsLoading(true);
-    setScanProgress({ message: t('directoryManager.state'), details: '' });
+    // 初始化 UI 與進度彙總
+    setScanProgress({ message: t('directoryManager.state'), details: '', done: 0, total: 0 });
+    scanAggRef.current = new Map();
+    // 訂閱主進程掃描進度事件
+    try {
+      if (unsubScanRef.current) { try { unsubScanRef.current(); } catch (_) {} }
+      unsubScanRef.current = window.electronAPI.onScanProgress((p) => {
+        try {
+          const dir = p && p.directory ? p.directory : 'global';
+          const prev = scanAggRef.current.get(dir) || { done: 0, total: 0 };
+          const next = {
+            done: (typeof p.done === 'number') ? p.done : prev.done,
+            total: (typeof p.total === 'number') ? p.total : prev.total,
+            current: p.current || prev.current,
+          };
+          scanAggRef.current.set(dir, next);
+          // 彙總所有目錄
+          let sumDone = 0, sumTotal = 0;
+          for (const v of scanAggRef.current.values()) {
+            sumDone += Number(v.done || 0);
+            sumTotal += Number(v.total || 0);
+          }
+          setScanProgress({
+            message: t('directoryManager.state'),
+            details: next.current || '',
+            done: sumDone,
+            total: sumTotal,
+          });
+        } catch (_) {}
+      });
+    } catch (_) {}
     
     try {
       const result = await window.electronAPI.scanDirectories(forceFullScan);
       
       if (result.success) {
+        // 完成時取消訂閱並最終對齊 100%
+        try {
+          if (unsubScanRef.current) { unsubScanRef.current(); unsubScanRef.current = null; }
+        } catch (_) {}
+        let sumDone = 0, sumTotal = 0;
+        for (const v of scanAggRef.current.values()) { sumDone += Number(v.done || 0); sumTotal += Number(v.total || 0); }
+        if (sumTotal > 0 && sumDone < sumTotal) sumDone = sumTotal;
         setScanProgress({
           message: t('directoryManager.over'),
-          details: t('directoryManager.gain', { count: result.scanResult.summary.totalNewGames })
+          details: t('directoryManager.gain', { count: result.scanResult.summary.totalNewGames }),
+          done: sumDone,
+          total: sumTotal
         });
         
         // 重新載入目錄列表以顯示更新的掃描時間
@@ -199,14 +278,16 @@ function DirectoryManager({ isOpen, onClose, onDirectoriesChanged }) {
             </button>
           </div>
 
-          {/* 掃描進度 */}
+          {/* 掃描進度（使用通用進度面板） */}
           {scanProgress && (
-            <div className="scan-progress">
-              <div className="progress-message">{scanProgress.message}</div>
-              {scanProgress.details && (
-                <div className="progress-details">{scanProgress.details}</div>
-              )}
-            </div>
+            <ProgressPanel
+              title={t('directoryManager.scan')}
+              status={scanProgress.message}
+              current={scanProgress.details}
+              done={Number(scanProgress.done || 0)}
+              total={Number(scanProgress.total || 0)}
+              className="mb-20"
+            />
           )}
 
           {/* 目錄列表 */}
