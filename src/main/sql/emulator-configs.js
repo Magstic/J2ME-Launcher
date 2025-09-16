@@ -3,12 +3,14 @@
 // We store a single row per game under emulator='default' to match legacy DataStore shape.
 
 const { getDB } = require('../db');
+const path = require('path');
 
 const EMULATOR_KEY = 'default';
 
 function getGameEmulatorConfig(filePath) {
   const db = getDB();
-  const row = db.prepare(`SELECT config FROM emulator_configs WHERE filePath=? AND emulator=?`).get(filePath, EMULATOR_KEY);
+  const p = normalizePathInput(filePath);
+  const row = db.prepare(`SELECT config FROM emulator_configs WHERE filePath=? AND emulator=?`).get(p, EMULATOR_KEY);
   if (!row) return null;
   try { return JSON.parse(row.config); } catch { return null; }
 }
@@ -20,8 +22,14 @@ function setGameEmulatorConfig(filePath, configObj) {
     INSERT INTO emulator_configs (filePath, emulator, config)
     VALUES (?, ?, ?)
     ON CONFLICT(filePath, emulator) DO UPDATE SET config=excluded.config
-  `).run(filePath, EMULATOR_KEY, config);
+  `).run(normalizePathInput(filePath), EMULATOR_KEY, config);
   return configObj || null;
+}
+
+function normalizePathInput(p) {
+  if (!p || typeof p !== 'string') return p;
+  const n = path.normalize(p);
+  return process.platform === 'win32' ? n.replace(/\//g, '\\') : n;
 }
 
 module.exports = {

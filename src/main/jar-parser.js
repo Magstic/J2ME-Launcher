@@ -16,6 +16,17 @@ const { parseJarWithReaders } = require('./readers/factory.js');
 
 // 上述三個函式已抽離到 parsers/，此處僅導入使用
 
+// 統一日誌：使用具名 logger 並將本模塊的 console.* 轉發到該 logger
+const { getLogger } = require('../utils/logger.cjs');
+const log = getLogger('JarParser');
+const console = {
+  log: (...args) => log.info(...args),
+  info: (...args) => log.info(...args),
+  warn: (...args) => log.warn(...args),
+  error: (...args) => log.error(...args),
+  debug: (...args) => log.debug(...args),
+};
+
 // The one and only parser function
 async function parseJarFile(jarPath) {
   try {

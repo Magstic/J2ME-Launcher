@@ -1,15 +1,23 @@
 import React, { useRef } from 'react';
 import './FolderSelectDialog.css';
 import ModalWithFooter from "../ModalWithFooter.jsx";
+import { useTranslation } from '@hooks/useTranslation';
 
 const FolderSelectDialog = ({ 
   isOpen, 
   folders = [], 
   onClose, 
   onSelect,
-  title = "選擇資料夾",
-  message = "請選擇要加入的資料夾："
+  // 新接口（推薦）：直接傳遞文案字串
+  title,
+  message,
+  // 舊接口（兼容）：早期錯誤命名，實為字串而非回調
+  onTitle,
+  onMessage
 }) => {
+  const { t } = useTranslation();
+  const effectiveTitle = (title ?? onTitle) ?? t('desktopManager.folderSelect.title');
+  const effectiveMessage = (message ?? onMessage) ?? t('desktopManager.folderSelect.single');
   const requestCloseRef = useRef(null);
   if (!isOpen) return null;
 
@@ -22,25 +30,24 @@ const FolderSelectDialog = ({
     <ModalWithFooter
       isOpen={isOpen}
       onClose={onClose}
-      title={title}
+      title={effectiveTitle}
       size="md"
       requestCloseRef={requestCloseRef}
       footer={
         <div className="folder-select-footer">
           {/* 使用共用按鈕樣式，統一尺寸與風格 */}
           <button className="btn btn-secondary" onClick={() => requestCloseRef.current && requestCloseRef.current()}>
-            取消
+            {t('app.cancel')}
           </button>
         </div>
       }
     >
       <div className="folder-select-content">
-        <p className="folder-select-message">{message}</p>
+        <p className="folder-select-message">{effectiveMessage}</p>
         {folders.length === 0 ? (
           <div className="no-folders">
             <div className="no-folders-icon">📁</div>
-            <p>沒有可用的資料夾</p>
-            <p className="no-folders-hint">請先創建一個資料夾</p>
+            <p>{t('desktopManager.noFolder.message')}</p>
           </div>
         ) : (
           <div className="folder-list">
@@ -54,7 +61,7 @@ const FolderSelectDialog = ({
                 <div className="folder-info">
                   <div className="folder-name">{folder.name}</div>
                   <div className="folder-count">
-                    {folder.gameCount || 0} 個遊戲
+                    {t('app.member')}：{folder.gameCount || 0}
                   </div>
                 </div>
                 <div className="folder-arrow">→</div>

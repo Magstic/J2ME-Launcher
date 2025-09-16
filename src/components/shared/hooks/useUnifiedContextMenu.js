@@ -35,11 +35,17 @@ export default function useUnifiedContextMenu(callbacks = {}) {
       if (ctx.kind === 'blank') return; // 停用桌面空白區域右鍵菜單
       else if (ctx.kind === 'folder') menuType = 'folder';
       else if (ctx.kind === 'game') menuType = 'game';
+      else if (ctx.kind === 'cluster') menuType = 'cluster';
       else if (ctx.kind === 'game-grid') menuType = 'game-grid';
     } else if (ctx.view === 'folder-window') {
       if (ctx.kind === 'game') {
         // 在資料夾視圖中，遊戲應使用 game-folder，並帶上 folderInfo 以顯示「移除」
         menuType = 'game-folder';
+        if (finalTarget && !finalTarget.folderInfo && ctx.extra?.folderId != null) {
+          finalTarget = { ...finalTarget, folderInfo: { folderId: ctx.extra.folderId } };
+        }
+      } else if (ctx.kind === 'cluster') {
+        menuType = 'cluster-folder';
         if (finalTarget && !finalTarget.folderInfo && ctx.extra?.folderId != null) {
           finalTarget = { ...finalTarget, folderInfo: { folderId: ctx.extra.folderId } };
         }
@@ -58,6 +64,10 @@ export default function useUnifiedContextMenu(callbacks = {}) {
     // 附加多選資料：若有提供 selectedFilePaths，將其附加到目標上
     if (finalTarget && Array.isArray(ctx?.selectedFilePaths) && ctx.selectedFilePaths.length > 0) {
       finalTarget = { ...finalTarget, selectedFilePaths: ctx.selectedFilePaths };
+    }
+    // 附加多選簇：支援『混合選擇』（在遊戲右鍵時也能把選中的簇一起加入資料夾）
+    if (finalTarget && Array.isArray(ctx?.selectedClusterIds) && ctx.selectedClusterIds.length > 0) {
+      finalTarget = { ...finalTarget, selectedClusterIds: ctx.selectedClusterIds };
     }
 
     if (!menuType) return;

@@ -2,7 +2,8 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { FixedSizeGrid as Grid } from 'react-window';
 import GameCard from '../GameCard';
-import { CARD_WIDTH, CARD_HEIGHT, GRID_GAP, ITEM_WIDTH, ITEM_HEIGHT, VIRTUALIZATION_THRESHOLD, FLIP_DURATION } from '@config/perf';
+import ClusterCard from '../ClusterCard';
+import { CARD_WIDTH, GRID_GAP, ITEM_WIDTH, ITEM_HEIGHT, VIRTUALIZATION_THRESHOLD, FLIP_DURATION } from '@config/perf';
 import useSelectionBox from '@shared/hooks/useSelectionBox';
 import useDragSession from '@shared/hooks/useDragSession';
 import { AppIconSvg } from '@/assets/icons';
@@ -14,15 +15,12 @@ import { AppIconSvg } from '@/assets/icons';
 
 // Grid Cell 渲染器
 const GridCell = React.memo(({ columnIndex, rowIndex, style, data }) => {
-  const { items, columns, itemWidth, selectedSet, onItemClick, onItemContextMenu, onItemMouseDown, onItemDragStart, onItemDragEnd, dragState, gameCardExtraProps } = data;
+  const { items, columns, selectedSet, onItemClick, onItemContextMenu, onItemMouseDownKey, onItemDragStart, onItemDragEnd, dragState, gameCardExtraProps, onClusterClick, onClusterContextMenu, onClusterDragStart, onClusterDragEnd, clustersList } = data;
   const index = rowIndex * columns + columnIndex;
 
   if (index >= items.length) return <div style={style} />;
 
   const item = items[index];
-  const isSelected = selectedSet?.has(item.filePath);
-  const isDraggingSelf = dragState?.isDragging && dragState?.draggedType === item.type &&
-    dragState?.draggedItem?.filePath === item.filePath;
 
   // 調整樣式以匹配自適應寬度
   const cellStyle = {
@@ -33,11 +31,11 @@ const GridCell = React.memo(({ columnIndex, rowIndex, style, data }) => {
     padding: `${GRID_GAP / 2}px`,
   };
 
-  // 桌面只顯示遊戲，不會有資料夾項目
-
+  // 渲染遊戲
   if (item.type === 'game') {
     const extra = (typeof gameCardExtraProps === 'function') ? (gameCardExtraProps(item) || {}) : (gameCardExtraProps || {});
-    const isSelected = selectedSet.has(item.filePath);
+    const key = `game:${item.filePath}`;
+    const isSelected = selectedSet.has(key);
     const isDraggingSelf = dragState.isDragging && dragState.draggedItem?.filePath === item.filePath;
 
     return (
@@ -47,14 +45,51 @@ const GridCell = React.memo(({ columnIndex, rowIndex, style, data }) => {
           filePath={item.filePath}
           isSelected={isSelected}
           draggable={true}
-          data-filepath={item.filePath}
+          data-filepath={key}
           onLaunchById={() => onItemClick?.(item)}
           onDragStartById={(filePath, e) => onItemDragStart?.(filePath, e)}
           onDragEnd={onItemDragEnd}
-          onMouseDownById={(filePath, e) => onItemMouseDown?.(filePath, e)}
+          onMouseDownById={(_, e) => onItemMouseDownKey?.(key, e)}
           onContextMenu={(e) => onItemContextMenu?.(e, item)}
           className={`game-card ${isDraggingSelf ? 'dragging' : ''} ${isSelected ? 'selected' : ''}`}
           {...extra}
+        />
+      </div>
+    );
+  }
+
+  // 渲染簇（Cluster）
+  if (item.type === 'cluster') {
+    const key = `cluster:${item.id}`;
+    const isSelectedCluster = !!selectedSet?.has(key);
+    // 僅保留仍存在於當前列表中的選中簇 ID
+    const currentSet = new Set((clustersList || []).map(c => String(c.id)));
+    const rawIds = Array.from(selectedSet || [])
+      .filter(k => typeof k === 'string' && k.startsWith('cluster:'))
+      .map(k => k.slice(8));
+    const filteredIds = rawIds.filter(id => currentSet.has(String(id)));
+    const isMulti = filteredIds.length > 1 && filteredIds.includes(String(item.id));
+    // 將當前選中的遊戲（filePath）也附帶給右鍵菜單，支援『混合選擇』情境
+    const selectedGameFilePaths = (selectedSet && selectedSet.size > 0)
+      ? Array.from(selectedSet).filter(k => typeof k === 'string' && k.startsWith('game:')).map(k => k.slice(5))
+      : [];
+    const clusterPayload = isMulti
+      ? { ...item, selectedClusterIds: filteredIds, selectedFilePaths: selectedGameFilePaths }
+      : { ...item, selectedFilePaths: selectedGameFilePaths };
+    return (
+      <div style={cellStyle}>
+        <ClusterCard
+          cluster={item}
+          id={item.id}
+          isSelected={!!isSelectedCluster}
+          onClick={() => onClusterClick && onClusterClick(item)}
+          onMouseDown={(e) => onItemMouseDownKey && onItemMouseDownKey(key, e)}
+          onContextMenu={(e) => onClusterContextMenu && onClusterContextMenu(e, clusterPayload)}
+          draggable={true}
+          data-filepath={key}
+          onDragStart={(e) => onClusterDragStart && onClusterDragStart(item, e)}
+          onDragEnd={onClusterDragEnd}
+          className={`cluster-card`}
         />
       </div>
     );
@@ -66,11 +101,14 @@ const GridCell = React.memo(({ columnIndex, rowIndex, style, data }) => {
 const VirtualizedUnifiedGrid = ({
   // 資料
   games = [],
+  items: itemsProp = null,
 
   // 點擊/右鍵
   onGameClick,
   onGameContextMenu,
   onBlankContextMenu,
+  onClusterClick,
+  onClusterContextMenu,
 
   // 拖拽
   onDragStart,
@@ -93,33 +131,50 @@ const VirtualizedUnifiedGrid = ({
   const containerRef = React.useRef(null);
   const [gridDimensions, setGridDimensions] = React.useState({ width: 800, height: 600, columnCount: 5, rowCount: 1, itemWidth: ITEM_WIDTH });
 
-  // 框選
+  // 框選（統一：同時覆蓋遊戲與簇）
   const sel = useSelectionBox({
     rootRef: containerRef,
     controlled: selectionControlled,
     selectedSet: selectionProps.selectedSet,
     onSelectedChange: selectionProps.onSelectedChange,
-    isBlankArea: (e) => {
+    isBlankArea: selectionProps.isBlankArea || ((e) => {
       const el = e.target;
-      return !(el?.closest && el.closest('.game-card, .folder-card, .context-menu'));
-    },
-    hitSelector: '.game-card',
+      return !(el?.closest && el.closest('.game-card, .cluster-card, .folder-card, .context-menu'));
+    }),
+    hitSelector: '.game-card, .cluster-card',
     fadeDuration: FLIP_DURATION,
-    gamesList: games,
+    gamesList: itemsProp || games,
     enableCachePersistence: true,
-    // 傳遞偏移量給框選系統
-    containerOffset: { left: gridDimensions.leftOffset || 0, top: 0 },
   });
 
-  // 拖拽會話
-  const selectedRef = React.useRef(new Set());
-  React.useEffect(() => { selectedRef.current = sel.selected; }, [sel.selected]);
-  const { handleGameDragStart, endDragSession } = useDragSession({ selectedRef, games, source: dragSource });
+  // 準備 clusters 清單供拖拽/右鍵使用
+  const clustersList = React.useMemo(() => (itemsProp || []).filter?.(x => x?.type === 'cluster') || [], [itemsProp]);
 
-  // 桌面只顯示遊戲，不處理資料夾
+  // 從統一選擇集中派生：遊戲 filePaths 與簇 ids（供拖拽與右鍵使用）
+  const selectedGameRef = React.useRef(new Set());
+  const selectedClustersRef = React.useRef(new Set());
+  React.useEffect(() => {
+    const keys = sel.selected || new Set();
+    const gameSet = new Set();
+    const clusterSet = new Set();
+    keys.forEach(k => {
+      if (typeof k === 'string') {
+        if (k.startsWith('game:')) gameSet.add(k.slice(5));
+        else if (k.startsWith('cluster:')) clusterSet.add(k.slice(8));
+      }
+    });
+    selectedGameRef.current = gameSet;
+    selectedClustersRef.current = clusterSet;
+  }, [sel.selected]);
+
+  // 拖拽會話
+  const { handleGameDragStart, handleClusterDragStart, endDragSession } = useDragSession({ selectedRef: selectedGameRef, games, source: dragSource, clusters: clustersList, selectedClustersRef });
+
+  // 統一 Items：若提供 itemsProp 則優先使用；否則由 games 推導
   const items = React.useMemo(() => {
+    if (Array.isArray(itemsProp)) return itemsProp;
     return games.map(game => ({ ...game, type: 'game' }));
-  }, [games]);
+  }, [itemsProp, games]);
 
   // 計算網格尺寸
   const calculateGridDimensions = React.useCallback(() => {
@@ -171,43 +226,75 @@ const VirtualizedUnifiedGrid = ({
     return () => window.removeEventListener('resize', updateDimensions);
   }, [calculateGridDimensions]);
 
+  // 外部要求重設簇選中（例如合簇完成後只保留目標簇）
+  React.useEffect(() => {
+    const onReset = (e) => {
+      try {
+        const arr = (e && e.detail && Array.isArray(e.detail.ids)) ? e.detail.ids : [];
+        const clusterKeys = new Set((arr || []).map(id => `cluster:${String(id)}`));
+        sel.setSelected(clusterKeys);
+        // 同步 ref 派生
+        selectedClustersRef.current = new Set((arr || []).map(id => String(id)));
+        selectedGameRef.current = new Set();
+      } catch (_) {}
+    };
+    window.addEventListener('clusters-selection-reset', onReset);
+    return () => window.removeEventListener('clusters-selection-reset', onReset);
+  }, [sel.setSelected]);
+
   const itemCount = items.length;
   const virtEnabled = !!(virtualization?.enabled) && itemCount >= VIRTUALIZATION_THRESHOLD;
   const rowCount = Math.ceil(itemCount / gridDimensions.columnCount);
 
   // 事件處理器
-  const gameIndexMap = React.useMemo(() => {
+  const keyForItem = React.useCallback((it) => (it?.type === 'cluster' ? `cluster:${it.id}` : `game:${it.filePath}`), []);
+  const keyIndexMap = React.useMemo(() => {
     const map = new Map();
-    for (let i = 0; i < games.length; i++) {
-      map.set(games[i]?.filePath, i);
+    for (let i = 0; i < items.length; i++) {
+      const k = keyForItem(items[i]);
+      if (k) map.set(k, i);
     }
     return map;
-  }, [games]);
+  }, [items, keyForItem]);
 
   const anchorIndexRef = React.useRef(null);
 
   const onItemClick = React.useCallback((item) => {
     if (item.type === 'game' && onGameClick) {
       onGameClick(item);
+    } else if (item.type === 'cluster' && onClusterClick) {
+      onClusterClick(item);
     }
-  }, [onGameClick]);
+  }, [onGameClick, onClusterClick]);
 
   const onItemContextMenu = React.useCallback((e, item) => {
     if (item.type === 'game' && onGameContextMenu) {
-      let useList = [item.filePath];
-      if (sel.selected.size > 1 && sel.selected.has(item.filePath)) {
-        useList = Array.from(sel.selected);
-      }
-      onGameContextMenu(e, item, useList);
+      const key = `game:${item.filePath}`;
+      const selKeys = sel.selected || new Set();
+      const selectedGamePaths = Array.from(selKeys)
+        .filter(k => typeof k === 'string' && k.startsWith('game:'))
+        .map(k => k.slice(5));
+      const useList = (selKeys.size > 1 && selKeys.has(key) && selectedGamePaths.length > 0)
+        ? selectedGamePaths
+        : [item.filePath];
+      // 附帶簇的多選 ID，支援混合選擇
+      const existing = new Set((clustersList || []).map(c => String(c.id)));
+      const clusterIds = Array.from(selKeys)
+        .filter(k => typeof k === 'string' && k.startsWith('cluster:'))
+        .map(k => k.slice(8))
+        .filter(id => existing.has(String(id)));
+      onGameContextMenu(e, item, useList, clusterIds);
+    } else if (item.type === 'cluster' && onClusterContextMenu) {
+      onClusterContextMenu(e, item);
     }
-  }, [onGameContextMenu, sel.selected]);
+  }, [onGameContextMenu, onClusterContextMenu, sel.selected]);
 
-  const onItemMouseDown = React.useCallback((filePath, e) => {
-    e.stopPropagation();
+  const onItemMouseDownKey = React.useCallback((key, e) => {
+    try { e.stopPropagation(); } catch (_) {}
     if (e.button === 2) return;
-    const curIdx = gameIndexMap.get(filePath);
+    const curIdx = keyIndexMap.get(key);
     const hasAnchor = typeof anchorIndexRef.current === 'number' && anchorIndexRef.current >= 0;
-    const isSelected = sel.selected.has(filePath);
+    const isSelected = sel.selected.has(key);
 
     if (e.shiftKey) {
       const anchor = hasAnchor ? anchorIndexRef.current : curIdx;
@@ -215,13 +302,13 @@ const VirtualizedUnifiedGrid = ({
       const end = Math.max(anchor, curIdx);
       const range = new Set();
       for (let i = start; i <= end; i++) {
-        const fp = games[i]?.filePath;
-        if (fp) range.add(fp);
+        const k = keyForItem(items[i]);
+        if (k) range.add(k);
       }
       sel.setSelected(prev => {
         if (e.ctrlKey || e.metaKey) {
           const next = new Set(prev);
-          for (const fp of range) next.add(fp);
+          for (const k of range) next.add(k);
           return next;
         }
         return range;
@@ -230,7 +317,7 @@ const VirtualizedUnifiedGrid = ({
     } else if (e.ctrlKey || e.metaKey) {
       sel.setSelected(prev => {
         const next = new Set(prev);
-        if (next.has(filePath)) next.delete(filePath); else next.add(filePath);
+        if (next.has(key)) next.delete(key); else next.add(key);
         return next;
       });
       anchorIndexRef.current = curIdx;
@@ -238,10 +325,10 @@ const VirtualizedUnifiedGrid = ({
       if (isSelected && sel.selected.size > 1) {
         return;
       }
-      sel.setSelected(new Set([filePath]));
+      sel.setSelected(new Set([key]));
       anchorIndexRef.current = curIdx;
     }
-  }, [gameIndexMap, games, sel.selected, sel.setSelected]);
+  }, [keyIndexMap, items, keyForItem, sel.selected, sel.setSelected]);
 
   const onItemDragStart = React.useCallback((filePath, e) => {
     const g = games.find(x => x.filePath === filePath);
@@ -267,20 +354,47 @@ const VirtualizedUnifiedGrid = ({
     }
   }, [endDragSession, onDragEnd]);
 
+  const onClusterDragStart = React.useCallback((cluster, e) => {
+    handleClusterDragStart(e, cluster);
+    if (onDragStart) onDragStart(cluster, 'cluster');
+  }, [handleClusterDragStart, onDragStart]);
+
+  const onClusterDragEnd = React.useCallback((e) => {
+    try { 
+      const ms = 2500; 
+      const ts = Date.now(); 
+      try { console.log('[DRAG_UI] onClusterDragEnd scheduled endDragSession in', ms, 'ms at', ts); } catch {}
+      setTimeout(() => { 
+        try { 
+          try { console.log('[DRAG_UI] onClusterDragEnd -> endDragSession now at', Date.now(), 'scheduledAt=', ts); } catch {}
+          endDragSession(); 
+        } catch (_) { } 
+      }, ms); 
+    } catch (_) { }
+    if (onDragEnd) {
+      try { setTimeout(() => { try { onDragEnd(e); } catch (_) { } }, 150); } catch (_) { }
+    }
+  }, [endDragSession, onDragEnd]);
+
   // Grid 項目資料
   const itemData = React.useMemo(() => ({
     items,
     columns: gridDimensions.columnCount,
     itemWidth: gridDimensions.itemWidth,
     selectedSet: sel.selected,
+    clustersList,
     onItemClick,
     onItemContextMenu,
-    onItemMouseDown,
+    onItemMouseDownKey,
     onItemDragStart,
     onItemDragEnd,
+    onClusterDragStart,
+    onClusterDragEnd,
     dragState,
-    gameCardExtraProps
-  }), [items, gridDimensions.columnCount, gridDimensions.itemWidth, sel.selected, onItemClick, onItemContextMenu, onItemMouseDown, onItemDragStart, onItemDragEnd, dragState, gameCardExtraProps]);
+    gameCardExtraProps,
+    onClusterClick,
+    onClusterContextMenu
+  }), [items, gridDimensions.columnCount, gridDimensions.itemWidth, sel.selected, clustersList, onItemClick, onItemContextMenu, onItemMouseDownKey, onItemDragStart, onItemDragEnd, onClusterDragStart, onClusterDragEnd, dragState, gameCardExtraProps, onClusterClick, onClusterContextMenu]);
 
   // 右鍵處理
   const onContextMenu = (e) => {
@@ -321,7 +435,19 @@ const VirtualizedUnifiedGrid = ({
     );
   }
 
-  const containerMouseDown = selectionControlled ? undefined : sel.onContainerMouseDown;
+  const containerMouseDown = selectionControlled ? undefined : (e) => {
+    // 先交給框選系統處理
+    sel.onContainerMouseDown?.(e);
+    // 若點擊空白區域（非卡片/菜單），清空簇選中
+    try {
+      const isOnCard = !!(e.target?.closest && e.target.closest('.game-card, .cluster-card, .folder-card, .context-menu'));
+      const isLeft = e.button === 0;
+      if (!isOnCard && isLeft && !(e.ctrlKey || e.metaKey || e.shiftKey)) {
+        // 清空：交給 sel，自然清空
+        sel.setSelected(new Set());
+      }
+    } catch (_) {}
+  };
 
   return (
     <div
@@ -350,33 +476,36 @@ const VirtualizedUnifiedGrid = ({
           {GridCell}
         </Grid>
       ) : (
-        <div className="regular-grid" style={{
-          position: 'relative',
-          width: gridDimensions.width,
-          height: gridDimensions.height,
-          marginLeft: gridDimensions.leftOffset
-        }}>
-          {items.map((item, index) => {
-            const columnIndex = index % gridDimensions.columnCount;
-            const rowIndex = Math.floor(index / gridDimensions.columnCount);
-            const style = {
-              position: 'absolute',
-              left: columnIndex * gridDimensions.itemWidth,
-              top: rowIndex * ITEM_HEIGHT,
-              width: gridDimensions.itemWidth,
-              height: ITEM_HEIGHT
-            };
+        <div className="regular-grid-wrapper" style={{ position: 'relative', width: '100%', height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
+          <div className="regular-grid" style={{
+            position: 'relative',
+            width: gridDimensions.width,
+            height: rowCount * ITEM_HEIGHT,
+            marginLeft: gridDimensions.leftOffset
+          }}>
+            {items.map((item, index) => {
+              const columnIndex = index % gridDimensions.columnCount;
+              const rowIndex = Math.floor(index / gridDimensions.columnCount);
+              const style = {
+                position: 'absolute',
+                left: columnIndex * gridDimensions.itemWidth,
+                top: rowIndex * ITEM_HEIGHT,
+                width: gridDimensions.itemWidth,
+                height: ITEM_HEIGHT
+              };
 
-            return (
-              <GridCell
-                key={`game:${item.filePath}`}
-                columnIndex={columnIndex}
-                rowIndex={rowIndex}
-                style={style}
-                data={itemData}
-              />
-            );
-          })}
+              const key = item.type === 'cluster' ? `cluster:${item.id}` : `game:${item.filePath}`;
+              return (
+                <GridCell
+                  key={key}
+                  columnIndex={columnIndex}
+                  rowIndex={rowIndex}
+                  style={style}
+                  data={itemData}
+                />
+              );
+            })}
+          </div>
         </div>
       )}
 

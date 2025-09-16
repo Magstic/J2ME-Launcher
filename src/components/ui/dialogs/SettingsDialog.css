@@ -61,3 +61,17 @@
   transform: scale(1);
   opacity: 1;
 }
+
+/* Tag editor: unify textarea with system form styles inside modal */
+.modal-body textarea.form-input {
+  width: 100%;
+  height: auto;            /* override fixed height in generic .form-input */
+  min-height: 160px;       /* respect rows but ensure comfortable default */
+  resize: vertical;        /* allow user to adjust */
+  padding: 10px 12px;      /* match .form-input */
+  border: 1px solid var(--dialog-border);
+  border-radius: 8px;
+  background: var(--dialog-bg);
+  color: var(--text-primary);
+  box-sizing: border-box;
+}

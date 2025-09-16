@@ -35,6 +35,8 @@ export default function ModalWithFooter({
   requestCloseRef = null,
   footer = null,
   actions = [],
+  zIndex = 10000,
+  preserveScrollOnMutations = true,
   children,
 }) {
   const [isClosing, setIsClosing] = useState(false);
@@ -116,7 +118,7 @@ export default function ModalWithFooter({
   // 記憶和恢復滾動位置：當內部內容因摺疊/展開導致 DOM 變更時，保持當前視口位置
   useEffect(() => {
     const el = bodyRef.current;
-    if (!isOpen || !el) return;
+    if (!isOpen || !el || !preserveScrollOnMutations) return;
 
     const onScroll = () => { lastScrollTopRef.current = el.scrollTop; };
     el.addEventListener('scroll', onScroll, { passive: true });
@@ -134,7 +136,7 @@ export default function ModalWithFooter({
       el.removeEventListener('scroll', onScroll);
       observer.disconnect();
     };
-  }, [isOpen]);
+  }, [isOpen, preserveScrollOnMutations]);
 
   // 全域：彈窗開啟時禁用 FAB；拖拽選取時暫時禁用 FAB
   useEffect(() => {
@@ -219,6 +221,7 @@ export default function ModalWithFooter({
     <div
       className={`modal-overlay ${isClosing ? 'closing' : ''}`}
       onClick={(!isClosing && closeOnOverlay) ? startClose : undefined}
+      style={{ zIndex }}
     >
       <div
         className={`modal-content directory-manager ${hasActionButtons ? 'has-actions' : 'no-actions'} ${sizeClass} ${className} ${isClosing ? 'closing' : ''}`}

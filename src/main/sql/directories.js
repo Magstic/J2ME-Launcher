@@ -2,6 +2,13 @@
 // Helpers for directories table
 
 const { getDB } = require('../db');
+const path = require('path');
+
+function normalizePathInput(p) {
+  if (!p || typeof p !== 'string') return p;
+  const n = path.normalize(p);
+  return process.platform === 'win32' ? n.replace(/\//g, '\\') : n;
+}
 
 function getDirectories() {
   const db = getDB();
@@ -16,22 +23,22 @@ function addDirectory(directoryPath) {
     INSERT INTO directories (path, lastScanTime, enabled, addedTime)
     VALUES (?, NULL, 1, ?)
     ON CONFLICT(path) DO NOTHING
-  `).run(directoryPath, now);
+  `).run(normalizePathInput(directoryPath), now);
 }
 
 function removeDirectory(directoryPath) {
   const db = getDB();
-  db.prepare(`DELETE FROM directories WHERE path=?`).run(directoryPath);
+  db.prepare(`DELETE FROM directories WHERE path=?`).run(normalizePathInput(directoryPath));
 }
 
 function setDirectoryEnabled(directoryPath, enabled) {
   const db = getDB();
-  db.prepare(`UPDATE directories SET enabled=? WHERE path=?`).run(enabled ? 1 : 0, directoryPath);
+  db.prepare(`UPDATE directories SET enabled=? WHERE path=?`).run(enabled ? 1 : 0, normalizePathInput(directoryPath));
 }
 
 function updateDirectoryScanTime(directoryPath, isoTime) {
   const db = getDB();
-  db.prepare(`UPDATE directories SET lastScanTime=? WHERE path=?`).run(isoTime, directoryPath);
+  db.prepare(`UPDATE directories SET lastScanTime=? WHERE path=?`).run(isoTime, normalizePathInput(directoryPath));
 }
 
 module.exports = {

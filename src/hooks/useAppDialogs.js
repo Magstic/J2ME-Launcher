@@ -20,6 +20,10 @@ export const useAppDialogs = () => {
     isOpen: false, 
     game: null 
   });
+  const [clusterDialog, setClusterDialog] = useState({
+    isOpen: false,
+    clusterId: null,
+  });
   const [emulatorNotConfiguredDialog, setEmulatorNotConfiguredDialog] = useState({ 
     isOpen: false, 
     game: null 
@@ -65,6 +69,14 @@ export const useAppDialogs = () => {
     setGameInfoDialog({ isOpen: false, game: null });
   }, []);
 
+  // Cluster Dialog
+  const openClusterDialog = useCallback((clusterId) => {
+    setClusterDialog({ isOpen: true, clusterId });
+  }, []);
+  const closeClusterDialog = useCallback(() => {
+    setClusterDialog({ isOpen: false, clusterId: null });
+  }, []);
+
   // Emulator Not Configured Dialog
   const openEmulatorNotConfiguredDialog = useCallback((game) => {
     setEmulatorNotConfiguredDialog({ isOpen: true, game });
@@ -83,6 +95,7 @@ export const useAppDialogs = () => {
     isWelcomeGuideOpen,
     gameLaunchDialog,
     gameInfoDialog,
+    clusterDialog,
     emulatorNotConfiguredDialog,
 
     // Actions
@@ -102,6 +115,8 @@ export const useAppDialogs = () => {
     closeGameLaunchDialog,
     openGameInfoDialog,
     closeGameInfoDialog,
+    openClusterDialog,
+    closeClusterDialog,
     openEmulatorNotConfiguredDialog,
     closeEmulatorNotConfiguredDialog,
   };

@@ -1,5 +1,6 @@
 // Configuration-related IPC handlers
 // Centralized configuration management through ConfigService
+const yamlConfig = require('../config/yaml-config');
 
 function register({ ipcMain, configService }) {
   // Get Java path configuration
@@ -65,6 +66,56 @@ function register({ ipcMain, configService }) {
     } catch (error) {
       console.error('Failed to browse Java executable:', error);
       return { success: false, error: error.message };
+    }
+  });
+
+  // ==================== Cluster Tag Options ====================
+  // Get cluster tag options (devices/resolutions/versions). Returns null if not set.
+  ipcMain.handle('get-cluster-tag-options', () => {
+    try {
+      // Prefer YAML-backed config (single source of truth)
+      const conf = yamlConfig.loadConfig();
+      const fromYaml = conf?.ui?.clusterTagOptions || null;
+      const sanitize = (arr) => Array.isArray(arr) ? arr.filter(v => typeof v === 'string' && v.trim().length > 0) : [];
+      if (fromYaml && typeof fromYaml === 'object') {
+        return {
+          devices: sanitize(fromYaml.devices),
+          resolutions: sanitize(fromYaml.resolutions),
+          versions: sanitize(fromYaml.versions)
+        };
+      }
+
+      // Backward-compat: migrate legacy JSON config on first read
+      const legacy = configService.get('clusterTagOptions', null);
+      if (legacy && typeof legacy === 'object') {
+        const migrated = {
+          devices: sanitize(legacy.devices),
+          resolutions: sanitize(legacy.resolutions),
+          versions: sanitize(legacy.versions)
+        };
+        try { yamlConfig.saveConfig({ ui: { clusterTagOptions: migrated } }); } catch (_) {}
+        return migrated;
+      }
+      return null;
+    } catch (error) {
+      return null;
+    }
+  });
+
+  // Set cluster tag options
+  ipcMain.handle('set-cluster-tag-options', (event, options) => {
+    try {
+      const sanitize = (arr) => Array.isArray(arr) ? arr.filter(v => typeof v === 'string' && v.trim().length > 0) : [];
+      const clean = {
+        devices: sanitize(options?.devices),
+        resolutions: sanitize(options?.resolutions),
+        versions: sanitize(options?.versions)
+      };
+      // Persist to YAML config (authoritative)
+      yamlConfig.saveConfig({ ui: { clusterTagOptions: clean } });
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error?.message || String(error) };
     }
   });
 }

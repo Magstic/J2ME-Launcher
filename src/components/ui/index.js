@@ -16,3 +16,7 @@ export { default as EmulatorNotConfiguredDialog } from './dialogs/EmulatorNotCon
 export { default as SettingsDialog } from './dialogs/SettingsDialog.jsx';
 export { default as WelcomeGuideDialog } from './dialogs/WelcomeGuideDialog.jsx';
 export { default as ProgressPanel } from './ProgressPanel.jsx';
+// Dialogs for clusters (barrel re-exports)
+export { default as ClusterDialog } from './dialogs/ClusterDialog.jsx';
+export { default as ClusterSelectDialog } from './dialogs/ClusterSelectDialog.jsx';
+export { default as RenameDialog } from './dialogs/RenameDialog.jsx';

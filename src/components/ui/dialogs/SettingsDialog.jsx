@@ -9,6 +9,10 @@ const SettingsDialog = ({ isOpen, onClose, theme, setTheme }) => {
   const [autoDetectedPath, setAutoDetectedPath] = useState('');
   const [customJavaPath, setCustomJavaPath] = useState('');
   const [isValidatingJava, setIsValidatingJava] = useState(false);
+  const [tagsDevicesText, setTagsDevicesText] = useState('');
+  const [tagsResolutionsText, setTagsResolutionsText] = useState('');
+  const [tagsVersionsText, setTagsVersionsText] = useState('');
+  const [isSavingTags, setIsSavingTags] = useState(false);
   
   const languages = [
     { code: 'zh-TW', name: '繁體中文' },
@@ -27,6 +31,21 @@ const SettingsDialog = ({ isOpen, onClose, theme, setTheme }) => {
           setAutoDetectedPath(result.autoDetected || result.current);
         }
       }).catch(console.error);
+      // Load cluster tag extras (append-only; UI will union with built-ins when used)
+      (async () => {
+        try {
+          const opts = await window.electronAPI.getClusterTagOptions();
+          const uniq = (arr) => Array.from(new Set((arr || []).filter(v => typeof v === 'string' && v.trim().length > 0)));
+          const extras = (opts && typeof opts === 'object') ? opts : { devices: [], resolutions: [], versions: [] };
+          setTagsDevicesText(uniq(extras.devices).join('\n'));
+          setTagsResolutionsText(uniq(extras.resolutions).join('\n'));
+          setTagsVersionsText(uniq(extras.versions).join('\n'));
+        } catch (e) {
+          setTagsDevicesText('');
+          setTagsResolutionsText('');
+          setTagsVersionsText('');
+        }
+      })();
     }
   }, [isOpen, autoDetectedPath]);
 
@@ -83,6 +102,42 @@ const SettingsDialog = ({ isOpen, onClose, theme, setTheme }) => {
   const handleJavaPathReset = async () => {
     await handleJavaPathSave(''); // Empty string triggers auto-detect
   };
+
+  // ==================== Cluster Tag Options Handlers ====================
+  const parseTextToList = (text) => {
+    if (!text) return [];
+    // split by newline or comma; trim and de-duplicate
+    const parts = text
+      .split(/\r?\n|,/g)
+      .map(s => (s || '').trim())
+      .filter(Boolean);
+    return Array.from(new Set(parts));
+  };
+  const handleSaveClusterTags = async () => {
+    setIsSavingTags(true);
+    try {
+      const payload = {
+        devices: parseTextToList(tagsDevicesText),
+        resolutions: parseTextToList(tagsResolutionsText),
+        versions: parseTextToList(tagsVersionsText)
+      };
+      const res = await window.electronAPI.setClusterTagOptions(payload);
+      if (!res?.success) {
+        alert(res?.error || t('settings.clusterTags.saveFailed'));
+      }
+    } catch (e) {
+      alert(t('settings.clusterTags.saveFailed'));
+    } finally {
+      setIsSavingTags(false);
+    }
+  };
+  const handleResetClusterTags = async () => {
+    // Clear extras; built-ins remain available by default
+    setTagsDevicesText('');
+    setTagsResolutionsText('');
+    setTagsVersionsText('');
+    try { await window.electronAPI.setClusterTagOptions({ devices: [], resolutions: [], versions: [] }); } catch (_) {}
+  };
   return (
     <ModalWithFooter
       isOpen={isOpen}
@@ -133,6 +188,39 @@ const SettingsDialog = ({ isOpen, onClose, theme, setTheme }) => {
             </div>
             <span className="checkmark">✓</span>
           </Card>
+        </div>
+      </Collapsible>
+
+      {/* 語言切換：摺疊區塊 */}
+      <Collapsible title={t('settings.language.title')} defaultOpen className="mb-12">
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 12 }}>
+            {t('settings.language.description')}
+          </div>
+          <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
+            {languages.map(lang => (
+              <Card
+                key={lang.code}
+                className={`language-card ${currentLanguage === lang.code ? 'selected' : ''}`}
+                onClick={() => changeLanguage(lang.code)}
+                data-selected={currentLanguage === lang.code}
+                style={{
+                  cursor: 'pointer',
+                  border: `1px solid ${currentLanguage === lang.code ? 'var(--accent-color)' : 'var(--overlay-on-light-10)'}`,
+                  boxShadow: currentLanguage === lang.code ? '0 0 0 2px var(--accent-color-alpha)' : 'none',
+                  padding: 12,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{ fontWeight: 600, marginBottom: 4 }}>{lang.name}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{lang.code}</div>
+                  </div>
+                </div>
+                <span className="checkmark">✓</span>
+              </Card>
+            ))}
+          </div>
         </div>
       </Collapsible>
 
@@ -210,36 +298,28 @@ const SettingsDialog = ({ isOpen, onClose, theme, setTheme }) => {
         </div>
       </Collapsible>
 
-      {/* 語言切換：摺疊區塊 */}
-      <Collapsible title={t('settings.language.title')} defaultOpen className="mb-12">
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 12 }}>
-            {t('settings.language.description')}
+      {/* Cluster Tag Options (Append-only extras) */}
+      <Collapsible title={t('settings.clusterTags.titleExtras')} defaultOpen className="mb-12">
+        <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 12 }}>
+          {t('settings.clusterTags.helper')}
+        </div>
+        <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
+          <div>
+            <label style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{t('settings.clusterTags.device')}</label>
+            <textarea className="form-input" value={tagsDevicesText} onChange={(e) => setTagsDevicesText(e.target.value)} rows={8} />
           </div>
-          <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
-            {languages.map(lang => (
-              <Card
-                key={lang.code}
-                className={`language-card ${currentLanguage === lang.code ? 'selected' : ''}`}
-                onClick={() => changeLanguage(lang.code)}
-                data-selected={currentLanguage === lang.code}
-                style={{
-                  cursor: 'pointer',
-                  border: `1px solid ${currentLanguage === lang.code ? 'var(--accent-color)' : 'var(--overlay-on-light-10)'}`,
-                  boxShadow: currentLanguage === lang.code ? '0 0 0 2px var(--accent-color-alpha)' : 'none',
-                  padding: 12,
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div>
-                    <div style={{ fontWeight: 600, marginBottom: 4 }}>{lang.name}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{lang.code}</div>
-                  </div>
-                </div>
-                <span className="checkmark">✓</span>
-              </Card>
-            ))}
+          <div>
+            <label style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{t('settings.clusterTags.resolution')}</label>
+            <textarea className="form-input" value={tagsResolutionsText} onChange={(e) => setTagsResolutionsText(e.target.value)} rows={8} />
           </div>
+          <div>
+            <label style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{t('settings.clusterTags.version')}</label>
+            <textarea className="form-input" value={tagsVersionsText} onChange={(e) => setTagsVersionsText(e.target.value)} rows={8} />
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+          <button className="btn btn-primary" onClick={handleSaveClusterTags} disabled={isSavingTags}>{t('app.save')}</button>
+          <button className="btn btn-secondary" onClick={handleResetClusterTags}>{t('settings.clusterTags.resetExtras')}</button>
         </div>
       </Collapsible>
     </ModalWithFooter>

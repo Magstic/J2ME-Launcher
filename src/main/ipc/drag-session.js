@@ -3,10 +3,24 @@
 
 const path = require('path');
 const { addGameToFolder: sqlAddGameToFolder, removeGameFromFolder: sqlRemoveGameFromFolder } = require('../sql/folders-write');
+const { addClusterToFolder: sqlAddClusterToFolder, removeClusterFromFolder: sqlRemoveClusterFromFolder } = require('../sql/clusters-write');
+const { getClusterMembers: sqlGetClusterMembers } = require('../sql/clusters-read');
 const { getFolderById: sqlGetFolderById, getFolderGameCount: sqlGetFolderGameCount } = require('../sql/folders-read');
 const { getDB } = require('../db');
 const { batchAddGamesToFolder } = require('../utils/batch-operations');
 const { getGameStateCache } = require('../utils/game-state-cache');
+const { getLogger } = require('../../utils/logger.cjs');
+
+// Scoped logger for this IPC module
+const log = getLogger('IPC/DragSession');
+// Locally override console to route to named logger with unified formatting
+const console = {
+  log: (...args) => log.info(...args),
+  info: (...args) => log.info(...args),
+  warn: (...args) => log.warn(...args),
+  error: (...args) => log.error(...args),
+  debug: (...args) => log.debug(...args),
+};
 
 function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWindow }) {
   const looksLikePath = (s) => typeof s === 'string' && (s.includes('\\') || s.includes('/') || /\.(jar|jad)$/i.test(s));
@@ -188,17 +202,45 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWi
       let allOk = true;
       try { console.log('[drag-session:drop] group start'); } catch {}
       
-      // 按操作類型分組處理
-      const addToFolderItems = items.filter(item => 
-        source.type === 'desktop' && targetType === 'folder' && targetId && (item.gameId || item.filePath || item.id)
+      // 按操作類型分組處理（遊戲與簇分開處理）
+      let addToFolderItems = items.filter(item => 
+        source.type === 'desktop' && targetType === 'folder' && targetId && (item.gameId || item.filePath || item.id) && !(item.type === 'cluster' || item.clusterId)
       );
-      const moveItems = items.filter(item => 
-        source.type === 'folder' && targetType === 'folder' && source.id && targetId && source.id !== targetId && (item.gameId || item.filePath || item.id)
+      let moveItems = items.filter(item => 
+        source.type === 'folder' && targetType === 'folder' && source.id && targetId && source.id !== targetId && (item.gameId || item.filePath || item.id) && !(item.type === 'cluster' || item.clusterId)
       );
       const removeItems = items.filter(item => 
-        source.type === 'folder' && targetType === 'desktop' && source.id && (item.gameId || item.filePath || item.id)
+        source.type === 'folder' && targetType === 'desktop' && source.id && (item.gameId || item.filePath || item.id) && !(item.type === 'cluster' || item.clusterId)
       );
-      try { console.log('[drag-session:drop] groups:', { add: addToFolderItems.length, move: moveItems.length, remove: removeItems.length }); } catch {}
+      // Cluster 類型
+      const clusterItems = items.filter(item => item?.type === 'cluster' || item?.clusterId);
+      const addClusterToFolderItems = clusterItems.filter(item => source.type === 'desktop' && targetType === 'folder' && targetId);
+      const moveClusterItems = clusterItems.filter(item => source.type === 'folder' && targetType === 'folder' && source.id && targetId && source.id !== targetId);
+      const removeClusterItems = clusterItems.filter(item => source.type === 'folder' && targetType === 'desktop' && source.id);
+      try { console.log('[drag-session:drop] groups:', { add: addToFolderItems.length, move: moveItems.length, remove: removeItems.length, addClusters: addClusterToFolderItems.length, moveClusters: moveClusterItems.length, removeClusters: removeClusterItems.length }); } catch {}
+
+      // 當同時包含簇與遊戲時：避免將簇成員作為單體遊戲也加入目標資料夾（保持資料乾淨）
+      try {
+        if ((addClusterToFolderItems.length > 0 || moveClusterItems.length > 0) && (addToFolderItems.length > 0 || moveItems.length > 0)) {
+          const memberSet = new Set();
+          for (const it of clusterItems) {
+            const cid = it.clusterId || it.id;
+            if (!cid) continue;
+            try {
+              const m = sqlGetClusterMembers(cid) || [];
+              for (const row of m) {
+                try { memberSet.add(resolveFilePath(row.filePath)); } catch (_) { memberSet.add(row.filePath); }
+              }
+            } catch (e) { try { console.warn('[drag-session:drop] getClusterMembers failed for', cid, e.message); } catch (_) {} }
+          }
+          if (memberSet.size > 0) {
+            const beforeA = addToFolderItems.length, beforeM = moveItems.length;
+            addToFolderItems = addToFolderItems.filter(item => !memberSet.has(resolveFilePath(item.gameId || item.filePath || item.id)));
+            moveItems = moveItems.filter(item => !memberSet.has(resolveFilePath(item.gameId || item.filePath || item.id)));
+            try { console.log('[drag-session:drop] de-dup filtered games with cluster members', { addBefore: beforeA, addAfter: addToFolderItems.length, moveBefore: beforeM, moveAfter: moveItems.length }); } catch {}
+          }
+        }
+      } catch (e) { try { console.warn('[drag-session:drop] de-dup failed:', e && e.message); } catch (_) {} }
 
       // 批次加入資料夾
       if (addToFolderItems.length > 0) {
@@ -300,6 +342,58 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWi
               error: e.message 
             });
           }
+          allOk = false;
+        }
+      }
+
+      // ===== 簇：加入資料夾（從桌面拖到資料夾） =====
+      if (addClusterToFolderItems.length > 0) {
+        try {
+          for (const it of addClusterToFolderItems) {
+            const cid = it.clusterId || it.id;
+            if (!cid) continue;
+            try { sqlAddClusterToFolder(targetId, cid); } catch (e) { console.warn('[SQL write] addClusterToFolder failed:', e.message); }
+            try { broadcastToAll('cluster:changed', { id: cid, action: 'linked-folder', folderId: targetId }); } catch (_) {}
+          }
+          // 目標資料夾更新
+          try { const toFolder = sqlGetFolderById(targetId); if (toFolder) broadcastToAll('folder-updated', toFolder); } catch (_) {}
+        } catch (e) {
+          console.warn('[clusters] add to folder failed:', e.message);
+          allOk = false;
+        }
+      }
+
+      // ===== 簇：在資料夾間移動 =====
+      if (moveClusterItems.length > 0) {
+        try {
+          for (const it of moveClusterItems) {
+            const cid = it.clusterId || it.id;
+            if (!cid) continue;
+            try { sqlRemoveClusterFromFolder(source.id, cid); } catch (e) { console.warn('[SQL write] removeClusterFromFolder (move) failed:', e.message); }
+            try { sqlAddClusterToFolder(targetId, cid); } catch (e) { console.warn('[SQL write] addClusterToFolder (move) failed:', e.message); }
+            try { broadcastToAll('cluster:changed', { id: cid, action: 'moved-folder', fromFolderId: source.id, toFolderId: targetId }); } catch (_) {}
+          }
+          // 更新來源/目標資料夾資訊
+          try { const fromFolder = sqlGetFolderById(source.id); if (fromFolder) broadcastToAll('folder-updated', fromFolder); } catch (_) {}
+          try { const toFolder = sqlGetFolderById(targetId); if (toFolder) broadcastToAll('folder-updated', toFolder); } catch (_) {}
+        } catch (e) {
+          console.warn('[clusters] move between folders failed:', e.message);
+          allOk = false;
+        }
+      }
+
+      // ===== 簇：移除到桌面（從資料夾拖到桌面） =====
+      if (removeClusterItems.length > 0) {
+        try {
+          for (const it of removeClusterItems) {
+            const cid = it.clusterId || it.id;
+            if (!cid) continue;
+            try { sqlRemoveClusterFromFolder(source.id, cid); } catch (e) { console.warn('[SQL write] removeClusterFromFolder failed:', e.message); allOk = false; }
+            try { broadcastToAll('cluster:changed', { id: cid, action: 'unlinked-folder', folderId: source.id }); } catch (_) {}
+          }
+          try { const fromFolder = sqlGetFolderById(source.id); if (fromFolder) broadcastToAll('folder-updated', fromFolder); } catch (_) {}
+        } catch (e) {
+          console.warn('[clusters] remove to desktop failed:', e.message);
           allOk = false;
         }
       }

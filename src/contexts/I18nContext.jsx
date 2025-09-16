@@ -47,12 +47,10 @@ export const I18nProvider = ({ children }) => {
       console.warn('Failed to read language from localStorage');
     }
     
-    // 其次檢測系統語言
+    // 其次檢測系統語言（僅支援 zh / en，其他一律回退預設語言）
     const systemLang = navigator.language || navigator.userLanguage;
     if (systemLang.startsWith('zh')) {
-      return systemLang.includes('TW') || systemLang.includes('Hant') ? 'zh-TW' : 'zh-TW';
-    } else if (systemLang.startsWith('ja')) {
-      return 'ja-JP';
+      return 'zh-TW';
     } else if (systemLang.startsWith('en')) {
       return 'en-US';
     }

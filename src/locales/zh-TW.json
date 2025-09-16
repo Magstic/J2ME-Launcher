@@ -16,11 +16,16 @@
     "next": "下一步",
     "previous": "上一步",
     "skip": "跳過",
+    "member": "數量",
+    "name": "名称",
+    "rename": "重命名",
     "later": "稍後設定",
     "startUsing": "開始使用",
     "goToConfig": "前往設定",
+    "noClusters": "啊哦，現在還沒有簇？",
     "emulost": "啊哦，您尚未設定模擬器？"
   },
+  "searchClusters": "搜索簇名稱……",
   "searchPlaceholder": "檢索遊戲名稱、開發商……",
   "welcome": {
     "title": "歡迎使用 J2ME Launcher",
@@ -147,16 +152,35 @@
       "validating": "載入中……",
       "invalidPath": "無效的路徑",
       "saveFailed": "儲存路徑失敗"
+    },
+    "clusterTags": {
+      "titleExtras": "標籤",
+      "helper": "自訂標籤扩展",
+      "resetExtras": "清空",
+      "device": "裝置",
+      "resolution": "解析度",
+      "version": "版本",
+      "saveFailed": "儲存標籤失敗"
     }
+  },
+  "cluster": {
+    "untitled": "簇",
+    "empty": "無成員"
   },
   "contextMenu": {
     "launch": "啟動",
-    "like": "加入",
+    "like": "收藏",
     "shortcut": "捷徑",
     "config": "設定",
     "delete": "移除",
     "info": "資訊",
-    "open": "打開"
+    "open": "打開",
+    "create-cluster": "簇集",
+    "add-to-cluster": "入簇",
+    "rename": "簇名",
+    "consolidate": "合簇",
+    "delete-cluster": "解散",
+    "set-primary": "代表"
   },
   "fabMenu": {
     "roms": "ROM 資料夾",
@@ -173,8 +197,7 @@
     },
     "folderSelect": {
       "title": "選擇資料夾",
-      "multi": "已選取 {{count}} 個遊戲，請選擇要加入的資料夾：",
-      "single": "請選擇要加入「{{name}}」的資料夾："
+      "single": "請選擇要加入的資料夾："
     },
     "noFolder": {
       "title": "加入資料夾",

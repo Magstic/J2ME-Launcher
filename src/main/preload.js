@@ -1,3 +1,4 @@
+require('../utils/logger.cjs');
 const { contextBridge, ipcRenderer, shell } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -288,6 +289,41 @@ contextBridge.exposeInMainWorld('electronAPI', {
   dropboxOAuthStart: (payload) => ipcRenderer.invoke('dropbox:oauth-start', payload),
   dropboxUnlink: () => ipcRenderer.invoke('dropbox:unlink')
   ,
+  // ==================== Clusters API ====================
+  // CRUD
+  createCluster: (payload) => ipcRenderer.invoke('clusters:create', payload),
+  addGamesToCluster: (clusterId, filePaths) => ipcRenderer.invoke('clusters:add-games', clusterId, filePaths),
+  removeGameFromCluster: (clusterId, filePath) => ipcRenderer.invoke('clusters:remove-game', clusterId, filePath),
+  updateCluster: (payload) => ipcRenderer.invoke('clusters:update', payload),
+  deleteCluster: (id) => ipcRenderer.invoke('clusters:delete', id),
+  // Reads
+  getCluster: (id) => ipcRenderer.invoke('clusters:get', id),
+  getClusterMembers: (id) => ipcRenderer.invoke('clusters:get-members', id),
+  getDesktopClusters: () => ipcRenderer.invoke('clusters:get-desktop'),
+  getClustersByFolder: (folderId) => ipcRenderer.invoke('clusters:get-by-folder', folderId),
+  // Folder relations
+  addClusterToFolder: (clusterId, folderId) => ipcRenderer.invoke('clusters:add-to-folder', clusterId, folderId),
+  removeClusterFromFolder: (clusterId, folderId) => ipcRenderer.invoke('clusters:remove-from-folder', clusterId, folderId),
+  // Member operations
+  updateClusterMemberTags: (clusterId, filePath, tags) => ipcRenderer.invoke('clusters:update-member-tags', clusterId, filePath, tags),
+  setClusterPrimary: (clusterId, filePath) => ipcRenderer.invoke('clusters:set-primary', clusterId, filePath),
+  mergeClusters: (fromId, toId) => ipcRenderer.invoke('clusters:merge', fromId, toId),
+  // Maintenance
+  cleanupOrphanClusters: () => ipcRenderer.invoke('clusters:cleanup-orphans'),
+  // Events
+  onClusterChanged: (callback) => {
+    const ch = 'cluster:changed';
+    const handler = (_e, payload) => callback && callback(payload);
+    ipcRenderer.on(ch, handler);
+    return () => ipcRenderer.removeListener(ch, handler);
+  },
+  onClusterDeleted: (callback) => {
+    const ch = 'cluster:deleted';
+    const handler = (_e, payload) => callback && callback(payload);
+    ipcRenderer.on(ch, handler);
+    return () => ipcRenderer.removeListener(ch, handler);
+  }
+  ,
   // ==================== Windows 捷徑 API ====================
   // 在桌面建立遊戲捷徑
   createShortcut: (payload) => ipcRenderer.invoke('create-shortcut', payload),
@@ -308,4 +344,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   validateJavaPath: (javaPath) => ipcRenderer.invoke('validate-java-path', javaPath),
   // 瀏覽選擇 Java 可執行檔
   browseJavaExecutable: () => ipcRenderer.invoke('browse-java-executable')
+  ,
+  // ==================== Settings: Cluster Tag Options ====================
+  getClusterTagOptions: () => ipcRenderer.invoke('get-cluster-tag-options'),
+  setClusterTagOptions: (options) => ipcRenderer.invoke('set-cluster-tag-options', options)
 });

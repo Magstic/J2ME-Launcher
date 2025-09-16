@@ -16,12 +16,17 @@
     "next": "Next",
     "previous": "Previous",
     "skip": "Skip",
+    "member": "Member",
+    "name": "Name",
+    "rename": "Rename",
     "later": "Later",
     "startUsing": "Start Using",
     "goToConfig": "Go to Configuration",
+    "noClusters": "You don't have any clusters yet?",
     "emulost": "Your haven't configured the emulator yet?"
   },
-  "searchPlaceholder": "Search game name, developer…",
+  "searchClusters": "Search clusters name...",
+  "searchPlaceholder": "Search game name, developer...",
   "welcome": {
     "title": "Welcome to J2ME Launcher",
     "subtitle": "A modern J2ME front-end",
@@ -147,7 +152,20 @@
       "validating": "Loading...",
       "invalidPath": "Invalid Java executable path",
       "saveFailed": "Failed to save Java path configuration"
+    },
+    "clusterTags": {
+      "titleExtras": "Tags",
+      "helper": "Add custom Tags",
+      "resetExtras": "Clear",
+      "device": "Device",
+      "resolution": "Resolution",
+      "version": "Version",
+      "saveFailed": "Failed to save tags"
     }
+  },
+  "cluster": {
+    "untitled": "Cluster",
+    "empty": "No members"
   },
   "contextMenu": {
     "launch": "Launch",
@@ -156,7 +174,13 @@
     "config": "Configure",
     "delete": "Remove",
     "info": "Info",
-    "open": "Open"
+    "open": "Open",
+    "create-cluster": "Create Cluster",
+    "add-to-cluster": "Add to Cluster",
+    "rename": "Rename",
+    "consolidate": "Consolidate",
+    "delete-cluster": "Delete Cluster",
+    "set-primary": "Set Primary"
   },
   "fabMenu": {
     "roms": "ROM Folder",
@@ -173,8 +197,7 @@
     },
     "folderSelect": {
       "title": "Select Folder",
-      "multi": "{{count}} games selected. Choose a folder to add them to:",
-      "single": "Choose a folder to add \"{{name}}\" to:"
+      "single": "Choose a folder to add to:"
     },
     "noFolder": {
       "title": "Add to Folder",
@@ -328,6 +351,33 @@
       "done": "Done",
       "error": "Error",
       "idle": "Idle"
+    },
+    "conflict": {
+      "stats": "Differences detected between local and remote files at the same path, please confirm the relevant information:",
+      "title": "Sync Conflict",
+      "keepLocal": "Keep Local Version",
+      "coverRemote": "Overwrite Remote Version",
+      "msg1": "Your local file version is newer than the remote version.",
+      "msg2": "If you choose 'Overwrite with Remote Version', the local file will be overwritten with the remote version.",
+      "remoteMeta": "Remote Snapshot:",
+      "remoteMetaTime": "Creation Time",
+      "groups": "Content Groups Selected This Time",
+      "intersect": "Intersecting Files",
+      "localNewer": "Local Newer",
+      "remoteNewer": "Remote Newer",
+      "md5Different": "Hash Different",
+      "details": "File Details",
+      "path": "Path",
+      "localMD5": "Local Hash",
+      "remoteMD5": "Remote Hash",
+      "localMTime": "Local MTime",
+      "remoteMTime": "Remote MTime",
+      "statustitle": "Status",
+      "selectCover": "Select Files to Overwrite",
+      "nothingToCover": "No differences to handle (all ignored or content identical).",
+      "selectAll": "Select All",
+      "ignore": "Ignore",
+      "sameMd5": "Identical"
     },
     "count": "{{done}} / {{total}} files",
     "current": "Current:",

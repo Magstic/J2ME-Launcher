@@ -29,6 +29,7 @@ export default function ModalHeaderOnly({
   bodyClassName = '',
   headerExtra = null,
   initialFocusRef = null,
+  zIndex = 10000,
   children,
 }) {
   const [isClosing, setIsClosing] = useState(false);
@@ -103,7 +104,7 @@ export default function ModalHeaderOnly({
   const sizeClass = size === 'sm' ? 'modal-sm' : size === 'lg' ? 'modal-lg' : 'modal-md';
 
   return (
-    <div className={`modal-overlay ${isClosing ? 'closing' : ''}`} onClick={closeOnOverlay ? startClose : undefined}>
+    <div className={`modal-overlay ${isClosing ? 'closing' : ''}`} onClick={closeOnOverlay ? startClose : undefined} style={{ zIndex }}>
       <div
         className={`modal-content directory-manager ${sizeClass} ${className}`}
         onClick={(e) => e.stopPropagation()}

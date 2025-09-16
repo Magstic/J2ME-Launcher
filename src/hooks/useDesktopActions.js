@@ -75,76 +75,74 @@ export const useDesktopActions = ({
 
   // 處理資料夾選擇
   const handleFolderSelect = useCallback(async (selectedFolder, folderSelectDialog) => {
-    const game = folderSelectDialog.game;
-    const list = folderSelectDialog.selectedFilePaths;
-    if ((!game && !list) || !selectedFolder) return;
+    const target = folderSelectDialog.game;
+    const fileList = folderSelectDialog.selectedFilePaths;
+    const clusterIdsFromDialog = folderSelectDialog.selectedClusterIds;
+    if (!selectedFolder) return;
 
+    // 整理遊戲與簇的集合（去重）
+    const uniqueGames = Array.isArray(fileList) && fileList.length > 0
+      ? Array.from(new Set(fileList)).filter(fp => typeof fp === 'string')
+      : (target && target.type === 'game' && target.filePath ? [String(target.filePath)] : []);
+
+    let uniqueClusters = Array.isArray(clusterIdsFromDialog) && clusterIdsFromDialog.length > 0
+      ? Array.from(new Set(clusterIdsFromDialog.map(String)))
+      : [];
+    if (target && target.type === 'cluster' && target.id != null) {
+      uniqueClusters = Array.from(new Set([...uniqueClusters, String(target.id)]));
+    }
+
+    if (uniqueGames.length === 0 && uniqueClusters.length === 0) return;
+
+    const total = uniqueGames.length + uniqueClusters.length;
     try {
-      if (window.electronAPI?.addGameToFolder) {
-        // 抑制自動事件刷新，留出 FLIP 前後狀態捕捉窗口
-        suppressUntilRef.current = Date.now() + 160;
-        if (Array.isArray(list) && list.length > 0) {
-          // 多選：使用統一的批次處理邏輯
-          setBulkMutating(true);
-          const unique = Array.from(new Set(list));
+      // 抑制自動事件刷新，留出 FLIP 前後狀態捕捉窗口
+      suppressUntilRef.current = Date.now() + 160;
 
-          // 啟動進度顯示（降低門檻確保用戶看到反饋）
-          if (unique.length > 10) {
-            setBulkStatus({ active: true, total: unique.length, done: 0, label: t('desktopManager.label') });
-          }
+      const folderIdStr = typeof selectedFolder.id === 'string' ? selectedFolder.id : String(selectedFolder.id || '');
 
-          // 確保批次參數可序列化
-          const cleanFilePaths = unique.filter(fp => typeof fp === 'string');
-          const folderIdStr = typeof selectedFolder.id === 'string' ? selectedFolder.id : String(selectedFolder.id || '');
-          
-          // 使用統一的批次處理 API
-          if (window.electronAPI?.batchAddGamesToFolder) {
-            // 創建可序列化的選項物件（不包含函數）
-            const batchOptions = {
-              threshold: 30,
-              chunkSize: 50,
-              quiet: true
-            };
-            
-            // 單獨處理進度回調，避免序列化函數
-            const progressHandler = (progress) => {
-              const processed = typeof progress?.processed === 'number' ? progress.processed : 0;
-              const total = typeof progress?.total === 'number' ? progress.total : 0;
-              setBulkStatus(prev => ({ 
-                ...prev, 
-                done: processed,
-                total: total 
-              }));
-            };
-            
-            await window.electronAPI.batchAddGamesToFolder(cleanFilePaths, folderIdStr, batchOptions);
-          } else {
-            // 回退到舊的批次邏輯
-            if (window.electronAPI?.addGamesToFolderBatch) {
-              await window.electronAPI.addGamesToFolderBatch(cleanFilePaths, folderIdStr, { quiet: true });
-            } else {
-              await Promise.allSettled(cleanFilePaths.map(fp => window.electronAPI.addGameToFolder(fp, folderIdStr)));
-            }
-          }
-          console.log('多個遊戲已加入資料夾（批次）');
-        } else if (game) {
-          // 確保只傳遞可序列化的參數
-          const gameFilePath = typeof game.filePath === 'string' ? game.filePath : String(game.filePath || '');
-          const folderIdStr = typeof selectedFolder.id === 'string' ? selectedFolder.id : String(selectedFolder.id || '');
-          
-          const result = await window.electronAPI.addGameToFolder(gameFilePath, folderIdStr);
-          if (result && result.success === false) {
-            setInfoDialog({ isOpen: true, title: t('desktopManager.addToFolder.title'), message: t('desktopManager.info.addToFolder.fail') });
-          } else {
-            console.log('遊戲已加入資料夾');
+      if (total > 10) {
+        setBulkMutating(true);
+        setBulkStatus({ active: true, total, done: 0, label: t('desktopManager.label') });
+      }
+
+      let done = 0;
+      const bump = () => {
+        done += 1;
+        setBulkStatus(prev => ({ ...prev, done }));
+      };
+
+      // 先處理遊戲（批次）
+      if (uniqueGames.length > 0) {
+        if (window.electronAPI?.batchAddGamesToFolder) {
+          await window.electronAPI.batchAddGamesToFolder(uniqueGames, folderIdStr, { threshold: 30, chunkSize: 50, quiet: true });
+          done += uniqueGames.length;
+          setBulkStatus(prev => ({ ...prev, done }));
+        } else if (window.electronAPI?.addGamesToFolderBatch) {
+          await window.electronAPI.addGamesToFolderBatch(uniqueGames, folderIdStr, { quiet: true });
+          done += uniqueGames.length;
+          setBulkStatus(prev => ({ ...prev, done }));
+        } else if (window.electronAPI?.addGameToFolder) {
+          for (const fp of uniqueGames) {
+            await window.electronAPI.addGameToFolder(fp, folderIdStr);
+            bump();
           }
         }
-        // 刷新資料（微延遲 + 受控刷新）：避免『先消失再重排』
-        await new Promise((r) => setTimeout(r, 80));
-        // 解除抑制並執行一次受控刷新
-        suppressUntilRef.current = 0;
-        guardedRefresh();
       }
+
+      // 再處理簇（逐一）
+      if (uniqueClusters.length > 0 && window.electronAPI?.addClusterToFolder) {
+        for (const cid of uniqueClusters) {
+          await window.electronAPI.addClusterToFolder(cid, folderIdStr);
+          bump();
+        }
+      }
+
+      // 刷新資料（微延遲 + 受控刷新）：避免『先消失再重排』
+      await new Promise((r) => setTimeout(r, 80));
+      // 解除抑制並執行一次受控刷新
+      suppressUntilRef.current = 0;
+      guardedRefresh();
     } catch (error) {
       console.error('加入資料夾失敗:', error);
       // 確保錯誤訊息可序列化
@@ -157,11 +155,9 @@ export const useDesktopActions = ({
         title: dialogTitle, 
         message: dialogMessage 
       });
-    }
-    finally {
-      if (Array.isArray(list) && list.length > 0) {
+    } finally {
+      if (total > 10) {
         setBulkMutating(false);
-        // 延遲關閉進度卡片，確保用戶看到完成狀態
         setTimeout(() => {
           setBulkStatus(prev => ({ ...prev, active: false }));
         }, 1000);

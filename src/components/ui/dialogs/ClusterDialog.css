@@ -1,0 +1,15 @@
+/* Cluster dialog member row visuals */
+.cluster-member-row {
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  transition: opacity 140ms ease, border-color 140ms ease;
+}
+
+.cluster-member-row:hover {
+  opacity: 0.8;
+}
+
+.cluster-member-row.is-primary {
+  border-color: var(--accent-color);
+}

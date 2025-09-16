@@ -14,7 +14,7 @@ const LOG_CONFIG = {
     warn: true,
     error: true,    // 錯誤日誌始終保留
     info: true,
-    debug: true    // debug 默認關閉
+    debug: false    // debug 默認關閉
   }
 };
 
@@ -30,17 +30,41 @@ const originalConsole = {
 /**
  * 設置 console 方法攔截器
  */
+function formatTimestamp(date = new Date()) {
+  const pad = (n, w = 2) => String(n).padStart(w, '0');
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${pad(date.getMilliseconds(), 3)}`;
+}
+
+function resolveProcessLabel() {
+  try {
+    if (typeof process !== 'undefined' && process.type) {
+      if (process.type === 'browser') return 'Main';
+      if (process.type === 'renderer') return 'Preload';
+    }
+  } catch (_) {}
+  return 'Node';
+}
+
+function formatPrefix(method, scope) {
+  const ts = formatTimestamp();
+  const processLabel = resolveProcessLabel();
+  const scopeLabel = scope ? `[${scope}]` : '';
+  return `[${ts}] [${processLabel}]${scopeLabel} ${method.toUpperCase()}:`;
+}
+
+function output(method, scope, args) {
+  const shouldLog = method === 'error' || (LOG_CONFIG.enabled && LOG_CONFIG.levels[method]);
+  if (!shouldLog) return;
+  try {
+    originalConsole[method](formatPrefix(method, scope), ...args);
+  } catch (_) {
+    try { originalConsole[method](...args); } catch (_) {}
+  }
+}
+
 function setupConsoleInterceptor() {
   Object.keys(originalConsole).forEach(method => {
-    console[method] = (...args) => {
-      // 錯誤日誌在生產環境也保留
-      const shouldLog = method === 'error' || 
-                       (LOG_CONFIG.enabled && LOG_CONFIG.levels[method]);
-      
-      if (shouldLog) {
-        originalConsole[method](...args);
-      }
-    };
+    console[method] = (...args) => output(method, null, args);
   });
 }
 
@@ -76,5 +100,16 @@ if (process.env.NODE_ENV === 'development') {
   console.info('[Logger] 日誌管理系統已初始化 (Node.js)');
 }
 
+// 具名 logger 供主進程/預載入腳本使用
+function getLogger(scope) {
+  return {
+    log: (...args) => output('log', scope, args),
+    info: (...args) => output('info', scope, args),
+    warn: (...args) => output('warn', scope, args),
+    error: (...args) => output('error', scope, args),
+    debug: (...args) => output('debug', scope, args)
+  };
+}
+
 // 導出配置
-module.exports = { LOG_CONFIG, originalConsole };
+module.exports = { LOG_CONFIG, originalConsole, getLogger };

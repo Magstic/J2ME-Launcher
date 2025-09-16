@@ -34,10 +34,12 @@ import SettingsDialog from './components/ui/dialogs/SettingsDialog';
 import GameLaunchDialog from './components/ui/dialogs/GameLaunchDialog';
 import EmulatorNotConfiguredDialog from './components/ui/dialogs/EmulatorNotConfiguredDialog';
 import WelcomeGuideDialog from './components/ui/dialogs/WelcomeGuideDialog';
+import { ClusterDialog } from '@ui';
 
 // Direct DesktopView component (DesktopView logic integrated)
 function DesktopViewDirect({ 
   games = [], 
+  items = null,
   onGameSelect,
   onAddToFolder,
   onGameInfo,
@@ -57,7 +59,10 @@ function DesktopViewDirect({
     handleRootDragOver,
     handleRootDrop,
     ContextMenuElement,
-    openMenu
+    openMenu,
+    ClusterSelectElement,
+    ClusterMergeElement,
+    ClusterRenameElement
   } = useDesktopView({
     games,
     onGameSelect,
@@ -75,9 +80,11 @@ function DesktopViewDirect({
     >
       <VirtualizedUnifiedGrid
         games={games}
-        folders={[]}
+        items={items}
         onGameClick={onGameSelect}
-        onGameContextMenu={(e, game, selectedList) => openMenu(e, game, { view: 'desktop', kind: 'game', selectedFilePaths: selectedList })}
+        onGameContextMenu={(e, game, selectedList, selectedClusterIds) => openMenu(e, game, { view: 'desktop', kind: 'game', selectedFilePaths: selectedList, selectedClusterIds })}
+        onClusterClick={(cluster) => { try { window.dispatchEvent(new CustomEvent('open-cluster-dialog', { detail: cluster?.id })); } catch (_) {} }}
+        onClusterContextMenu={(e, cluster) => openMenu(e, cluster, { view: 'desktop', kind: 'cluster' })}
         onBlankContextMenu={(e) => openMenu(e, null, { view: 'desktop', kind: 'blank' })}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
@@ -88,6 +95,9 @@ function DesktopViewDirect({
         gameCardExtraProps={gameCardExtraProps}
       />
       {ContextMenuElement}
+      {ClusterSelectElement}
+      {ClusterMergeElement}
+      {ClusterRenameElement}
     </div>
   );
 }
@@ -103,6 +113,7 @@ function DesktopManagerHooks({ games, searchQuery, isLoading, onGameLaunch }) {
     // Actions
     handleFolderOpen,
     getUncategorizedGames,
+    getDesktopGridItems,
     getDrawerFolders,
     handleRefresh,
     
@@ -146,6 +157,7 @@ function DesktopManagerHooks({ games, searchQuery, isLoading, onGameLaunch }) {
             <div className="content-area-inner" style={{ padding: '10px 6px 6px 6px', height: '100%' }}>
               <DesktopViewDirect
                 games={getUncategorizedGames(games, searchQuery)}
+                items={getDesktopGridItems(games, searchQuery)}
                 onGameSelect={handleGameSelect}
                 onAddToFolder={handleAddToFolder}
                 onGameInfo={handleGameInfo}
@@ -355,6 +367,7 @@ function AppContent() {
   useAppEventListeners({
     setGames,
     openGameInfoDialog: dialogs.openGameInfoDialog,
+    openClusterDialog: dialogs.openClusterDialog,
     openGameLaunchDialog: dialogs.openGameLaunchDialog,
     openDirectoryManager: dialogs.openDirectoryManager,
     openEmulatorConfig: dialogs.openEmulatorConfig,
@@ -508,6 +521,15 @@ function AppContent() {
         game={dialogs.gameInfoDialog.game}
         onClose={dialogs.closeGameInfoDialog}
       />
+
+      {/* 簇詳情對話框 */}
+      {dialogs.clusterDialog.isOpen && (
+        <ClusterDialog
+          isOpen={dialogs.clusterDialog.isOpen}
+          clusterId={dialogs.clusterDialog.clusterId}
+          onClose={dialogs.closeClusterDialog}
+        />
+      )}
 
       {/* 模擬器配置彈窗 */}
       {dialogs.isEmulatorConfigOpen && (

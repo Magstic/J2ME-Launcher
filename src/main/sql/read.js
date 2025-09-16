@@ -30,7 +30,7 @@ function getAllGamesFromSql() {
     SELECT * FROM games g
     WHERE EXISTS (
       SELECT 1 FROM directories d
-      WHERE d.enabled = 1 AND g.filePath LIKE (d.path || '%')
+      WHERE d.enabled = 1 AND g.filePath GLOB (d.path || '*')
     )
     ORDER BY gameName
   `).all();

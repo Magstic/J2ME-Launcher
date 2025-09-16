@@ -21,16 +21,29 @@ function getFolders() {
       f.isVisible
     FROM folders f
     LEFT JOIN (
+      /* 將直接加入資料夾的遊戲與隸屬於資料夾內簇的遊戲做 UNION，再以 DISTINCT 計數避免重複 */
       SELECT 
-        fg.folderId AS id,
-        COUNT(1) AS c
-      FROM folder_games fg
-      JOIN games g ON g.filePath = fg.filePath COLLATE NOCASE
-      WHERE EXISTS (
-        SELECT 1 FROM directories d
-        WHERE d.enabled = 1 AND g.filePath LIKE (d.path || '%')
-      )
-      GROUP BY fg.folderId
+        x.folderId AS id,
+        COUNT(DISTINCT x.filePath) AS c
+      FROM (
+        SELECT fg.folderId, fg.filePath
+        FROM folder_games fg
+        JOIN games g ON g.filePath = fg.filePath COLLATE NOCASE
+        WHERE EXISTS (
+          SELECT 1 FROM directories d
+          WHERE d.enabled = 1 AND g.filePath GLOB (d.path || '*')
+        )
+        UNION
+        SELECT fc.folderId, cg.filePath
+        FROM folder_clusters fc
+        JOIN cluster_games cg ON cg.clusterId = fc.clusterId
+        JOIN games g2 ON g2.filePath = cg.filePath COLLATE NOCASE
+        WHERE EXISTS (
+          SELECT 1 FROM directories d
+          WHERE d.enabled = 1 AND g2.filePath GLOB (d.path || '*')
+        )
+      ) AS x
+      GROUP BY x.folderId
     ) AS cnt ON cnt.id = f.id
     ORDER BY (f.sortOrder IS NULL), f.sortOrder ASC, f.name ASC
   `).all();
@@ -51,15 +64,29 @@ function getFolders() {
 function getFolderGameCount(folderId) {
   const db = getDB();
   const row = db.prepare(`
-    SELECT COUNT(1) as c
-    FROM folder_games fg
-    JOIN games g ON g.filePath = fg.filePath COLLATE NOCASE
-    WHERE fg.folderId = ?
-      AND EXISTS (
-        SELECT 1 FROM directories d
-        WHERE d.enabled = 1 AND g.filePath LIKE (d.path || '%')
-      )
-  `).get(folderId);
+    /* 將直接在資料夾的遊戲與該資料夾簇的成員合併後做去重計數 */
+    SELECT COUNT(DISTINCT x.filePath) AS c
+    FROM (
+      SELECT fg.filePath
+      FROM folder_games fg
+      JOIN games g ON g.filePath = fg.filePath COLLATE NOCASE
+      WHERE fg.folderId = ?
+        AND EXISTS (
+          SELECT 1 FROM directories d
+          WHERE d.enabled = 1 AND g.filePath GLOB (d.path || '*')
+        )
+      UNION
+      SELECT cg.filePath
+      FROM folder_clusters fc
+      JOIN cluster_games cg ON cg.clusterId = fc.clusterId
+      JOIN games g2 ON g2.filePath = cg.filePath COLLATE NOCASE
+      WHERE fc.folderId = ?
+        AND EXISTS (
+          SELECT 1 FROM directories d
+          WHERE d.enabled = 1 AND g2.filePath GLOB (d.path || '*')
+        )
+    ) AS x
+  `).get(folderId, folderId);
   return row ? row.c : 0;
 }
 
@@ -91,7 +118,7 @@ function getGamesByFolder(folderId) {
     WHERE fg.folderId = ?
       AND EXISTS (
         SELECT 1 FROM directories d
-        WHERE d.enabled = 1 AND g.filePath LIKE (d.path || '%')
+        WHERE d.enabled = 1 AND g.filePath GLOB (d.path || '*')
       )
     ORDER BY g.gameName
   `).all(folderId);
@@ -104,10 +131,30 @@ function getUncategorizedGames() {
     SELECT g.* FROM games g
     WHERE EXISTS (
       SELECT 1 FROM directories d
-      WHERE d.enabled = 1 AND g.filePath LIKE (d.path || '%')
+      WHERE d.enabled = 1 AND g.filePath GLOB (d.path || '*')
     )
       AND NOT EXISTS (
         SELECT 1 FROM folder_games fg WHERE fg.filePath = g.filePath COLLATE NOCASE
+      )
+    ORDER BY g.gameName
+  `).all();
+  return rows.map(rowToGame);
+}
+
+// 用於桌面視圖：顯示「非簇成員」且「未在任何資料夾」的遊戲
+function getDesktopGames() {
+  const db = getDB();
+  const rows = db.prepare(`
+    SELECT g.* FROM games g
+    WHERE EXISTS (
+      SELECT 1 FROM directories d
+      WHERE d.enabled = 1 AND g.filePath GLOB (d.path || '*')
+    )
+      AND NOT EXISTS (
+        SELECT 1 FROM folder_games fg WHERE fg.filePath = g.filePath COLLATE NOCASE
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM cluster_games cg WHERE cg.filePath = g.filePath COLLATE NOCASE
       )
     ORDER BY g.gameName
   `).all();
@@ -164,7 +211,7 @@ function getGamesInAnyFolder() {
     JOIN games g ON g.filePath = fg.filePath COLLATE NOCASE
     WHERE EXISTS (
       SELECT 1 FROM directories d
-      WHERE d.enabled = 1 AND g.filePath LIKE (d.path || '%')
+      WHERE d.enabled = 1 AND g.filePath GLOB (d.path || '*')
     )
   `).all();
   return rows.map(r => r.filePath);
@@ -176,6 +223,7 @@ module.exports = {
   getFolderGameCount,
   getGamesByFolder,
   getUncategorizedGames,
+  getDesktopGames,
   getFolderStats,
   getGameFolders,
   getGamesInAnyFolder

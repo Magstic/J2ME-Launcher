@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { getScrollParent } from '@/utils/dom/scroll';
+import { createPortal } from 'react-dom';
 import useWheelTouchLock from '@shared/hooks/useWheelTouchLock';
 import './Select.css';
 
@@ -34,6 +34,8 @@ export default function Select({
   const rootRef = useRef(null);
   const buttonRef = useRef(null);
   const listRef = useRef(null);
+  const [portalPos, setPortalPos] = useState(null); // { left, top?, bottom?, width, maxHeight, dropUp }
+  const [inDialog, setInDialog] = useState(false);
   // 平滑滾動控制（避免彈出時「硬滾動」）
   const smoothingRef = useRef(false);
   const smoothRafRef = useRef(0);
@@ -83,25 +85,26 @@ export default function Select({
     });
   };
 
-  // 開啟前檢查可視區，若下方空間不足，先行平滑捲動以容納彈出列表高度
-  const smoothEnsureVisibleBeforeOpen = async () => {
-    try {
-      const btn = buttonRef.current;
-      if (!btn) return;
-      const scrollEl = getScrollParent(btn);
-      if (!scrollEl) return;
-      const btnRect = btn.getBoundingClientRect();
-      const containerRect = scrollEl.getBoundingClientRect();
-      // 預估下拉清單高度（與 CSS max-height 對齊），留出一些邊距
-      const desired = 240; // 與 .select-list max-height 對應
-      const margin = 8;
-      const spaceBelow = (containerRect.top + scrollEl.clientHeight) - btnRect.bottom;
-      // 僅向下彈出：若空間不足，平滑滾動容器以騰出空間（非阻塞）
-      const need = desired + margin - spaceBelow;
-      if (need > 0) {
-        animateScrollBy(scrollEl, need, 200);
-      }
-    } catch {}
+  // 計算浮層在視窗中的定位（使用 portal/fixed，不再嘗試滾動父容器）
+  const computePortalPosition = () => {
+    const btn = buttonRef.current;
+    if (!btn) return null;
+    const rect = btn.getBoundingClientRect();
+    const margin = 6;
+    const desired = 240; // 與 .select-list max-height 對齊
+    const spaceBelow = (window.innerHeight - rect.bottom) - margin;
+    const spaceAbove = rect.top - margin;
+    const dropUp = spaceBelow < Math.min(180, desired) && spaceAbove > spaceBelow; // 偏好向上
+    const maxHeight = Math.max(120, Math.min(desired, dropUp ? spaceAbove : spaceBelow));
+    const pos = {
+      left: Math.round(rect.left),
+      width: Math.round(rect.width),
+      maxHeight,
+      dropUp,
+    };
+    if (dropUp) pos.bottom = Math.round((window.innerHeight - rect.top) + margin);
+    else pos.top = Math.round(rect.bottom + margin);
+    return pos;
   };
 
   const closeWithAnimation = () => {
@@ -137,11 +140,20 @@ export default function Select({
   useEffect(() => {
     if (!(open || isClosing)) return;
     const onDocClick = (e) => {
-      if (!rootRef.current) return;
-      if (!rootRef.current.contains(e.target)) {
-        closeWithAnimation();
-      }
+      const root = rootRef.current;
+      const list = listRef.current;
+      if (!root) return;
+      // 如果點擊發生在按鈕或彈出列表內，忽略（不關閉）
+      if ((root && root.contains(e.target)) || (list && list.contains(e.target))) return;
+      closeWithAnimation();
     };
+    // 開啟期間：任何滾動/縮放視窗都關閉浮層，避免定位錯位
+    const onAnyScroll = (e) => {
+      // 忽略來自自身列表的滾動事件，允許在下拉內部滾動
+      if (listRef.current && e && e.target && listRef.current.contains(e.target)) return;
+      closeWithAnimation();
+    };
+    const onResize = () => closeWithAnimation();
     const onKeyDown = (e) => {
       if (!(open || isClosing)) return;
       if (e.key === 'Escape') { closeWithAnimation(); return; }
@@ -158,11 +170,16 @@ export default function Select({
     document.addEventListener('mousedown', onDocClick, true);
     document.addEventListener('click', onDocClick, true);
     document.addEventListener('keydown', onKeyDown, { capture: true });
+    window.addEventListener('resize', onResize, { passive: true });
+    // 捕獲階段監聽，以覆蓋各層滾動
+    document.addEventListener('scroll', onAnyScroll, true);
     return () => {
       document.removeEventListener('pointerdown', onDocClick, true);
       document.removeEventListener('mousedown', onDocClick, true);
       document.removeEventListener('click', onDocClick, true);
       document.removeEventListener('keydown', onKeyDown, { capture: true });
+      window.removeEventListener('resize', onResize, { passive: true });
+      document.removeEventListener('scroll', onAnyScroll, true);
     };
   }, [open, isClosing, options, highlightIndex]);
 
@@ -171,9 +188,11 @@ export default function Select({
       // 初次開啟時將高亮設置為當前選中
       const idx = options.findIndex(o => String(o.value) === String(value));
       setHighlightIndex(idx >= 0 ? idx : -1);
-      // 為避免列表獲得焦點時觸發原生「硬滾動」，延遲在平滑滾動之後再聚焦
-      const delay = smoothingRef.current ? 160 : 0;
-      const t = window.setTimeout(() => { listRef.current && listRef.current.focus(); }, delay);
+      // 計算 portal 定位並聚焦列表（不再平滑滾動父容器）
+      setPortalPos(computePortalPosition());
+      // 標記是否位於對話框內（影響 popover 主題代幣）
+      try { setInDialog(!!(rootRef.current && rootRef.current.closest('.modal-body'))); } catch (_) { setInDialog(false); }
+      const t = window.setTimeout(() => { listRef.current && listRef.current.focus(); }, 0);
       return () => window.clearTimeout(t);
     } else {
       // 關閉後把焦點還給按鈕
@@ -223,9 +242,8 @@ export default function Select({
               const ev = new CustomEvent(SELECT_OPEN_EVENT, { detail: { openingId: idRef.current } });
               document.dispatchEvent(ev);
             } catch (_) {}
-            // 立即開啟，下拉更俐落；同時非阻塞地平滑滾動確保可視空間
+            // 立即開啟（使用 portal 固定定位，不再滾動父容器）
             setOpen(true);
-            Promise.resolve().then(smoothEnsureVisibleBeforeOpen);
           }
         }}
         aria-haspopup="listbox"
@@ -237,15 +255,25 @@ export default function Select({
         <span className={`select-caret ${open ? 'up' : 'down'}`}>▾</span>
       </button>
 
-      {(open || isClosing) && (
-        <div className={`select-popover ${isClosing ? 'closing' : ''}`}>
-          <ul className="select-list" role="listbox" tabIndex={-1} ref={listRef}>
+      {(open || isClosing) && portalPos && createPortal(
+        <div
+          className={`select-popover ${portalPos.dropUp ? 'drop-up' : ''} ${isClosing ? 'closing' : ''} ${inDialog ? 'in-dialog' : ''}`}
+          style={{
+            position: 'fixed',
+            left: portalPos.left,
+            top: portalPos.top ?? undefined,
+            bottom: portalPos.bottom ?? undefined,
+            minWidth: portalPos.width,
+            zIndex: 11000,
+          }}
+        >
+          <ul className="select-list" role="listbox" tabIndex={-1} ref={listRef} style={{ maxHeight: portalPos.maxHeight }}>
             {options.map((opt, idx) => (
               <li
                 key={String(opt.value)}
                 role="option"
                 aria-selected={String(opt.value) === String(value)}
-                className={`select-option ${highlightIndex === idx ? 'highlight' : ''} ${String(opt.value) === String(value) ? 'selected' : ''}`}
+                className={`select-option ${highlightIndex === idx ? 'is-highlight' : ''} ${String(opt.value) === String(value) ? 'is-selected' : ''}`}
                 onMouseEnter={() => setHighlightIndex(idx)}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => handleSelect(opt)}
@@ -259,7 +287,8 @@ export default function Select({
               <li className="select-empty">無可用選項</li>
             )}
           </ul>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

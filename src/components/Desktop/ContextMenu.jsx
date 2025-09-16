@@ -24,7 +24,22 @@ const ContextMenu = ({
   onGameInfo,
   onRefresh,
   onCreateShortcut,
-  onClose
+  // Cluster entry actions from games
+  onCreateCluster,
+  onAddToCluster,
+  // Cluster callbacks
+  onClusterInfo,
+  onRenameCluster,
+  onDeleteCluster,
+  onMergeCluster,
+  onConsolidateClusters,
+  onAddClusterToFolder,
+  onRemoveClusterFromFolder,
+  // Cluster member (inside ClusterDialog) callbacks
+  onClusterMemberSetPrimary,
+  onClusterMemberRemove,
+  onClose,
+  zIndex = 9999,
 }) => {
   const menuRef = useRef(null);
   const { t } = useI18n();
@@ -88,6 +103,20 @@ const ContextMenu = ({
       case 'remove-from-folder':
         onRemoveFromFolder && onRemoveFromFolder(targetItem);
         break;
+      case 'create-cluster':
+        try {
+          onCreateCluster && onCreateCluster(targetItem);
+        } catch (err) {
+          console.error('[ContextMenu] create-cluster handler error:', err);
+        }
+        break;
+      case 'add-to-cluster':
+        try {
+          onAddToCluster && onAddToCluster(targetItem);
+        } catch (err) {
+          console.error('[ContextMenu] add-to-cluster handler error:', err);
+        }
+        break;
       case 'add-to-folder':
         try {
           console.debug('[ContextMenu] add-to-folder clicked, targetItem=', targetItem?.filePath || targetItem);
@@ -118,6 +147,35 @@ const ContextMenu = ({
         } catch (err) {
           console.error('[ContextMenu] create-shortcut handler error:', err);
         }
+        break;
+
+      // ===== Cluster actions =====
+      case 'cluster-open':
+        try { onClusterInfo && onClusterInfo(targetItem); } catch (err) { console.error('[ContextMenu] cluster-open handler error:', err); }
+        break;
+      case 'cluster-info':
+        try { onClusterInfo && onClusterInfo(targetItem); } catch (err) { console.error('[ContextMenu] cluster-info handler error:', err); }
+        break;
+      case 'cluster-delete':
+        try { onDeleteCluster && onDeleteCluster(targetItem); } catch (err) { console.error('[ContextMenu] cluster-delete handler error:', err); }
+        break;
+      case 'cluster-rename':
+        try { onRenameCluster && onRenameCluster(targetItem); } catch (err) { console.error('[ContextMenu] cluster-rename handler error:', err); }
+        break;
+      case 'cluster-consolidate':
+        try { onConsolidateClusters && onConsolidateClusters(targetItem); } catch (err) { console.error('[ContextMenu] cluster-consolidate handler error:', err); }
+        break;
+      case 'cluster-add-to-folder':
+        try { onAddClusterToFolder && onAddClusterToFolder(targetItem); } catch (err) { console.error('[ContextMenu] cluster-add-to-folder handler error:', err); }
+        break;
+      case 'cluster-remove-from-folder':
+        try { onRemoveClusterFromFolder && onRemoveClusterFromFolder(targetItem); } catch (err) { console.error('[ContextMenu] cluster-remove-from-folder handler error:', err); }
+        break;
+      case 'cluster-member-set-primary':
+        try { onClusterMemberSetPrimary && onClusterMemberSetPrimary(targetItem); } catch (err) { console.error('[ContextMenu] cluster-member-set-primary handler error:', err); }
+        break;
+      case 'cluster-member-remove':
+        try { onClusterMemberRemove && onClusterMemberRemove(targetItem); } catch (err) { console.error('[ContextMenu] cluster-member-remove handler error:', err); }
         break;
       default:
         break;
@@ -153,12 +211,17 @@ const ContextMenu = ({
       case 'game-grid': {
         const isPlainGame = menuType === 'game';
         const list = [renderMenuItem(t('contextMenu.launch'), 'launch-game', '⚔️')];
+        // 建立簇（使用當前選集或單個項目）
+        list.push(renderMenuItem(t('contextMenu.create-cluster'), 'create-cluster', '🧩'));
+        // 加入到既有簇（彈出簇選擇器）
+        list.push(renderMenuItem(t('contextMenu.add-to-cluster'), 'add-to-cluster', '➕'));
         const middle = [];
         if (isPlainGame) {
           const add = renderMenuItem(t('contextMenu.like'), 'add-to-folder', '📁');
           add && middle.push(add);
         }
         if (targetItem?.folderInfo) {
+          // 更清楚：從資料夾移除（不要用「刪除」避免與刪除簇混淆）
           middle.push(renderMenuItem(t('contextMenu.delete'), 'remove-from-folder', '📤'));
         }
         if (middle.length > 0) {
@@ -168,6 +231,44 @@ const ContextMenu = ({
         list.push(renderMenuItem(t('contextMenu.shortcut'), 'create-shortcut', '🔗'));
         list.push(renderMenuItem(t('contextMenu.config'), 'game-config', '⚙️'));
         list.push(renderMenuItem(t('contextMenu.info'), 'game-info', 'ℹ️'));
+        return list.filter(Boolean);
+      }
+
+      case 'cluster': {
+        // Desktop cluster menu
+        const list = [];
+        const multi = Array.isArray(targetItem?.selectedClusterIds) && targetItem.selectedClusterIds.length >= 2;
+        list.push(renderMenuItem(t('contextMenu.open'), 'cluster-open', '🧩'));
+        list.push(renderMenuItem(t('contextMenu.rename'), 'cluster-rename', '✏️'));
+        if (multi) list.push(renderMenuItem(t('contextMenu.consolidate'), 'cluster-consolidate', '🔀'));
+        // 新增：將簇加入到資料夾（與遊戲相同語意，沿用 like『加入』）
+        list.push(renderMenuItem(t('contextMenu.like'), 'cluster-add-to-folder', '📁'));
+        list.push(renderMenuItem(t('contextMenu.delete-cluster'), 'cluster-delete', '🗑️'));
+        return list.filter(Boolean);
+      }
+
+      case 'cluster-folder': {
+        // Folder view cluster menu
+        const list = [];
+        const multi = Array.isArray(targetItem?.selectedClusterIds) && targetItem.selectedClusterIds.length >= 2;
+        list.push(renderMenuItem(t('contextMenu.open'), 'cluster-open', '🧩'));
+        list.push(renderMenuItem(t('contextMenu.rename'), 'cluster-rename', '✏️'));
+        if (multi) list.push(renderMenuItem(t('contextMenu.consolidate'), 'cluster-consolidate', '🔀'));
+        // 清楚標示「刪除簇」與「從資料夾移除簇」，避免誤操作
+        list.push(renderMenuItem(t('contextMenu.delete-cluster'), 'cluster-delete', '🗑️'));
+        list.push(renderMenuItem(t('contextMenu.delete'), 'cluster-remove-from-folder', '📤'));
+        return list.filter(Boolean);
+      }
+
+      case 'cluster-member': {
+        // Context menu for a game member inside a cluster dialog
+        const list = [];
+        list.push(renderMenuItem(t('contextMenu.launch'), 'launch-game', '⚔️'));
+        list.push(renderMenuItem(t('contextMenu.shortcut'), 'create-shortcut', '🔗'));
+        list.push(renderMenuItem(t('contextMenu.config'), 'game-config', '⚙️'));
+        list.push(renderMenuItem(t('contextMenu.info'), 'game-info', 'ℹ️'));
+        list.push(renderMenuItem(t('contextMenu.set-primary'), 'cluster-member-set-primary', '📌'));
+        list.push(renderMenuItem(t('contextMenu.delete'), 'cluster-member-remove', '📤'));
         return list.filter(Boolean);
       }
 
@@ -185,7 +286,7 @@ const ContextMenu = ({
           position: 'fixed',
           left: position.x,
           top: position.y,
-          zIndex: 9999,
+          zIndex: zIndex,
           visibility: 'hidden',
           willChange: 'top, left, transform'
         }}

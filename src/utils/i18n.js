@@ -60,8 +60,7 @@ export const formatTranslation = (template, params = {}) => {
 export const getLanguageNativeName = (langCode) => {
   const nativeNames = {
     'zh-TW': '繁體中文',
-    'en-US': 'English',
-    'ja-JP': '日本語'
+    'en-US': 'English'
   };
   
   return nativeNames[langCode] || langCode;

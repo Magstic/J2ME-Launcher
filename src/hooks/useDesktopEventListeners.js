@@ -55,6 +55,31 @@ export const useDesktopEventListeners = ({
     }
   }, [loadDesktopItems]);
 
+  // 監聽簇變更事件：刷新桌面項目（簇列表與去重後的遊戲）
+  useEffect(() => {
+    const api = window.electronAPI;
+    if (!api?.onClusterChanged) return;
+    let timer = null;
+    const off = api.onClusterChanged(() => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        try { loadDesktopItems && loadDesktopItems(); } catch (_) {}
+        timer = null;
+      }, 50);
+    });
+    return () => { if (timer) clearTimeout(timer); try { off && off(); } catch (_) {} };
+  }, [loadDesktopItems]);
+
+  // 監聽簇刪除事件：刷新桌面項目
+  useEffect(() => {
+    const api = window.electronAPI;
+    if (!api?.onClusterDeleted) return;
+    const off = api.onClusterDeleted(() => {
+      try { loadDesktopItems && loadDesktopItems(); } catch (_) {}
+    });
+    return () => { try { off && off(); } catch (_) {} };
+  }, [loadDesktopItems]);
+
   // 監聽批次操作事件
   useEffect(() => {
     const handleBulkStart = (data) => {

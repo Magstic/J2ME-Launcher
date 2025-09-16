@@ -21,7 +21,7 @@ const { randomUUID } = require('crypto');
 const { getGameStateCache } = require('../utils/game-state-cache');
 const { getStoreBridge } = require('../store-bridge');
 
-function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll }) {
+function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl }) {
   const path = require('path');
   const pathSep = process.platform === 'win32' ? '\\' : '/';
   const looksLikePath = (s) => typeof s === 'string' && (s.includes('\\') || s.includes('/') || /\.(jar|jad)$/i.test(s));
@@ -231,17 +231,34 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll }) {
 
   // ==================== 遊戲資料夾關係 IPC ====================
 
-  // 聚合：獲取資料夾內容（資料夾信息 + 其內遊戲，含 iconUrl）
+  // 聚合：獲取資料夾內容（資料夾信息 + 其內遊戲/簇，含 iconUrl；去重：若資料夾包含簇，隱藏該簇成員遊戲）
   ipcMain.handle('get-folder-contents', (event, folderId) => {
     try {
+      const { getClustersByFolder: sqlGetClustersByFolder } = require('../sql/clusters-read');
       const folder = sqlGetFolderById(folderId);
-      if (!folder) return { folder: null, games: [] };
+      if (!folder) return { folder: null, games: [], clusters: [] };
       const games = sqlGetGamesByFolder(folderId);
-      const gamesWithUrl = addUrlToGames(games);
-      return { folder, games: gamesWithUrl };
+      const clusters = sqlGetClustersByFolder(folderId);
+
+      // 計算需隱藏的成員（屬於該資料夾中的簇）
+      let hideSet = new Set();
+      try {
+        const db = getDB();
+        const clusterIds = clusters.map(c => c.id);
+        if (clusterIds.length > 0) {
+          const placeholders = clusterIds.map(() => '?').join(',');
+          const rows = db.prepare(`SELECT DISTINCT filePath FROM cluster_games WHERE clusterId IN (${placeholders})`).all(...clusterIds);
+          hideSet = new Set(rows.map(r => r.filePath));
+        }
+      } catch (_) {}
+
+      const filteredGames = games.filter(g => !hideSet.has(g.filePath));
+      const gamesWithUrl = addUrlToGames(filteredGames);
+      const clustersWithUrl = clusters.map(c => ({ ...c, iconUrl: toIconUrl(c.effectiveIconPath || null) }));
+      return { folder, games: gamesWithUrl, clusters: clustersWithUrl };
     } catch (error) {
       console.error('獲取資料夾內容失敗:', error);
-      return { folder: null, games: [] };
+      return { folder: null, games: [], clusters: [] };
     }
   });
 

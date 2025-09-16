@@ -31,9 +31,21 @@ const { register: registerConfigIpc } = require('./ipc/config.js');
 const { gameHashFromPath } = require('./utils/hash');
 // Optional: SQLite-backed IPC (non-invasive)
 const { register: registerSqlGamesIpc } = require('./ipc/sql-games.js');
+const { register: registerClustersIpc } = require('./ipc/clusters.js');
 // Cloud backup IPC (S3/WebDAV) scaffold
 const { register: registerCustomNamesIpc } = require('./ipc/custom-names.js');
 const { register: registerBackupIpc } = require('./ipc/backup.js');
+const { getLogger } = require('../utils/logger.cjs');
+
+// Scoped logger for Main process; route local console to it for unified formatting
+const log = getLogger('Main');
+const console = {
+  log: (...args) => log.info(...args),
+  info: (...args) => log.info(...args),
+  warn: (...args) => log.warn(...args),
+  error: (...args) => log.error(...args),
+  debug: (...args) => log.debug(...args),
+};
 
 // 解析 Java 可執行檔 -> moved to ./utils/java.js
 
@@ -78,7 +90,8 @@ registerFoldersIpc({
   ipcMain,
   DataStore,
   addUrlToGames,
-  broadcastToAll
+  broadcastToAll,
+  toIconUrl
 });
 
 // Register cross-window drag session IPC handlers
@@ -114,6 +127,15 @@ registerDesktopIpc({
   ipcMain,
   DataStore,
   toIconUrl
+});
+
+// Register clusters IPC (CRUD + queries)
+registerClustersIpc({
+  ipcMain,
+  DataStore,
+  addUrlToGames,
+  toIconUrl,
+  broadcastToAll
 });
 
 // Register stats IPC

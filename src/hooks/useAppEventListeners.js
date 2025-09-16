@@ -7,6 +7,7 @@ import { useEffect, useCallback } from 'react';
 export const useAppEventListeners = ({ 
   setGames, 
   openGameInfoDialog, 
+  openClusterDialog,
   openGameLaunchDialog, 
   openDirectoryManager,
   openEmulatorConfig,
@@ -29,6 +30,17 @@ export const useAppEventListeners = ({
     window.addEventListener('open-game-info', handleOpenGameInfo);
     return () => window.removeEventListener('open-game-info', handleOpenGameInfo);
   }, [gameLaunchDialog.isOpen, gameInfoDialog.isOpen, isDirectoryManagerOpen, isEmulatorConfigOpen, openGameInfoDialog]);
+
+  // 監聽全局的簇詳情事件
+  useEffect(() => {
+    const handleOpenClusterDialog = (event) => {
+      if (gameLaunchDialog.isOpen || gameInfoDialog.isOpen || isDirectoryManagerOpen || isEmulatorConfigOpen) return;
+      const clusterId = event.detail;
+      if (clusterId) openClusterDialog?.(clusterId);
+    };
+    window.addEventListener('open-cluster-dialog', handleOpenClusterDialog);
+    return () => window.removeEventListener('open-cluster-dialog', handleOpenClusterDialog);
+  }, [gameLaunchDialog.isOpen, gameInfoDialog.isOpen, isDirectoryManagerOpen, isEmulatorConfigOpen, openClusterDialog]);
 
   // 監聽全局的遊戲配置事件（右鍵『配置』）
   useEffect(() => {

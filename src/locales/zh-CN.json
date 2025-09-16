@@ -16,11 +16,16 @@
     "next": "下一步",
     "previous": "上一步",
     "skip": "跳过",
+    "member": "数量",
+    "name": "名称",
+    "rename": "重命名",
     "later": "稍后设置",
     "startUsing": "开始使用",
     "goToConfig": "前往配置",
+    "noClusters": "啊哦，现在还没有簇？",
     "emulost": "啊哦，您尚未配置模拟器？"
   },
+  "searchClusters": "搜索簇名稱……",
   "searchPlaceholder": "搜索游戏名称、开发商……",
   "welcome": {
     "title": "欢迎使用 J2ME Launcher",
@@ -147,16 +152,35 @@
       "validating": "载入中……",
       "invalidPath": "无效的路径",
       "saveFailed": "保存路径失败"
+    },
+    "clusterTags": {
+      "titleExtras": "标签",
+      "helper": "自定义标签扩展",
+      "resetExtras": "清空",
+      "device": "设备",
+      "resolution": "分辨率",
+      "version": "版本",
+      "saveFailed": "保存标签失败"
     }
+  },
+  "cluster": {
+    "untitled": "簇",
+    "empty": "无成员"
   },
   "contextMenu": {
     "launch": "启动",
-    "like": "加入",
+    "like": "收藏",
     "shortcut": "捷径",
     "config": "配置",
     "delete": "移除",
     "info": "信息",
-    "open": "打开"
+    "open": "打开",
+    "create-cluster": "簇集",
+    "add-to-cluster": "入簇",
+    "rename": "簇名",
+    "consolidate": "合簇",
+    "delete-cluster": "解散",
+    "set-primary": "代表"
   },
   "fabMenu": {
     "roms": "ROM 文件夹",
@@ -173,8 +197,7 @@
     },
     "folderSelect": {
       "title": "选择文件夹",
-      "multi": "已选取 {{count}} 个游戏，请选择要加入的文件夹：",
-      "single": "请选择要加入「{{name}}」的文件夹："
+      "single": "请选择要加入的文件夹："
     },
     "noFolder": {
       "title": "加入文件夹",
@@ -328,6 +351,33 @@
       "done": "完成",
       "error": "错误",
       "idle": "待命"
+    },
+    "conflict": {
+      "stats": "检测到本地与云端在同一路径存在差异，请确认相关信息：",
+      "title": "同步冲突",
+      "keepLocal": "保留本地版本",
+      "coverRemote": "覆盖云端版本",
+      "msg1": "您在本地的文件版本新于云端版本。",
+      "msg2": "若选择『覆盖为云端版本』，将以云端版本覆盖本地文件。",
+      "remoteMeta": "云端快照：",
+      "remoteMetaTime": "创建时间",
+      "groups": "本次选择的内容群组",
+      "intersect": "交集文件",
+      "localNewer": "本地较新",
+      "remoteNewer": "云端较新",
+      "md5Different": "哈希相异",
+      "details": "文件详情",
+      "path": "路径",
+      "localMD5": "本地哈希",
+      "remoteMD5": "云端哈希",
+      "localMTime": "本地 MTime",
+      "remoteMTime": "云端 MTime",
+      "statustitle": "状态",
+      "selectCover": "选择要覆盖的文件",
+      "nothingToCover": "没有需要处理的差异（皆为忽略或内容一致）。",
+      "selectAll": "全选",
+      "ignore": "忽略",
+      "sameMd5": "一致"
     },
     "count": "{{done}} / {{total}} 文件",
     "current": "目前：",

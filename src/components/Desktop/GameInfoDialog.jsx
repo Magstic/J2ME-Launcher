@@ -78,7 +78,7 @@ const GameInfoDialog = ({
   };
 
   return (
-    <ModalHeaderOnly isOpen={isOpen} onClose={onClose} title={t('gameInfo.title')} size="md">
+    <ModalHeaderOnly isOpen={isOpen} onClose={onClose} title={t('gameInfo.title')} size="md" zIndex={11001}>
       {/* 遊戲圖標和基本信息 */}
       <div className="game-info-main" ref={dialogRef}>
         <div className="game-icon-large">

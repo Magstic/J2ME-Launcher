@@ -37,6 +37,9 @@ function getDB() {
         UPDATE games SET filePath = REPLACE(filePath, '/', '\\') WHERE INSTR(filePath, '/') > 0;
         UPDATE games SET iconPath = REPLACE(iconPath, '/', '\\') WHERE iconPath IS NOT NULL AND INSTR(iconPath, '/') > 0;
         UPDATE folder_games SET filePath = REPLACE(filePath, '/', '\\') WHERE INSTR(filePath, '/') > 0;
+        UPDATE cluster_games SET filePath = REPLACE(filePath, '/', '\\') WHERE INSTR(filePath, '/') > 0;
+        UPDATE emulator_configs SET filePath = REPLACE(filePath, '/', '\\') WHERE INSTR(filePath, '/') > 0;
+        UPDATE directories SET path = REPLACE(path, '/', '\\') WHERE INSTR(path, '/') > 0;
       `);
     }
   } catch (_) {}
@@ -147,6 +150,47 @@ function initSchema() {
     CREATE INDEX IF NOT EXISTS idx_games_filepath_name ON games(filePath, gameName);
     -- 關鍵性能優化：為 NOT EXISTS 查詢建立 COLLATE NOCASE 索引
     CREATE INDEX IF NOT EXISTS idx_folder_games_filepath_nocase ON folder_games(filePath COLLATE NOCASE);
+
+    -- =========================
+    -- Clusters schema (MVP)
+    -- =========================
+    CREATE TABLE IF NOT EXISTS clusters (
+      id TEXT PRIMARY KEY,
+      name TEXT,
+      description TEXT,
+      icon TEXT,
+      primaryFilePath TEXT,
+      createdAt TEXT,
+      updatedAt TEXT,
+      FOREIGN KEY (primaryFilePath) REFERENCES games(filePath) ON DELETE SET NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS cluster_games (
+      clusterId TEXT NOT NULL,
+      filePath TEXT NOT NULL,
+      addedTime TEXT,
+      role TEXT,
+      tags TEXT,
+      PRIMARY KEY (clusterId, filePath),
+      UNIQUE (filePath),
+      FOREIGN KEY (clusterId) REFERENCES clusters(id) ON DELETE CASCADE,
+      FOREIGN KEY (filePath) REFERENCES games(filePath) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_cluster_games_cluster ON cluster_games(clusterId);
+    CREATE INDEX IF NOT EXISTS idx_cluster_games_file ON cluster_games(filePath);
+    -- 為等值比對建立 NOCASE 專用索引
+    CREATE INDEX IF NOT EXISTS idx_cluster_games_file_nocase ON cluster_games(filePath COLLATE NOCASE);
+
+    CREATE TABLE IF NOT EXISTS folder_clusters (
+      folderId TEXT NOT NULL,
+      clusterId TEXT NOT NULL,
+      addedTime TEXT,
+      PRIMARY KEY (folderId, clusterId),
+      FOREIGN KEY (folderId) REFERENCES folders(id) ON DELETE CASCADE,
+      FOREIGN KEY (clusterId) REFERENCES clusters(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_folder_clusters_folder ON folder_clusters(folderId);
+    CREATE INDEX IF NOT EXISTS idx_folder_clusters_cluster ON folder_clusters(clusterId);
 
     CREATE TABLE IF NOT EXISTS folder_metadata (
       folderId TEXT PRIMARY KEY,

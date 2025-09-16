@@ -196,6 +196,13 @@
   box-shadow: var(--dialog-shadow);
 }
 
+/* When select is rendered via portal (fixed in document.body), we add "in-dialog" class */
+.select-popover.in-dialog {
+  background: var(--dialog-bg);
+  border-color: var(--dialog-border);
+  box-shadow: var(--dialog-shadow);
+}
+
 .select-empty {
   padding: 10px;
   color: var(--text-secondary);

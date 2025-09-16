@@ -106,6 +106,18 @@ export const useDesktopState = () => {
     return games;
   }, [desktopItems, desktopItemsLoaded, desktopItemsSupported]);
 
+  // 取得桌面用的統一 Items（含簇 + 遊戲）。
+  // 搜索時返回傳入的遊戲（映射為 items: type='game'），非搜索時返回後端提供的 desktopItems（可能包含簇）。
+  const getDesktopGridItems = useCallback((games, searchQuery) => {
+    if (searchQuery && searchQuery.trim()) {
+      return Array.isArray(games) ? games.map(game => ({ ...game, type: 'game' })) : [];
+    }
+    if (desktopItemsSupported) {
+      return desktopItemsLoaded ? desktopItems : [];
+    }
+    return Array.isArray(games) ? games.map(game => ({ ...game, type: 'game' })) : [];
+  }, [desktopItems, desktopItemsLoaded, desktopItemsSupported]);
+
   // 獲取桌面上的資料夾
   // 桌面不顯示資料夾，始終返回空陣列
   const getDesktopFolders = useCallback(() => {
@@ -143,6 +155,7 @@ export const useDesktopState = () => {
     
     // 資料獲取
     getUncategorizedGames,
+    getDesktopGridItems,
     getDesktopFolders,
     getDrawerFolders,
   };

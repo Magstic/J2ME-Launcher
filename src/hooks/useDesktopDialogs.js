@@ -17,6 +17,7 @@ export const useDesktopDialogs = () => {
     isOpen: false,
     game: null,
     selectedFilePaths: null, // 若為多選，保存所有檔案路徑
+    selectedClusterIds: null, // 若有簇多選，保存所有簇 id（字串）
   });
 
   // 遊戲信息對話框
@@ -96,6 +97,9 @@ export const useDesktopDialogs = () => {
       selectedFilePaths: (target && Array.isArray(target.selectedFilePaths) && target.selectedFilePaths.length > 0)
         ? Array.from(new Set(target.selectedFilePaths))
         : null,
+      selectedClusterIds: (target && Array.isArray(target.selectedClusterIds) && target.selectedClusterIds.length > 0)
+        ? Array.from(new Set(target.selectedClusterIds.map(String)))
+        : null,
     });
   }, []);
 
@@ -115,6 +119,7 @@ export const useDesktopDialogs = () => {
       isOpen: false,
       game: null,
       selectedFilePaths: null,
+      selectedClusterIds: null,
     });
   }, []);
 

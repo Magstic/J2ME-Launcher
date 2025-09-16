@@ -5,7 +5,7 @@ import { FreeJ2MEPlusConfig, KEmulator, LibretroFJPlus } from '@components';
 import { useTranslation } from '@hooks/useTranslation'
 
 // 首次啟動彈窗：選擇使用全局預設或自訂當前遊戲參數
-function GameLaunchDialog({ isOpen, game, onClose, onSavedAndLaunch, configureOnly = false }) {
+function GameLaunchDialog({ isOpen, game, onClose, onSavedAndLaunch, configureOnly = false, zIndex = 10000 }) {
   const [loading, setLoading] = useState(false);
   const { t } = useTranslation();
   // 自訂名稱狀態
@@ -370,6 +370,7 @@ function GameLaunchDialog({ isOpen, game, onClose, onSavedAndLaunch, configureOn
       size="md"
       contentRef={modalRef}
       requestCloseRef={requestCloseRef}
+      zIndex={zIndex}
       actions={[
         { key: 'cancel', label: t('app.cancel'), variant: 'secondary', onClick: () => requestCloseRef.current && requestCloseRef.current() },
         { key: 'save', label: configureOnly ? t('app.save') : t('app.add'), variant: 'primary', onClick: () => handleSaveAndLaunch(), disabled: loading, allowFocusRing: true },
