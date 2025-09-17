@@ -9,18 +9,6 @@ const { getFolderById: sqlGetFolderById, getFolderGameCount: sqlGetFolderGameCou
 const { getDB } = require('../db');
 const { batchAddGamesToFolder } = require('../utils/batch-operations');
 const { getGameStateCache } = require('../utils/game-state-cache');
-const { getLogger } = require('../../utils/logger.cjs');
-
-// Scoped logger for this IPC module
-const log = getLogger('IPC/DragSession');
-// Locally override console to route to named logger with unified formatting
-const console = {
-  log: (...args) => log.info(...args),
-  info: (...args) => log.info(...args),
-  warn: (...args) => log.warn(...args),
-  error: (...args) => log.error(...args),
-  debug: (...args) => log.debug(...args),
-};
 
 function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWindow }) {
   const looksLikePath = (s) => typeof s === 'string' && (s.includes('\\') || s.includes('/') || /\.(jar|jad)$/i.test(s));

@@ -4,14 +4,6 @@
 
 本系統提供最小侵入性的日誌管理，透過攔截 `console` 方法實現統一控制，支持開發/生產環境自動切換。
 
-自 vNEXT 起，主進程（Main）、預載入（Preload）與渲染器（Renderer）統一採用相同的輸出格式：
-
-```
-[HH:MM:SS.mmm] [Process][Scope] LEVEL: ...
-```
-
-其中 `Process` 會標記為 `Main` / `Preload` / `Renderer`，`Scope` 由命名 logger 提供。
-
 ## 環境配置
 
 ### 開發環境
@@ -60,26 +52,6 @@ global.showLogConfig();
 | `info` | ✅ | ❌ | 信息日誌 |
 | `debug` | ❌ | ❌ | 調試日誌，默認關閉 |
 
-## 命名 Logger（推薦）
-
-為了更精確地歸屬日誌，可使用命名 logger API：
-
-```js
-// 主進程 / 預載入 (CommonJS)
-const { getLogger } = require('../utils/logger.cjs');
-const log = getLogger('Main');
-log.info('App starting...');
-log.warn('Something suspicious');
-log.error('Fatal error', err);
-
-// 渲染器 (ESM)
-import { getLogger } from '@/utils/logger';
-const log = getLogger('DesktopView');
-log.debug('state=', state);
-```
-
-命名 logger 的輸出將自動包含 `Process` 與 `Scope` 前綴。
-
 ## 實現細節
 
 ### 文件結構
@@ -96,9 +68,6 @@ import './utils/logger.js'
 
 // 主進程入口 (main/main.js)
 require('./utils/logger.cjs');
-
-// 預載入腳本 (main/preload.js)
-require('../utils/logger.cjs');
 ```
 
 ## 使用建議
@@ -107,10 +76,6 @@ require('../utils/logger.cjs');
 2. **調試特定功能**: 使用 `window.toggleLogLevel()` 只顯示需要的日誌
 3. **性能測試**: 使用 `window.toggleLogs(false)` 模擬生產環境
 4. **問題排查**: `console.error` 在所有環境都會顯示
-
-## 過渡建議
-
-現有 `console.*` 調用已被攔截並統一格式化，可逐步將關鍵模組改為使用 `getLogger('YourScope')`，以便於定位與篩選。
 
 ## 注意事項
 

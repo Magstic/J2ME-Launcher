@@ -4,13 +4,10 @@ import useContextMenu from '@components/Common/useContextMenu.jsx';
 import { useTranslation } from '@hooks/useTranslation';
 import './ClusterDialog.css';
 import DEFAULT_CLUSTER_TAG_OPTIONS from '@config/clusterTags';
-import { getLogger } from '@/utils/logger';
 
 // 簇詳情對話框（列表樣式，固定尺寸）
 // - 列表欄位：圖標、遊戲名、廠商、機型、解析度、版本 + 操作
 // - 標籤選項：優先讀 Settings 設定，否則退回 DEFAULT_CLUSTER_TAG_OPTIONS（單一來源）
-
-const log = getLogger('ClusterDialog');
 
 // 單行成員列（高度自適應），以 filePath 為 key；
 // 使用 React.memo 避免非必要重渲染：除非該行的 tags/name/vendor/icon 或 isPrimary 改變
@@ -147,7 +144,7 @@ export default function ClusterDialog({ isOpen, clusterId, onClose }) {
         return next;
       });
     } catch (e) {
-      log.error('載入簇資料失敗:', e);
+      console.error('載入簇資料失敗:', e);
     } finally {
       if (!silent) setLoading(false);
     }
@@ -320,7 +317,7 @@ export default function ClusterDialog({ isOpen, clusterId, onClose }) {
     try {
       const res = await window.electronAPI.setClusterPrimary(cluster.id, filePath);
       if (!res?.success) {
-        log.warn('設為代表失敗:', res?.error || res);
+        console.warn('設為代表失敗:', res?.error || res);
         // 退回靜默刷新，避免閃爍
         loadData({ silent: true });
         return;
@@ -329,7 +326,7 @@ export default function ClusterDialog({ isOpen, clusterId, onClose }) {
       setCluster(prev => prev ? { ...prev, primaryFilePath: filePath } : prev);
       lastLocalPrimaryUpdateAtRef.current = Date.now();
     } catch (e) {
-      log.error('設為代表失敗:', e);
+      console.error('設為代表失敗:', e);
     }
   };
 
@@ -340,14 +337,14 @@ export default function ClusterDialog({ isOpen, clusterId, onClose }) {
       if (value == null || value === '') delete nextTags[key]; else nextTags[key] = value;
       const res = await window.electronAPI.updateClusterMemberTags(clusterId, filePath, nextTags);
       if (!res?.success) {
-        log.warn('更新標籤失敗:', res?.error || res);
+        console.warn('更新標籤失敗:', res?.error || res);
       }
       // 即時更新 UI（樂觀）
       setMembers(prev => prev.map(x => x.filePath === filePath ? { ...x, tags: nextTags } : x));
       // 標記一次本地更新，以便隨後「members-updated」事件採用靜默重載避免閃爍
       lastLocalMemberUpdateAtRef.current = Date.now();
     } catch (e) {
-      log.error('更新標籤失敗:', e);
+      console.error('更新標籤失敗:', e);
     }
   }, [clusterId, members]);
 
@@ -355,7 +352,7 @@ export default function ClusterDialog({ isOpen, clusterId, onClose }) {
     try {
       const res = await window.electronAPI.removeGameFromCluster(clusterId, filePath);
       if (!res?.success) {
-        log.warn('移除成員失敗:', res?.error || res);
+        console.warn('移除成員失敗:', res?.error || res);
         // 後備：靜默刷新
         loadData({ silent: true });
         return;
@@ -373,12 +370,12 @@ export default function ClusterDialog({ isOpen, clusterId, onClose }) {
       });
       lastLocalRemovalUpdateAtRef.current = Date.now();
     } catch (e) {
-      log.error('移除成員失敗:', e);
+      console.error('移除成員失敗:', e);
     }
   };
 
   const handleLaunch = async (filePath) => {
-    try { await window.electronAPI.launchGame(filePath); } catch (e) { log.error(e); }
+    try { await window.electronAPI.launchGame(filePath); } catch (e) { console.error(e); }
   };
 
   const handleCreateShortcut = async (filePath) => {
@@ -386,7 +383,7 @@ export default function ClusterDialog({ isOpen, clusterId, onClose }) {
       const m = members.find(x => x.filePath === filePath);
       await window.electronAPI.createShortcut({ filePath, title: m?.gameName, iconCacheName: (m?.iconUrl || '').replace('safe-file://','') });
     } catch (e) {
-      log.error('建立捷徑失敗:', e);
+      console.error('建立捷徑失敗:', e);
     }
   };
 
@@ -394,14 +391,14 @@ export default function ClusterDialog({ isOpen, clusterId, onClose }) {
     try {
       const m = members.find(x => x.filePath === filePath);
       window.dispatchEvent(new CustomEvent('open-game-config', { detail: m }));
-    } catch (e) { log.error(e); }
+    } catch (e) { console.error(e); }
   };
 
   const handleInfo = (filePath) => {
     try {
       const m = members.find(x => x.filePath === filePath);
       window.dispatchEvent(new CustomEvent('open-game-info', { detail: m }));
-    } catch (e) { log.error(e); }
+    } catch (e) { console.error(e); }
   };
 
   const Header = (

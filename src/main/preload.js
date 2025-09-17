@@ -1,4 +1,3 @@
-require('../utils/logger.cjs');
 const { contextBridge, ipcRenderer, shell } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
