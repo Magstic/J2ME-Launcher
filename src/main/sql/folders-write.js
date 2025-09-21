@@ -70,7 +70,9 @@ function addGamesToFolderBatch(folderId, filePaths, payload = {}) {
   const tx = db.transaction((paths) => {
     for (const fp of paths) {
       if (!fp) continue;
-      try { ensureGame.run(fp); } catch (_) {}
+      try {
+        ensureGame.run(fp);
+      } catch (_) {}
       upsertRel.run({
         folderId,
         filePath: fp,

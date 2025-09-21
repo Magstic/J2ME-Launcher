@@ -1,7 +1,11 @@
 require('../utils/logger.cjs');
 const { app, BrowserWindow, ipcMain, dialog, Menu, session, protocol, shell } = require('electron');
 const path = require('path');
-const { processDirectory, processMultipleDirectories, performAutoIncrementalScan } = require('./jar-parser.js');
+const {
+  processDirectory,
+  processMultipleDirectories,
+  performAutoIncrementalScan,
+} = require('./jar-parser.js');
 const { initJarCache, cleanupCacheOnStartup } = require('./utils/jar-cache.js');
 const DataStore = require('./data-store.js');
 // SQLite initialization and one-time migration from legacy JSON
@@ -11,8 +15,9 @@ const freej2mePlusAdapter = require('./emulators/freej2mePlus.js');
 const keAdapter = require('./emulators/ke.js');
 const libretroAdapter = require('./emulators/libretro.js');
 // Extracted utils
-const { resolveJavaCommand } = require('./utils/java.js');
 const { getConfigGameName } = require('./utils/jar-manifest.js');
+// Unified event broadcast (replace legacy local implementation)
+const { broadcastToAll } = require('./ipc/unified-events.js');
 // Centralized configuration service
 const ConfigService = require('./services/config-service.js');
 const { toIconUrl, addUrlToGames } = require('./utils/icon-url.js');
@@ -42,7 +47,7 @@ const { register: registerBackupIpc } = require('./ipc/backup.js');
 
 // 必须在 app ready 事件之前注册协议方案（保持原位調用）
 protocol.registerSchemesAsPrivileged([
-  { scheme: 'safe-file', privileges: { secure: true, standard: true, supportFetchAPI: true } }
+  { scheme: 'safe-file', privileges: { secure: true, standard: true, supportFetchAPI: true } },
 ]);
 
 // Initialize JAR cache utils and schedule startup cleanup
@@ -65,13 +70,13 @@ registerEmulatorIpc({
   libretroAdapter,
   configService,
   getConfigGameName,
-  app
+  app,
 });
 
 // Register configuration IPC handlers
 registerConfigIpc({
   ipcMain,
-  configService
+  configService,
 });
 
 // Register folder-related IPC handlers
@@ -80,7 +85,7 @@ registerFoldersIpc({
   DataStore,
   addUrlToGames,
   broadcastToAll,
-  toIconUrl
+  toIconUrl,
 });
 
 // Register cross-window drag session IPC handlers
@@ -89,13 +94,13 @@ registerDragSessionIpc({
   DataStore,
   addUrlToGames,
   broadcastToAll,
-  BrowserWindow
+  BrowserWindow,
 });
 
 // Register custom names IPC handlers
 registerCustomNamesIpc({
   ipcMain,
-  broadcastToAll
+  broadcastToAll,
 });
 
 // Register directories/scanning IPC handlers
@@ -106,7 +111,7 @@ registerDirectoriesIpc({
   processDirectory,
   processMultipleDirectories,
   addUrlToGames,
-  broadcastToAll
+  broadcastToAll,
 });
 
 // Register folder windows lifecycle/control IPC -> moved below after folderWindows/init
@@ -115,7 +120,7 @@ registerDirectoriesIpc({
 registerDesktopIpc({
   ipcMain,
   DataStore,
-  toIconUrl
+  toIconUrl,
 });
 
 // Register clusters IPC (CRUD + queries)
@@ -124,30 +129,36 @@ registerClustersIpc({
   DataStore,
   addUrlToGames,
   toIconUrl,
-  broadcastToAll
+  broadcastToAll,
 });
 
 // Register stats IPC
 registerStatsIpc({
   ipcMain,
   DataStore,
-  addUrlToGames
+  addUrlToGames,
 });
 
 // Register main window control IPC
 registerWindowControlsIpc({
   ipcMain,
-  getMainWindow: () => mainWindow
+  getMainWindow: () => mainWindow,
 });
 
 // Register optional SQL-backed games IPC (kept separate to avoid breaking existing channels)
 registerSqlGamesIpc({ ipcMain });
 
 // Register cloud backup IPC (provides spec, last backup time, and run stubs)
-try { registerBackupIpc({ ipcMain, app }); } catch (_) {}
+try {
+  registerBackupIpc({ ipcMain, app });
+} catch (_) {}
 
 // Register shortcuts IPC
-try { registerShortcutsIpc({ ipcMain, DataStore, app }); } catch (e) { console.warn('[shortcuts IPC] register failed:', e && e.message ? e.message : e); }
+try {
+  registerShortcutsIpc({ ipcMain, DataStore, app });
+} catch (e) {
+  console.warn('[shortcuts IPC] register failed:', e && e.message ? e.message : e);
+}
 
 // Open external URL in the system default browser
 ipcMain.handle('open-external', async (_event, url) => {
@@ -171,7 +182,9 @@ ipcMain.handle('open-external', async (_event, url) => {
 // 開發模式檢測
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 // 設置固定的 AppUserModelID 以確保任務欄圖標與分組穩定（避免被捷徑圖標影響）
-try { app.setAppUserModelId('Magstic.J2ME.Launcher'); } catch (_) {}
+try {
+  app.setAppUserModelId('Magstic.J2ME.Launcher');
+} catch (_) {}
 
 let mainWindow;
 let splashWindow; // 加載卡片窗口
@@ -180,13 +193,19 @@ let folderWindows = new Map(); // 存儲所有打開的資料夾窗口
 let pendingLaunchHash = null; // 透過捷徑帶入的啟動參數
 // DB 就緒信號：用於控制啟動畫面的淡出時機（需在 DB 完成後延遲 2 秒）
 let resolveDbReadyOnce = null;
-const dbReadyPromise = new Promise((resolve) => { resolveDbReadyOnce = resolve; });
+const dbReadyPromise = new Promise((resolve) => {
+  resolveDbReadyOnce = resolve;
+});
 
 function extractLaunchHash(argv) {
   try {
-    const arg = (argv || []).find(a => typeof a === 'string' && a.startsWith('--launch-game-hash='));
+    const arg = (argv || []).find(
+      (a) => typeof a === 'string' && a.startsWith('--launch-game-hash=')
+    );
     return arg ? arg.split('=')[1] : null;
-  } catch (_) { return null; }
+  } catch (_) {
+    return null;
+  }
 }
 
 // 單例鎖與捷徑參數處理（需在最頂層且早於 app.whenReady）
@@ -214,8 +233,10 @@ try {
       }
     });
 
-  // 明確設置窗口的 AppUserModelID，避免任務欄圖標被啟動捷徑影響
-  try { mainWindow.setAppDetails({ appId: 'Magstic.J2ME.Launcher' }); } catch (_) {}
+    // 明確設置窗口的 AppUserModelID，避免任務欄圖標被啟動捷徑影響
+    try {
+      mainWindow.setAppDetails({ appId: 'Magstic.J2ME.Launcher' });
+    } catch (_) {}
   }
 } catch (e) {
   console.warn('[single instance] init failed:', e && e.message ? e.message : e);
@@ -223,49 +244,6 @@ try {
 
 // 跨窗口拖拽會話狀態
 // drag-session state moved into ./ipc/drag-session.js
-
-function broadcastToAll(channel, payload, excludeWindowId = null) {
-  // 確保 payload 是可序列化的
-  let serializedPayload;
-  try {
-    // 測試序列化並清理不可序列化的屬性
-    serializedPayload = JSON.parse(JSON.stringify(payload));
-  } catch (e) {
-    console.warn(`[broadcastToAll] Payload serialization failed for channel ${channel}:`, e.message);
-    
-    // 嘗試創建安全的 payload
-    if (payload && typeof payload === 'object') {
-      serializedPayload = {};
-      for (const [key, value] of Object.entries(payload)) {
-        try {
-          JSON.stringify(value);
-          serializedPayload[key] = value;
-        } catch (err) {
-          console.warn(`[broadcastToAll] Skipping non-serializable property: ${key}`);
-        }
-      }
-    } else {
-      serializedPayload = payload;
-    }
-  }
-
-  if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents && mainWindow.id !== excludeWindowId) {
-    try { 
-      mainWindow.webContents.send(channel, serializedPayload); 
-    } catch (e) {
-      console.error(`[broadcastToAll] Failed to send to main window:`, e.message);
-    }
-  }
-  folderWindows.forEach(win => {
-    if (win && !win.isDestroyed() && win.webContents && win.id !== excludeWindowId) {
-      try { 
-        win.webContents.send(channel, serializedPayload); 
-      } catch (e) {
-        console.error(`[broadcastToAll] Failed to send to folder window:`, e.message);
-      }
-    }
-  });
-}
 
 function createWindow() {
   // 移除預設的應用程式菜單
@@ -290,8 +268,8 @@ function createWindow() {
       webPreferences: {
         contextIsolation: true,
         nodeIntegration: false,
-        paintWhenInitiallyHidden: true // 隱藏時先繪製，顯示瞬間避免白閃
-      }
+        paintWhenInitiallyHidden: true, // 隱藏時先繪製，顯示瞬間避免白閃
+      },
     });
     const loadingPath = isDev
       ? path.join(__dirname, '../../loading.html')
@@ -308,7 +286,10 @@ function createWindow() {
         const stepTime = Math.max(10, Math.floor(duration / steps));
         let i = 0;
         const timer = setInterval(() => {
-          if (!splashWindow || splashWindow.isDestroyed()) { clearInterval(timer); return; }
+          if (!splashWindow || splashWindow.isDestroyed()) {
+            clearInterval(timer);
+            return;
+          }
           i++;
           const t = Math.min(1, i / steps);
           splashWindow.setOpacity(t);
@@ -321,7 +302,10 @@ function createWindow() {
   }
 
   // 主窗口：使用主顯示器工作區 100% 尺寸與位置
-  let mwX, mwY, mwW = 1200, mwH = 800;
+  let mwX,
+    mwY,
+    mwW = 1200,
+    mwH = 800;
   try {
     const { screen } = require('electron');
     const { workArea } = screen.getPrimaryDisplay() || {};
@@ -344,15 +328,17 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js'),
     },
     // 使用打包安全的固定路徑，避免因為路徑無效導致任務欄圖標異常被替換
     icon: path.join(__dirname, '..', 'assets', 'icons', 'icon.ico'),
     show: false,
-    backgroundColor: '#0f1115' // 與主題背景一致，避免首幀白屏閃爍
+    backgroundColor: '#0f1115', // 與主題背景一致，避免首幀白屏閃爍
   });
   // 明確設置窗口的 AppUserModelID，避免任務欄圖標被啟動捷徑影響
-  try { mainWindow.setAppDetails({ appId: 'Magstic.J2ME.Launcher' }); } catch (_) {}
+  try {
+    mainWindow.setAppDetails({ appId: 'Magstic.J2ME.Launcher' });
+  } catch (_) {}
 
   // 載入應用
   if (isDev) {
@@ -369,10 +355,18 @@ function createWindow() {
       // 1) 啟動畫面最短顯示 5000ms
       // 2) 數據庫處理完成後再延遲 2000ms
       const minDuration = 5000;
-      const elapsed = splashShownAt ? (Date.now() - splashShownAt) : 0;
+      const elapsed = splashShownAt ? Date.now() - splashShownAt : 0;
       const waitMinDuration = Math.max(0, minDuration - elapsed);
-      const waitForMinDuration = waitMinDuration > 0 ? new Promise(r => setTimeout(r, waitMinDuration)) : Promise.resolve();
-      const waitForDbThenDelay = (async () => { try { await dbReadyPromise; } catch(_) {} await new Promise(r => setTimeout(r, 2000)); })();
+      const waitForMinDuration =
+        waitMinDuration > 0
+          ? new Promise((r) => setTimeout(r, waitMinDuration))
+          : Promise.resolve();
+      const waitForDbThenDelay = (async () => {
+        try {
+          await dbReadyPromise;
+        } catch (_) {}
+        await new Promise((r) => setTimeout(r, 2000));
+      })();
       await Promise.all([waitForMinDuration, waitForDbThenDelay]);
 
       // 通知加載卡片淡出（僅在兩個條件都滿足後）
@@ -385,7 +379,9 @@ function createWindow() {
       // 顯示主窗口並從 0 漸入到 1
       if (!mainWindow.isDestroyed()) {
         // 先最大化，再顯示與淡入，避免顯示後再最大化的視覺跳動
-        try { mainWindow.maximize(); } catch (_) {}
+        try {
+          mainWindow.maximize();
+        } catch (_) {}
         mainWindow.setOpacity(0);
         mainWindow.show();
         const duration = 300; // ms
@@ -393,7 +389,10 @@ function createWindow() {
         const stepTime = Math.max(10, Math.floor(duration / steps));
         let i = 0;
         const timer = setInterval(() => {
-          if (mainWindow.isDestroyed()) { clearInterval(timer); return; }
+          if (mainWindow.isDestroyed()) {
+            clearInterval(timer);
+            return;
+          }
           i++;
           const t = Math.min(1, i / steps);
           mainWindow.setOpacity(t);
@@ -415,7 +414,9 @@ function createWindow() {
       // 等待與 CSS 對應過渡時間後關閉 splash
       setTimeout(() => {
         if (splashWindow && !splashWindow.isDestroyed()) {
-          try { splashWindow.close(); } catch (_) {}
+          try {
+            splashWindow.close();
+          } catch (_) {}
         }
         splashWindow = null;
       }, 320);
@@ -423,7 +424,9 @@ function createWindow() {
       // 回退方案：直接顯示主窗口，關閉 splash
       if (!mainWindow.isDestroyed()) mainWindow.show();
       if (splashWindow && !splashWindow.isDestroyed()) {
-        try { splashWindow.close(); } catch (_) {}
+        try {
+          splashWindow.close();
+        } catch (_) {}
         splashWindow = null;
       }
     }
@@ -431,7 +434,7 @@ function createWindow() {
 
   mainWindow.on('closed', () => {
     // 關閉所有資料夾窗口
-    folderWindows.forEach(window => {
+    folderWindows.forEach((window) => {
       if (!window.isDestroyed()) {
         window.close();
       }
@@ -455,7 +458,8 @@ function createFolderWindow(folderId, folderName) {
   }
 
   // 以顯示器工作區 85% 尺寸作為預設窗口大小，提供更寬敞的視圖
-  let defWidth = 1200, defHeight = 800;
+  let defWidth = 1200,
+    defHeight = 800;
   try {
     const { screen } = require('electron');
     const { width: W, height: H } = screen.getPrimaryDisplay().workAreaSize || {};
@@ -480,23 +484,25 @@ function createFolderWindow(folderId, folderName) {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
-      additionalArguments: [`--folder-id=${folderId}`] // 傳遞資料夾ID
+      additionalArguments: [`--folder-id=${folderId}`], // 傳遞資料夾ID
     },
     // 與主窗口一致使用 .ico，保證在 Windows 任務欄顯示穩定
     icon: path.join(__dirname, '..', 'assets', 'icons', 'icon.ico'),
     title: `${folderName} - J2ME Launcher`,
     show: false,
-    backgroundColor: '#0f1115' // 與主題背景一致，避免窗口白屏閃爍
+    backgroundColor: '#0f1115', // 與主題背景一致，避免窗口白屏閃爍
   });
   // 同步設置資料夾窗口的 AppUserModelID
-  try { folderWindow.setAppDetails({ appId: 'Magstic.J2ME.Launcher' }); } catch (_) {}
+  try {
+    folderWindow.setAppDetails({ appId: 'Magstic.J2ME.Launcher' });
+  } catch (_) {}
 
   // 載入資料夾窗口頁面
   if (isDev) {
     folderWindow.loadURL(`http://localhost:5173/folder.html?folderId=${folderId}`);
   } else {
     folderWindow.loadFile(path.join(__dirname, '../../dist/folder.html'), {
-      query: { folderId: folderId }
+      query: { folderId: folderId },
     });
   }
 
@@ -506,9 +512,13 @@ function createFolderWindow(folderId, folderName) {
       folderWindow.webContents.openDevTools({ mode: 'detach' });
     }
     folderWindow.webContents.on('before-input-event', (event, input) => {
-      const isToggle = (input.key === 'F12') || (input.key && input.key.toLowerCase() === 'i' && input.control && input.shift);
+      const isToggle =
+        input.key === 'F12' ||
+        (input.key && input.key.toLowerCase() === 'i' && input.control && input.shift);
       if (isToggle) {
-        try { folderWindow.webContents.toggleDevTools(); } catch (_) {}
+        try {
+          folderWindow.webContents.toggleDevTools();
+        } catch (_) {}
         event.preventDefault();
       }
     });
@@ -532,7 +542,7 @@ function createFolderWindow(folderId, folderName) {
 
   // 存儲窗口引用
   folderWindows.set(folderId, folderWindow);
-  
+
   return folderWindow;
 }
 
@@ -542,7 +552,7 @@ registerFolderWindowsIpc({
   BrowserWindow,
   DataStore,
   createFolderWindow,
-  folderWindows
+  folderWindows,
 });
 
 app.whenReady().then(async () => {
@@ -582,11 +592,11 @@ app.whenReady().then(async () => {
         // 在开发模式下，需要更宽松的策略以支持 Vite HMR
         // 在生产环境中应使用更严格的策略
         'Content-Security-Policy': [
-          isDev 
+          isDev
             ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: safe-file:; font-src 'self';"
-            : "script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: safe-file:; font-src 'self';"
-        ]
-      }
+            : "script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: safe-file:; font-src 'self';",
+        ],
+      },
     });
   });
 
@@ -600,48 +610,60 @@ app.whenReady().then(async () => {
 
   // DataStore 已移除 JSON 加載，現在完全依賴 SQLite
   console.log(`[Path Debug] UserData Path: ${app.getPath('userData')}`); // 调试日志
-  
+
   createWindow();
-  
+
   // 应用启动后稍微延迟执行自动增量扫描
   setTimeout(async () => {
     try {
       console.log('🔄 开始应用启动自动扫描...');
       const scanResult = await performAutoIncrementalScan();
-      
+
       if (scanResult.success && scanResult.summary.totalNewGames > 0) {
         // 如果发现新游戏，通知前端更新
         const games = DataStore.getAllGames();
-        try { 
-          const { upsertGames } = require('./sql/write'); 
-          upsertGames(games); 
-        } catch (e) { 
-          console.warn('[SQL sync] initial upsert failed:', e.message); 
+        try {
+          const { upsertGames } = require('./sql/write');
+          upsertGames(games);
+        } catch (e) {
+          console.warn('[SQL sync] initial upsert failed:', e.message);
         }
-        
+
         // 初始化遊戲狀態快取
         const cache = getGameStateCache();
         await cache.initialize();
         console.log('[Cache] Game state cache initialized');
-        
+
         let payloadGames = null;
-        try { payloadGames = require('./sql/read').getAllGamesFromSql(); } catch (_) {}
+        try {
+          payloadGames = require('./sql/read').getAllGamesFromSql();
+        } catch (_) {}
         const gamesWithUrl = addUrlToGames(payloadGames || games);
 
         if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.webContents.send('games-updated', gamesWithUrl);
           mainWindow.webContents.send('auto-scan-completed', {
             newGamesCount: scanResult.summary.totalNewGames,
-            totalDirectories: scanResult.totalDirectories
+            totalDirectories: scanResult.totalDirectories,
           });
         }
       }
       // 無論是否有新增或發生錯誤，只要自動掃描結束，即視為「數據庫處理完成」
-      try { if (typeof resolveDbReadyOnce === 'function') { resolveDbReadyOnce(); resolveDbReadyOnce = null; } } catch(_) {}
+      try {
+        if (typeof resolveDbReadyOnce === 'function') {
+          resolveDbReadyOnce();
+          resolveDbReadyOnce = null;
+        }
+      } catch (_) {}
     } catch (error) {
       console.error('自动扫描失败:', error);
       // 失敗亦視為流程已結束，避免卡住淡出
-      try { if (typeof resolveDbReadyOnce === 'function') { resolveDbReadyOnce(); resolveDbReadyOnce = null; } } catch(_) {}
+      try {
+        if (typeof resolveDbReadyOnce === 'function') {
+          resolveDbReadyOnce();
+          resolveDbReadyOnce = null;
+        }
+      } catch (_) {}
     }
   }, 3000); // 3秒延迟，等待界面初始化完成
 });
@@ -657,12 +679,16 @@ app.on('before-quit', () => {
   try {
     console.log('[Shutdown] compacting SQLite database...');
     const ok = compactDb();
-    console.log(ok ? '[Shutdown] DB compacted successfully.' : '[Shutdown] DB compact skipped or failed.');
+    console.log(
+      ok ? '[Shutdown] DB compacted successfully.' : '[Shutdown] DB compact skipped or failed.'
+    );
   } catch (e) {
     console.warn('[Shutdown] DB compact threw:', e && e.message ? e.message : e);
   } finally {
     // Ensure DB handle is closed so WAL truncation and VACUUM can persist to disk
-    try { closeDB(); } catch (_) {}
+    try {
+      closeDB();
+    } catch (_) {}
   }
 });
 
@@ -676,13 +702,9 @@ app.on('activate', () => {
 
 // 目錄與掃描 IPC 已移至 ./ipc/directories.js
 
-
-
 // 獨立資料夾窗口 IPC 已移至 ./ipc/folder-windows.js
 
 // drag-session IPC moved to ./ipc/drag-session.js
-
-
 
 // 桌面數據 IPC 已移至 ./ipc/desktop.js
 
@@ -693,5 +715,3 @@ app.on('activate', () => {
 // 模擬器設定 IPC -> moved to ./ipc/emulator.js
 
 // launch-game -> moved to ./ipc/emulator.js
-
-

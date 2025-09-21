@@ -30,19 +30,20 @@ function ClusterCard({
     <div
       className={`game-card cluster ${className} ${isDraggingSelf || isDragging ? 'dragging' : ''} ${isSelected ? 'selected' : ''} ${appearing ? 'appearing' : ''}`}
       onMouseDown={rest.onMouseDown}
-      onContextMenu={(e) => { try { e.preventDefault(); e.stopPropagation(); } catch (_) {} onContextMenu && onContextMenu(e, cluster); }}
+      onContextMenu={(e) => {
+        try {
+          e.preventDefault();
+          e.stopPropagation();
+        } catch (_) {}
+        onContextMenu && onContextMenu(e, cluster);
+      }}
       onDoubleClick={handleDoubleClick}
       draggable={draggable}
       title={`${cluster.name || 'Cluster'}${cluster.memberCount ? ` (${cluster.memberCount})` : ''}`}
       {...rest}
     >
       <div className="game-icon-container" style={{ position: 'relative' }}>
-        <img
-          src={iconSrc}
-          alt={cluster.name || '簇'}
-          className="game-icon"
-          draggable="false"
-        />
+        <img src={iconSrc} alt={cluster.name || '簇'} className="game-icon" draggable="false" />
         {/* 右上角：簇角標（使用與 GameCard folder-badge 相同風格） */}
         <div
           className="cluster-badge"
@@ -63,11 +64,17 @@ function ClusterCard({
             alignItems: 'center',
             justifyContent: 'center',
             transform: 'translateZ(0)',
-            boxShadow: '0 1px 2px var(--scrim-35)'
+            boxShadow: '0 1px 2px var(--scrim-35)',
           }}
         >
           {/* 簇小圖示：三層堆疊方塊 */}
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
             <rect x="3" y="9" width="8" height="8" rx="1" fill="#00BCD4" />
             <rect x="8" y="5" width="8" height="8" rx="1" fill="#03A9F4" />
             <rect x="13" y="1" width="8" height="8" rx="1" fill="#3F51B5" />
@@ -94,7 +101,7 @@ function ClusterCard({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 1px 2px var(--scrim-35)'
+              boxShadow: '0 1px 2px var(--scrim-35)',
             }}
           >
             {cluster.memberCount}

@@ -7,30 +7,34 @@
 ## 環境配置
 
 ### 開發環境
+
 - `NODE_ENV=development`: 自動啟用所有日誌
 - `DEBUG=true`: 強制啟用日誌輸出
 
 ### 生產環境
+
 - 自動關閉除 `console.error` 外的所有日誌
 - 保留錯誤日誌用於問題排查
 
 ## 運行時控制 (開發環境)
 
 ### 瀏覽器控制台
+
 ```javascript
 // 全局開關
-window.toggleLogs(true);   // 開啟所有日誌
-window.toggleLogs(false);  // 關閉所有日誌
+window.toggleLogs(true); // 開啟所有日誌
+window.toggleLogs(false); // 關閉所有日誌
 
 // 按級別控制
-window.toggleLogLevel('debug', true);  // 開啟 debug 日誌
-window.toggleLogLevel('log', false);   // 關閉 log 日誌
+window.toggleLogLevel('debug', true); // 開啟 debug 日誌
+window.toggleLogLevel('log', false); // 關閉 log 日誌
 
 // 查看當前配置
 window.showLogConfig();
 ```
 
 ### Node.js 主進程
+
 ```javascript
 // 全局開關
 global.toggleLogs(true);
@@ -44,17 +48,18 @@ global.showLogConfig();
 
 ## 日誌級別
 
-| 級別 | 開發環境 | 生產環境 | 說明 |
-|------|----------|----------|------|
-| `error` | ✅ | ✅ | 錯誤信息，始終保留 |
-| `warn` | ✅ | ❌ | 警告信息 |
-| `log` | ✅ | ❌ | 一般日誌 |
-| `info` | ✅ | ❌ | 信息日誌 |
-| `debug` | ❌ | ❌ | 調試日誌，默認關閉 |
+| 級別    | 開發環境 | 生產環境 | 說明               |
+| ------- | -------- | -------- | ------------------ |
+| `error` | ✅       | ✅       | 錯誤信息，始終保留 |
+| `warn`  | ✅       | ❌       | 警告信息           |
+| `log`   | ✅       | ❌       | 一般日誌           |
+| `info`  | ✅       | ❌       | 信息日誌           |
+| `debug` | ❌       | ❌       | 調試日誌，默認關閉 |
 
 ## 實現細節
 
 ### 文件結構
+
 ```
 src/utils/
 ├── logger.js     # ES6 模塊版本 (渲染進程)
@@ -62,9 +67,10 @@ src/utils/
 ```
 
 ### 集成方式
+
 ```javascript
 // 渲染進程入口 (main.jsx, folder-main.jsx)
-import './utils/logger.js'
+import './utils/logger.js';
 
 // 主進程入口 (main/main.js)
 require('./utils/logger.cjs');

@@ -13,30 +13,39 @@ const SettingsDialog = ({ isOpen, onClose, theme, setTheme }) => {
   const [tagsResolutionsText, setTagsResolutionsText] = useState('');
   const [tagsVersionsText, setTagsVersionsText] = useState('');
   const [isSavingTags, setIsSavingTags] = useState(false);
-  
+
   const languages = [
     { code: 'zh-TW', name: '繁體中文' },
     { code: 'zh-CN', name: '简体中文' },
-    { code: 'en-US', name: 'English' }
+    { code: 'en-US', name: 'English' },
   ];
 
   // Load Java path configuration on dialog open
   useEffect(() => {
     if (isOpen) {
-      window.electronAPI.getJavaPath().then(result => {
-        setJavaPath(result);
-        setCustomJavaPath(result.custom || '');
-        // Store the auto-detected path separately and keep it constant
-        if (!autoDetectedPath) {
-          setAutoDetectedPath(result.autoDetected || result.current);
-        }
-      }).catch(console.error);
+      window.electronAPI
+        .getJavaPath()
+        .then((result) => {
+          setJavaPath(result);
+          setCustomJavaPath(result.custom || '');
+          // Store the auto-detected path separately and keep it constant
+          if (!autoDetectedPath) {
+            setAutoDetectedPath(result.autoDetected || result.current);
+          }
+        })
+        .catch(console.error);
       // Load cluster tag extras (append-only; UI will union with built-ins when used)
       (async () => {
         try {
           const opts = await window.electronAPI.getClusterTagOptions();
-          const uniq = (arr) => Array.from(new Set((arr || []).filter(v => typeof v === 'string' && v.trim().length > 0)));
-          const extras = (opts && typeof opts === 'object') ? opts : { devices: [], resolutions: [], versions: [] };
+          const uniq = (arr) =>
+            Array.from(
+              new Set((arr || []).filter((v) => typeof v === 'string' && v.trim().length > 0))
+            );
+          const extras =
+            opts && typeof opts === 'object'
+              ? opts
+              : { devices: [], resolutions: [], versions: [] };
           setTagsDevicesText(uniq(extras.devices).join('\n'));
           setTagsResolutionsText(uniq(extras.resolutions).join('\n'));
           setTagsVersionsText(uniq(extras.versions).join('\n'));
@@ -57,7 +66,7 @@ const SettingsDialog = ({ isOpen, onClose, theme, setTheme }) => {
     setIsValidatingJava(true);
     try {
       const finalPath = pathToSave !== null ? pathToSave : customJavaPath.trim();
-      
+
       if (finalPath) {
         // Validate path first
         const validation = await window.electronAPI.validateJavaPath(finalPath);
@@ -66,7 +75,7 @@ const SettingsDialog = ({ isOpen, onClose, theme, setTheme }) => {
           return;
         }
       }
-      
+
       // Save the path
       const result = await window.electronAPI.setJavaPath(finalPath || null);
       if (result.success) {
@@ -109,7 +118,7 @@ const SettingsDialog = ({ isOpen, onClose, theme, setTheme }) => {
     // split by newline or comma; trim and de-duplicate
     const parts = text
       .split(/\r?\n|,/g)
-      .map(s => (s || '').trim())
+      .map((s) => (s || '').trim())
       .filter(Boolean);
     return Array.from(new Set(parts));
   };
@@ -119,7 +128,7 @@ const SettingsDialog = ({ isOpen, onClose, theme, setTheme }) => {
       const payload = {
         devices: parseTextToList(tagsDevicesText),
         resolutions: parseTextToList(tagsResolutionsText),
-        versions: parseTextToList(tagsVersionsText)
+        versions: parseTextToList(tagsVersionsText),
       };
       const res = await window.electronAPI.setClusterTagOptions(payload);
       if (!res?.success) {
@@ -136,7 +145,9 @@ const SettingsDialog = ({ isOpen, onClose, theme, setTheme }) => {
     setTagsDevicesText('');
     setTagsResolutionsText('');
     setTagsVersionsText('');
-    try { await window.electronAPI.setClusterTagOptions({ devices: [], resolutions: [], versions: [] }); } catch (_) {}
+    try {
+      await window.electronAPI.setClusterTagOptions({ devices: [], resolutions: [], versions: [] });
+    } catch (_) {}
   };
   return (
     <ModalWithFooter
@@ -144,12 +155,23 @@ const SettingsDialog = ({ isOpen, onClose, theme, setTheme }) => {
       onClose={onClose}
       title={t('settings.title')}
       size="md"
-      actions={[{ key: 'close', label: t('app.close'), variant: 'primary', onClick: onClose, autoFocus: true }]}
+      actions={[
+        {
+          key: 'close',
+          label: t('app.close'),
+          variant: 'primary',
+          onClick: onClose,
+          autoFocus: true,
+        },
+      ]}
       bodyClassName="settings-modal"
     >
       {/* 主題切換：摺疊區塊，使用 section 與 mb-12 */}
       <Collapsible title={t('settings.theme.title')} defaultOpen className="mb-12">
-        <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
+        <div
+          className="grid"
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}
+        >
           <Card
             className={`theme-card ${theme === 'light' ? 'selected' : ''}`}
             onClick={() => setTheme('light')}
@@ -163,8 +185,12 @@ const SettingsDialog = ({ isOpen, onClose, theme, setTheme }) => {
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <div style={{ fontWeight: 600, marginBottom: 4 }}>{t('settings.theme.light.name')}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{t('settings.theme.light.description')}</div>
+                <div style={{ fontWeight: 600, marginBottom: 4 }}>
+                  {t('settings.theme.light.name')}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                  {t('settings.theme.light.description')}
+                </div>
               </div>
             </div>
             <span className="checkmark">✓</span>
@@ -182,8 +208,12 @@ const SettingsDialog = ({ isOpen, onClose, theme, setTheme }) => {
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <div style={{ fontWeight: 600, marginBottom: 4 }}>{t('settings.theme.dark.name')}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{t('settings.theme.dark.description')}</div>
+                <div style={{ fontWeight: 600, marginBottom: 4 }}>
+                  {t('settings.theme.dark.name')}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                  {t('settings.theme.dark.description')}
+                </div>
               </div>
             </div>
             <span className="checkmark">✓</span>
@@ -197,8 +227,11 @@ const SettingsDialog = ({ isOpen, onClose, theme, setTheme }) => {
           <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 12 }}>
             {t('settings.language.description')}
           </div>
-          <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
-            {languages.map(lang => (
+          <div
+            className="grid"
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}
+          >
+            {languages.map((lang) => (
               <Card
                 key={lang.code}
                 className={`language-card ${currentLanguage === lang.code ? 'selected' : ''}`}
@@ -207,11 +240,14 @@ const SettingsDialog = ({ isOpen, onClose, theme, setTheme }) => {
                 style={{
                   cursor: 'pointer',
                   border: `1px solid ${currentLanguage === lang.code ? 'var(--accent-color)' : 'var(--overlay-on-light-10)'}`,
-                  boxShadow: currentLanguage === lang.code ? '0 0 0 2px var(--accent-color-alpha)' : 'none',
+                  boxShadow:
+                    currentLanguage === lang.code ? '0 0 0 2px var(--accent-color-alpha)' : 'none',
                   padding: 12,
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                >
                   <div>
                     <div style={{ fontWeight: 600, marginBottom: 4 }}>{lang.name}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{lang.code}</div>
@@ -230,20 +266,22 @@ const SettingsDialog = ({ isOpen, onClose, theme, setTheme }) => {
           <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 12 }}>
             {t('settings.java.description')}
           </div>
-          
+
           <div style={{ marginBottom: 12 }}>
             <label style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 6 }}>
               {t('settings.java.currentPath')}
             </label>
-            <div style={{ 
-              padding: '8px 12px', 
-              backgroundColor: 'var(--overlay-on-light-5)', 
-              border: '1px solid var(--overlay-on-light-10)', 
-              borderRadius: 4, 
-              fontSize: 14, 
-              fontWeight: 400,
-              color: 'var(--text-secondary)'
-            }}>
+            <div
+              style={{
+                padding: '8px 12px',
+                backgroundColor: 'var(--overlay-on-light-5)',
+                border: '1px solid var(--overlay-on-light-10)',
+                borderRadius: 4,
+                fontSize: 14,
+                fontWeight: 400,
+                color: 'var(--text-secondary)',
+              }}
+            >
               {autoDetectedPath || javaPath.autoDetected || javaPath.current}
             </div>
           </div>
@@ -266,7 +304,7 @@ const SettingsDialog = ({ isOpen, onClose, theme, setTheme }) => {
                   fontSize: 14,
                   fontWeight: 400,
                   backgroundColor: 'var(--background-color)',
-                  color: 'var(--text-secondary)'
+                  color: 'var(--text-secondary)',
                 }}
               />
               <button
@@ -276,7 +314,7 @@ const SettingsDialog = ({ isOpen, onClose, theme, setTheme }) => {
                 style={{
                   padding: '8px 16px',
                   fontSize: 13,
-                  whiteSpace: 'nowrap'
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {t('settings.java.browse')}
@@ -288,7 +326,7 @@ const SettingsDialog = ({ isOpen, onClose, theme, setTheme }) => {
                 style={{
                   padding: '8px 16px',
                   fontSize: 13,
-                  whiteSpace: 'nowrap'
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {t('settings.java.reset')}
@@ -303,23 +341,55 @@ const SettingsDialog = ({ isOpen, onClose, theme, setTheme }) => {
         <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 12 }}>
           {t('settings.clusterTags.helper')}
         </div>
-        <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
+        <div
+          className="grid"
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}
+        >
           <div>
-            <label style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{t('settings.clusterTags.device')}</label>
-            <textarea className="form-input" value={tagsDevicesText} onChange={(e) => setTagsDevicesText(e.target.value)} rows={8} />
+            <label style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 6 }}>
+              {t('settings.clusterTags.device')}
+            </label>
+            <textarea
+              className="form-input"
+              value={tagsDevicesText}
+              onChange={(e) => setTagsDevicesText(e.target.value)}
+              rows={8}
+            />
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{t('settings.clusterTags.resolution')}</label>
-            <textarea className="form-input" value={tagsResolutionsText} onChange={(e) => setTagsResolutionsText(e.target.value)} rows={8} />
+            <label style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 6 }}>
+              {t('settings.clusterTags.resolution')}
+            </label>
+            <textarea
+              className="form-input"
+              value={tagsResolutionsText}
+              onChange={(e) => setTagsResolutionsText(e.target.value)}
+              rows={8}
+            />
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{t('settings.clusterTags.version')}</label>
-            <textarea className="form-input" value={tagsVersionsText} onChange={(e) => setTagsVersionsText(e.target.value)} rows={8} />
+            <label style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 6 }}>
+              {t('settings.clusterTags.version')}
+            </label>
+            <textarea
+              className="form-input"
+              value={tagsVersionsText}
+              onChange={(e) => setTagsVersionsText(e.target.value)}
+              rows={8}
+            />
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-          <button className="btn btn-primary" onClick={handleSaveClusterTags} disabled={isSavingTags}>{t('app.save')}</button>
-          <button className="btn btn-secondary" onClick={handleResetClusterTags}>{t('settings.clusterTags.resetExtras')}</button>
+          <button
+            className="btn btn-primary"
+            onClick={handleSaveClusterTags}
+            disabled={isSavingTags}
+          >
+            {t('app.save')}
+          </button>
+          <button className="btn btn-secondary" onClick={handleResetClusterTags}>
+            {t('settings.clusterTags.resetExtras')}
+          </button>
         </div>
       </Collapsible>
     </ModalWithFooter>

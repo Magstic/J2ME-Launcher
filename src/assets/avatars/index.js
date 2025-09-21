@@ -5,7 +5,10 @@
 //   const url = getAvatar('lavinia') // by stem (filename without extension)
 //   const url2 = getAvatar('lavinia.png') // by exact filename
 
-const modules = import.meta.glob('./**/*.{png,jpg,jpeg,svg,webp,gif}', { eager: true, import: 'default' });
+const modules = import.meta.glob('./**/*.{png,jpg,jpeg,svg,webp,gif}', {
+  eager: true,
+  import: 'default',
+});
 
 const registry = {};
 for (const [path, url] of Object.entries(modules)) {

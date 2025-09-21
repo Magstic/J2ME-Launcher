@@ -28,7 +28,6 @@
   padding: 0 0 0 8px;
 }
 
-
 .window-controls {
   display: flex;
   -webkit-app-region: no-drag;
@@ -44,7 +43,9 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .title-bar-button:hover {
@@ -99,7 +100,6 @@ body {
   padding-left: 120px;
 }
 
-
 /* 內容區域，包含兩個視圖層（各自可滾動） */
 .content-area {
   flex-grow: 1;
@@ -141,7 +141,10 @@ body {
   opacity: 0;
   visibility: hidden;
   transform: translateY(10px);
-  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    visibility 0.2s;
   pointer-events: none; /* 隱藏狀態不攔截事件 */
 }
 
@@ -187,7 +190,11 @@ body {
   box-shadow: 0 4px 12px rgb(0 0 0 / 30%);
   cursor: pointer;
   opacity: 0.7; /* 設置半透明 */
-  transition: background-color 0.2s, transform 0.2s, opacity 0.2s, color 0.2s;
+  transition:
+    background-color 0.2s,
+    transform 0.2s,
+    opacity 0.2s,
+    color 0.2s;
   overflow: hidden; /* 讓覆蓋層遵循圓角 */
 }
 
@@ -244,7 +251,7 @@ body.any-modal-open .fab-container .fab-menu-item {
   pointer-events: none; /* 保險：子元素也不接收事件 */
 }
 
-body.any-modal-open .fab { 
+body.any-modal-open .fab {
   /* 模態開啟時的柔和前景色（原: #f5f6f7） */
   color: var(--color-fab-muted-fg);
   opacity: 0.7; /* 保持半透明 */
@@ -267,7 +274,7 @@ body.any-modal-open.modal-fading-out .fab {
 body.any-modal-open .fab:hover + .fab-menu,
 body.any-modal-open .fab-menu:hover,
 body.any-modal-open .fab-menu.open {
-  opacity: 0;           /* 不顯示選單 */
+  opacity: 0; /* 不顯示選單 */
   visibility: hidden;
   pointer-events: none;
 }
@@ -289,12 +296,10 @@ body.any-modal-open .fab-menu.open {
   z-index: 9600; /* 高於抽屜（2400）與主內容 */
 }
 
-
 /* 搜索容器填滿可用的內容寬度（與網格寬度一致） */
 .search-container {
   width: 100%;
 }
-
 
 .search-input {
   width: 100%;
@@ -304,7 +309,9 @@ body.any-modal-open .fab-menu.open {
   border-radius: var(--border-radius-md);
   color: var(--text-primary);
   font-size: 14px;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
   box-sizing: border-box;
   user-select: text; /* 允許在輸入框中選擇文本 */
 }
@@ -341,7 +348,6 @@ body.any-modal-open .fab-menu.open {
   min-height: calc(100vh - 32px);
 }
 
-
 /* 遊戲卡片 */
 .game-card {
   background-color: var(--background-secondary);
@@ -350,7 +356,11 @@ body.any-modal-open .fab-menu.open {
   text-align: center;
   cursor: pointer;
   border: 1px solid var(--border-color);
-  transition: opacity 0.18s ease-out, transform 0.18s ease-out, box-shadow 0.2s ease, border-color 0.2s ease;
+  transition:
+    opacity 0.18s ease-out,
+    transform 0.18s ease-out,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -390,7 +400,6 @@ body.any-modal-open .fab-menu.open {
   height: 56px;
   object-fit: contain;
 }
-
 
 .game-info {
   text-align: center;
@@ -439,14 +448,13 @@ body.any-modal-open .fab-menu.open {
   opacity: 0.5;
 }
 
-
 /* 響應式設計 */
 @media (width <= 768px) {
   .game-grid {
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 12px;
   }
-  
+
   .content-area {
     padding: 16px;
   }

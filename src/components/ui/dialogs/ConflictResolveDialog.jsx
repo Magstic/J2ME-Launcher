@@ -26,18 +26,21 @@ export default function ConflictResolveDialog({ isOpen, plan, groups = [], onPro
   const details = useMemo(() => plan?.details || [], [plan]);
   // Only show inconsistent statuses in details: exclude ignored and equal
   const detailsInconsistent = useMemo(
-    () => details.filter(d => !d.ignored && (!d.sameMd5 || d.localNewer || d.remoteNewer)),
+    () => details.filter((d) => !d.ignored && (!d.sameMd5 || d.localNewer || d.remoteNewer)),
     [details]
   );
   const remoteMeta = plan?.meta?.remote || null;
-  const candidates = useMemo(() => details.filter(d => !d.ignored && !d.sameMd5).map(d => d.path), [details]);
+  const candidates = useMemo(
+    () => details.filter((d) => !d.ignored && !d.sameMd5).map((d) => d.path),
+    [details]
+  );
   const [selected, setSelected] = useState([]);
   const allSelected = selected.length > 0 && selected.length === candidates.length;
   const toggleAll = (v) => {
     setSelected(v ? [...candidates] : []);
   };
   const toggleOne = (p) => {
-    setSelected((prev) => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]);
+    setSelected((prev) => (prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]));
   };
   useEffect(() => {
     // default select all candidates when plan changes/opened
@@ -60,13 +63,21 @@ export default function ConflictResolveDialog({ isOpen, plan, groups = [], onPro
 
   const footer = (
     <>
-      <div className="directory-stats">
-        {t('sync.conflict.stats')}
-      </div>
+      <div className="directory-stats">{t('sync.conflict.stats')}</div>
       <div className="flex gap-8 push-right">
-        <button className="btn soft-hover" disabled={busy} onClick={handleKeepLocal}>{t('sync.conflict.keepLocal')}</button>
-        <button className="btn soft-hover" disabled={busy} onClick={onClose}>{t('app.cancel')}</button>
-        <button className="btn btn-danger" disabled={busy || selected.length === 0} onClick={handleProceed}>{t('sync.conflict.coverRemote')}（{selected.length}）</button>
+        <button className="btn soft-hover" disabled={busy} onClick={handleKeepLocal}>
+          {t('sync.conflict.keepLocal')}
+        </button>
+        <button className="btn soft-hover" disabled={busy} onClick={onClose}>
+          {t('app.cancel')}
+        </button>
+        <button
+          className="btn btn-danger"
+          disabled={busy || selected.length === 0}
+          onClick={handleProceed}
+        >
+          {t('sync.conflict.coverRemote')}（{selected.length}）
+        </button>
       </div>
     </>
   );
@@ -81,18 +92,24 @@ export default function ConflictResolveDialog({ isOpen, plan, groups = [], onPro
     >
       <div className="conflict-dialog card card-muted p-12 mb-12">
         <p className="mb-8">
-          {t('sync.conflict.msg1')}<br/>
+          {t('sync.conflict.msg1')}
+          <br />
           {t('sync.conflict.msg2')}
         </p>
         {remoteMeta && (
           <div className="text-muted mb-8">
             {t('sync.conflict.remoteMeta')}
             <code className="ml-4">{remoteMeta.backupId || '—'}</code>
-            <span className="ml-8">{t('sync.conflict.remoteMetaTime')}: {remoteMeta.createdAt ? new Date(remoteMeta.createdAt).toLocaleString() : '—'}</span>
+            <span className="ml-8">
+              {t('sync.conflict.remoteMetaTime')}:{' '}
+              {remoteMeta.createdAt ? new Date(remoteMeta.createdAt).toLocaleString() : '—'}
+            </span>
           </div>
         )}
         {groups?.length > 0 && (
-          <p className="text-muted mb-8">{t('sync.conflict.groups')}: {groups.join(', ')}</p>
+          <p className="text-muted mb-8">
+            {t('sync.conflict.groups')}: {groups.join(', ')}
+          </p>
         )}
       </div>
 
@@ -104,7 +121,9 @@ export default function ConflictResolveDialog({ isOpen, plan, groups = [], onPro
           ) : (
             <div className={`chips ${intersect.length > 5 ? 'limited' : ''}`}>
               {intersect.map((p) => (
-                <span className="chip" key={p}><code>{p}</code></span>
+                <span className="chip" key={p}>
+                  <code>{p}</code>
+                </span>
               ))}
             </div>
           )}
@@ -116,7 +135,9 @@ export default function ConflictResolveDialog({ isOpen, plan, groups = [], onPro
           ) : (
             <div className={`chips ${localNewer.length > 5 ? 'limited' : ''}`}>
               {localNewer.map((p) => (
-                <span className="chip" key={p}><code>{p}</code></span>
+                <span className="chip" key={p}>
+                  <code>{p}</code>
+                </span>
               ))}
             </div>
           )}
@@ -131,7 +152,9 @@ export default function ConflictResolveDialog({ isOpen, plan, groups = [], onPro
           ) : (
             <div className={`chips ${md5Different.length > 5 ? 'limited' : ''}`}>
               {md5Different.map((p) => (
-                <span className="chip" key={p}><code>{p}</code></span>
+                <span className="chip" key={p}>
+                  <code>{p}</code>
+                </span>
               ))}
             </div>
           )}
@@ -143,7 +166,9 @@ export default function ConflictResolveDialog({ isOpen, plan, groups = [], onPro
           ) : (
             <div className={`chips ${remoteNewer.length > 5 ? 'limited' : ''}`}>
               {remoteNewer.map((p) => (
-                <span className="chip" key={p}><code>{p}</code></span>
+                <span className="chip" key={p}>
+                  <code>{p}</code>
+                </span>
               ))}
             </div>
           )}
@@ -166,13 +191,27 @@ export default function ConflictResolveDialog({ isOpen, plan, groups = [], onPro
             </div>
             {detailsInconsistent.map((d) => (
               <div className="row" key={d.path}>
-                <div className="cell"><code>{d.path}</code></div>
-                <div className="cell"><code>{(d.local?.md5 || '').slice(0,8)}</code></div>
-                <div className="cell"><code>{(d.remote?.md5 || '').slice(0,8)}</code></div>
+                <div className="cell">
+                  <code>{d.path}</code>
+                </div>
+                <div className="cell">
+                  <code>{(d.local?.md5 || '').slice(0, 8)}</code>
+                </div>
+                <div className="cell">
+                  <code>{(d.remote?.md5 || '').slice(0, 8)}</code>
+                </div>
                 <div className="cell">{d.local?.mtime || 0}</div>
                 <div className="cell">{d.remote?.mtime || 0}</div>
                 <div className="cell text-muted">
-                  {d.ignored ? t('sync.conflict.ignore') : d.sameMd5 ? t('sync.conflict.sameMd5') : d.localNewer ? t('sync.conflict.localNewer') : d.remoteNewer ? t('sync.conflict.remoteNewer') : '不同'}
+                  {d.ignored
+                    ? t('sync.conflict.ignore')
+                    : d.sameMd5
+                      ? t('sync.conflict.sameMd5')
+                      : d.localNewer
+                        ? t('sync.conflict.localNewer')
+                        : d.remoteNewer
+                          ? t('sync.conflict.remoteNewer')
+                          : '不同'}
                 </div>
               </div>
             ))}
@@ -190,15 +229,27 @@ export default function ConflictResolveDialog({ isOpen, plan, groups = [], onPro
           <>
             <div className="mb-8 flex items-center gap-12">
               <label className="flex items-center gap-8">
-                <input type="checkbox" checked={allSelected} onChange={(e) => toggleAll(e.target.checked)} />
-                <span>{t('sync.conflict.selectAll')}（{selected.length}/{candidates.length}）</span>
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={(e) => toggleAll(e.target.checked)}
+                />
+                <span>
+                  {t('sync.conflict.selectAll')}（{selected.length}/{candidates.length}）
+                </span>
               </label>
             </div>
             <div className="select-list" role="list">
               {candidates.map((p) => (
                 <div role="listitem" key={p} className="row flex items-center gap-8 mb-6">
-                  <input type="checkbox" checked={selected.includes(p)} onChange={() => toggleOne(p)} />
-                  <span className="chip"><code>{p}</code></span>
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(p)}
+                    onChange={() => toggleOne(p)}
+                  />
+                  <span className="chip">
+                    <code>{p}</code>
+                  </span>
                 </div>
               ))}
             </div>

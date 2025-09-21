@@ -21,7 +21,7 @@ async function batchAddGamesToFolder(filePaths, folderId, options = {}) {
     quiet = false,
     addGameToFolder = null,
     addGamesToFolderBatch = null,
-    onProgress = null
+    onProgress = null,
   } = options;
 
   const unique = Array.from(new Set(filePaths.filter(Boolean)));
@@ -37,7 +37,7 @@ async function batchAddGamesToFolder(filePaths, folderId, options = {}) {
       // 分批處理
       for (let i = 0; i < unique.length; i += chunkSize) {
         const chunk = unique.slice(i, i + chunkSize);
-        
+
         try {
           // 優先使用批次 API
           if (addGamesToFolderBatch) {
@@ -45,24 +45,24 @@ async function batchAddGamesToFolder(filePaths, folderId, options = {}) {
           } else if (addGameToFolder) {
             // 回退到逐一處理
             const results = await Promise.allSettled(
-              chunk.map(fp => addGameToFolder(fp, folderId))
+              chunk.map((fp) => addGameToFolder(fp, folderId))
             );
             // 檢查是否有失敗的操作
-            const failed = results.filter(r => r.status === 'rejected').length;
+            const failed = results.filter((r) => r.status === 'rejected').length;
             if (failed > 0) allSuccess = false;
           } else {
             throw new Error('No add function provided');
           }
-          
+
           processed += chunk.length;
-          
+
           // 報告進度
           if (onProgress) {
             onProgress({ processed, total: unique.length });
           }
-          
+
           // 批次間短暫讓出執行緒
-          await new Promise(r => setTimeout(r, 0));
+          await new Promise((r) => setTimeout(r, 0));
         } catch (error) {
           console.warn(`[batch] chunk ${i}-${i + chunk.length - 1} failed:`, error.message);
           allSuccess = false;
@@ -75,15 +75,15 @@ async function batchAddGamesToFolder(filePaths, folderId, options = {}) {
           await addGamesToFolderBatch(unique, folderId, { quiet });
         } else if (addGameToFolder) {
           const results = await Promise.allSettled(
-            unique.map(fp => addGameToFolder(fp, folderId))
+            unique.map((fp) => addGameToFolder(fp, folderId))
           );
-          const failed = results.filter(r => r.status === 'rejected').length;
+          const failed = results.filter((r) => r.status === 'rejected').length;
           if (failed > 0) allSuccess = false;
         } else {
           throw new Error('No add function provided');
         }
         processed = unique.length;
-        
+
         // 報告進度
         if (onProgress) {
           onProgress({ processed, total: unique.length });
@@ -102,5 +102,5 @@ async function batchAddGamesToFolder(filePaths, folderId, options = {}) {
 }
 
 module.exports = {
-  batchAddGamesToFolder
+  batchAddGamesToFolder,
 };

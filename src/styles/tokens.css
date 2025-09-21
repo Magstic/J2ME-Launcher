@@ -1,43 +1,42 @@
 /* 設計代幣（Tokens）單一來源：僅定義 :root 變數，不包含樣式規則或別名過渡 */
 :root {
   /* === Backgrounds === */
-  --background-primary: #1e2127;      /* 主內容區域背景 */
-  --background-secondary: #2a2d35;    /* 側邊欄、卡片、搜索欄背景 */
-  --background-tertiary: #3c4049;     /* 懸停狀態、按鈕背景 */
-  
+  --background-primary: #1e2127; /* 主內容區域背景 */
+  --background-secondary: #2a2d35; /* 側邊欄、卡片、搜索欄背景 */
+  --background-tertiary: #3c4049; /* 懸停狀態、按鈕背景 */
+
   /* 懸停效果統一使用 --hover-color 基礎代幣 */
 
   /* === Text === */
-  --text-primary: #dbd9d9;             /* 主要文字顏色 */
-  --text-secondary: #c4c3c3;           /* 次要、輔助文字顏色 */
-  --text-accent: #38bdf8;              /* 強調文字顏色 */
-  --text-on-accent: #fff;              /* 在強調色背景上的文字 */
-  --text-color-fixed: #fff;            /* 固定顔色的文本 */
+  --text-primary: #dbd9d9; /* 主要文字顏色 */
+  --text-secondary: #c4c3c3; /* 次要、輔助文字顏色 */
+  --text-accent: #38bdf8; /* 強調文字顏色 */
+  --text-on-accent: #fff; /* 在強調色背景上的文字 */
+  --text-color-fixed: #fff; /* 固定顔色的文本 */
 
   /* === Accents & Borders === */
-  --accent-color: #007bff;                 /* 主要交互顏色 (藍色) */
-  --accent-color-dark: #0056b3;            /* 深色強調色 */
+  --accent-color: #007bff; /* 主要交互顏色 (藍色) */
+  --accent-color-dark: #0056b3; /* 深色強調色 */
   --accent-color-light: rgb(0 123 255 / 10%); /* 淺色強調背景 */
   --accent-color-alpha: rgb(0 123 255 / 20%); /* 半透明強調色 */
-  --accent-primary: #007bffa6;             /* 保持向後兼容 */
-  --border-color: #6a778b7b;               /* 邊框和分割線 */
-  --border-primary: #374151;               /* 保持向後兼容 */
-  --hover-color: rgb(255 255 255 / 8%);    /* 懸停效果 */
-  --error-color: #dc3545;                  /* 錯誤顏色 */
+  --accent-primary: #007bffa6; /* 保持向後兼容 */
+  --border-color: #6a778b7b; /* 邊框和分割線 */
+  --border-primary: #374151; /* 保持向後兼容 */
+  --hover-color: rgb(255 255 255 / 8%); /* 懸停效果 */
+  --error-color: #dc3545; /* 錯誤顏色 */
   --error-color-light: rgb(220 53 69 / 10%); /* 淺色錯誤背景 */
-  
+
   /* === Window Controls === */
-  --titlebar-background: transparent;      /* 保持沉浸式透明 */
+  --titlebar-background: transparent; /* 保持沉浸式透明 */
   --window-control-color: var(--text-secondary);
   --window-control-hover-bg: var(--background-tertiary);
   --window-control-close-hover-bg: #e81123; /* Windows 標準關閉按鈕紅色 */
   --window-control-close-hover-color: #fff;
 
-  
   /* === Gradients & Shadows === */
   --titlebar-gradient: linear-gradient(to right, #2a2d35, #1e2127 80%);
   --card-shadow: 0 4px 12px rgb(0 0 0 / 40%);
-  
+
   /* Standardized shadows used across components */
   --shadow-sm: 0 1px 3px rgb(0 0 0 / 12%);
   --shadow-md: 0 4px 12px rgb(0 0 0 / 15%);
@@ -57,10 +56,10 @@
   --color-fab-muted-fg: #f5f6f7; /* exact from App.css any-modal-open */
 
   /* 警告/危險按鈕語義（精確映射現有視覺） */
-  --color-accent-warning: #f59e0b;         /* buttons.css */
-  --color-accent-warning-hover: #d97706;   /* buttons.css */
-  --color-accent-danger: #ef4444;          /* buttons.css */
-  --color-accent-danger-hover: #dc2626;    /* buttons.css */
+  --color-accent-warning: #f59e0b; /* buttons.css */
+  --color-accent-warning-hover: #d97706; /* buttons.css */
+  --color-accent-danger: #ef4444; /* buttons.css */
+  --color-accent-danger-hover: #dc2626; /* buttons.css */
   --color-danger-bg-12a: rgb(239 68 68 / 12%); /* buttons icon hover */
 
   /* 特定標題漸變（資訊對話框） */
@@ -94,7 +93,7 @@
   --scrollbar-thumb-hover: rgb(0 0 0 / 30%);
 
   /* === Unified neutral overlays (for maintenance) === */
-  
+
   /* White overlays (foreground lines, tracks, subtle surfaces) */
   --overlay-on-light-05: rgb(255 255 255 / 5%);
   --overlay-on-light-08: rgb(255 255 255 / 8%);
@@ -149,39 +148,43 @@
   --brand-cyan-18a: rgb(98 225 255 / 18%);
   --brand-cyan-25a: rgb(98 225 255 / 25%);
   --brand-cyan-35a: rgb(98 225 255 / 35%);
-  --brand-cyan-gradient-vertical: linear-gradient(180deg, transparent, var(--brand-cyan-25a), transparent);
+  --brand-cyan-gradient-vertical: linear-gradient(
+    180deg,
+    transparent,
+    var(--brand-cyan-25a),
+    transparent
+  );
   --brand-cyan-hairline: inset -1px 0 0 var(--brand-cyan-35a);
 }
 
-
 /* Light Theme Overrides (optional) */
-[data-theme="light"] {
+[data-theme='light'] {
   /* === Backgrounds === */
-  --background-primary: #f7f7f8;      /* 主內容區域背景 */
-  --background-secondary: #fff;       /* 卡片、面板背景 */
-  --background-tertiary: #f0f2f4;     /* 懸停、微弱填充 */
+  --background-primary: #f7f7f8; /* 主內容區域背景 */
+  --background-secondary: #fff; /* 卡片、面板背景 */
+  --background-tertiary: #f0f2f4; /* 懸停、微弱填充 */
 
   /* === Text === */
-  --text-primary: #696969;             /* 可讀主體文字 */
-  --text-secondary: #3d4044;           /* 次要、輔助文字 */
-  --text-accent: #0b6bcb;              /* 強調文字顏色 */
-  --text-on-accent: #fff;              /* 在強調色背景上的文字 */
-  --text-color-fixed: #fff;            /* 固定顔色的文本 */
+  --text-primary: #696969; /* 可讀主體文字 */
+  --text-secondary: #3d4044; /* 次要、輔助文字 */
+  --text-accent: #0b6bcb; /* 強調文字顏色 */
+  --text-on-accent: #fff; /* 在強調色背景上的文字 */
+  --text-color-fixed: #fff; /* 固定顔色的文本 */
 
   /* === Accents & Borders === */
-  --accent-color: #3b82f6;                  /* 主要交互顏色 (藍色) */
-  --accent-color-dark: #2563eb;             /* 深色強調色 */
+  --accent-color: #3b82f6; /* 主要交互顏色 (藍色) */
+  --accent-color-dark: #2563eb; /* 深色強調色 */
   --accent-color-light: rgb(59 130 246 / 12%); /* 淺色強調背景 */
   --accent-color-alpha: rgb(59 130 246 / 20%); /* 半透明強調色 */
-  --accent-primary: #3b82f6a6;              /* 保持向後兼容 */
-  --border-color: #d0d7de;                  /* 邊框和分割線 */
-  --border-primary: #cbd5e1;                /* 保持向後兼容 */
-  --hover-color: rgb(0 0 0 / 6%);           /* 懸停效果 */
-  --error-color: #dc3545;                   /* 錯誤顏色 */
+  --accent-primary: #3b82f6a6; /* 保持向後兼容 */
+  --border-color: #d0d7de; /* 邊框和分割線 */
+  --border-primary: #cbd5e1; /* 保持向後兼容 */
+  --hover-color: rgb(0 0 0 / 6%); /* 懸停效果 */
+  --error-color: #dc3545; /* 錯誤顏色 */
   --error-color-light: rgb(220 53 69 / 12%); /* 淺色錯誤背景 */
 
   /* === Window Controls === */
-  --titlebar-background: transparent;      /* 保持沉浸式透明 */
+  --titlebar-background: transparent; /* 保持沉浸式透明 */
   --window-control-color: var(--text-secondary);
   --window-control-hover-bg: var(--background-tertiary);
   --window-control-close-hover-bg: #e81123; /* Windows 標準關閉按鈕紅色 */
@@ -208,10 +211,10 @@
   --color-fab-muted-fg: #f5f6f7; /* exact from App.css any-modal-open */
 
   /* 警告/危險按鈕語義（精確映射現有視覺） */
-  --color-accent-warning: #f59e0b;         /* buttons.css */
-  --color-accent-warning-hover: #d97706;   /* buttons.css */
-  --color-accent-danger: #ef4444;          /* buttons.css */
-  --color-accent-danger-hover: #dc2626;    /* buttons.css */
+  --color-accent-warning: #f59e0b; /* buttons.css */
+  --color-accent-warning-hover: #d97706; /* buttons.css */
+  --color-accent-danger: #ef4444; /* buttons.css */
+  --color-accent-danger-hover: #dc2626; /* buttons.css */
   --color-danger-bg-12a: rgb(239 68 68 / 12%); /* buttons icon hover */
 
   /* 特定標題漸變（資訊對話框） */
@@ -283,7 +286,7 @@
 
   /* FAB 覆蓋層漸變（從 App.css 內聯抽出為代幣） */
   --fab-overlay-gradient: linear-gradient(135deg, #3781e197, #1276b8a2);
-  
+
   /* 淡覆蓋層（精確 6% 白）供 card-muted 等使用 */
   --overlay-on-light-06: rgb(102 153 177 / 6%);
 
@@ -298,6 +301,11 @@
   --brand-cyan-18a: rgb(98 225 255 / 18%);
   --brand-cyan-25a: rgb(98 225 255 / 25%);
   --brand-cyan-35a: rgb(98 225 255 / 35%);
-  --brand-cyan-gradient-vertical: linear-gradient(180deg, transparent, var(--brand-cyan-25a), transparent);
+  --brand-cyan-gradient-vertical: linear-gradient(
+    180deg,
+    transparent,
+    var(--brand-cyan-25a),
+    transparent
+  );
   --brand-cyan-hairline: inset -1px 0 0 var(--brand-cyan-35a);
 }

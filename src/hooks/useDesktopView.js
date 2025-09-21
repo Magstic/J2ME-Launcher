@@ -9,13 +9,7 @@ import { useTranslation } from '@hooks/useTranslation';
  * 桌面視圖邏輯
  * 管理拖拽、資料夾徽章、右鍵選單等桌面特定功能
  */
-export const useDesktopView = ({ 
-  games, 
-  onGameSelect, 
-  onAddToFolder, 
-  onRefresh,
-  onGameInfo 
-}) => {
+export const useDesktopView = ({ games, onGameSelect, onAddToFolder, onRefresh, onGameInfo }) => {
   const { t } = useTranslation();
   const [externalDragActive, setExternalDragActive] = useState(false);
   const rootRef = useRef(null);
@@ -31,7 +25,7 @@ export const useDesktopView = ({
     isDragging: false,
     draggedItem: null,
     draggedType: null,
-    dropTarget: null
+    dropTarget: null,
   });
 
   // 資料夾徽章狀態
@@ -92,7 +86,7 @@ export const useDesktopView = ({
       isDragging: true,
       draggedItem: item,
       draggedType: type,
-      dropTarget: null
+      dropTarget: null,
     });
   }, []);
 
@@ -102,44 +96,63 @@ export const useDesktopView = ({
       isDragging: false,
       draggedItem: null,
       draggedType: null,
-      dropTarget: null
+      dropTarget: null,
     });
   }, []);
 
+  const handleRootDragOver = useCallback(
+    (e) => {
+      if (externalDragActive) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        e.dataTransfer.effectAllowed = 'move';
+      }
+    },
+    [externalDragActive]
+  );
 
-  const handleRootDragOver = useCallback((e) => {
-    if (externalDragActive) {
+  const handleRootDrop = useCallback(
+    (e) => {
+      if (!externalDragActive) return;
       e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      e.dataTransfer.effectAllowed = 'move';
-    }
-  }, [externalDragActive]);
-
-  const handleRootDrop = useCallback((e) => {
-    if (!externalDragActive) return;
-    e.preventDefault();
-    try {
-      let types = [];
-      let filesLen = 0;
-      try { types = Array.from((e.dataTransfer && e.dataTransfer.types) ? e.dataTransfer.types : []); filesLen = e.dataTransfer?.files ? e.dataTransfer.files.length : 0; } catch {}
-      const hasInternalMIME = types.includes('application/x-j2me-internal') || types.includes('application/x-j2me-filepath');
-      const internalHint = !!(hasInternalMIME || (types.length === 0 && filesLen === 0));
-      window.electronAPI?.dropDragSession?.({ type: 'desktop', internal: internalHint });
-    } catch (err) { console.warn(err); }
-    try { window.electronAPI?.endDragSession?.(); } catch (e2) {}
-  }, [externalDragActive]);
+      try {
+        let types = [];
+        let filesLen = 0;
+        try {
+          types = Array.from(e.dataTransfer && e.dataTransfer.types ? e.dataTransfer.types : []);
+          filesLen = e.dataTransfer?.files ? e.dataTransfer.files.length : 0;
+        } catch {}
+        const hasInternalMIME =
+          types.includes('application/x-j2me-internal') ||
+          types.includes('application/x-j2me-filepath');
+        const internalHint = !!(hasInternalMIME || (types.length === 0 && filesLen === 0));
+        window.electronAPI?.dropDragSession?.({ type: 'desktop', internal: internalHint });
+      } catch (err) {
+        console.warn(err);
+      }
+      try {
+        window.electronAPI?.endDragSession?.();
+      } catch (e2) {}
+    },
+    [externalDragActive]
+  );
 
   // 將 hasFolder 作為額外屬性傳入 GameCard
   const gameCardExtraProps = useCallback(
-    (game) => ({ 
-      hasFolder: !!(game && memberSet.has(game.filePath))
+    (game) => ({
+      hasFolder: !!(game && memberSet.has(game.filePath)),
     }),
     [memberSet]
   );
 
   // 捷徑創建邏輯（使用共享 hook，統一事件派發與錯誤處理）
   const [selectedGames, setSelectedGames] = useSelectedGames();
-  const handleCreateShortcut = useCreateShortcut(games, selectedGames, setSelectedGames, 'DesktopView');
+  const handleCreateShortcut = useCreateShortcut(
+    games,
+    selectedGames,
+    setSelectedGames,
+    'DesktopView'
+  );
 
   // 統一右鍵菜單（桌面上下文）
   const { ContextMenuElement, openMenu, closeMenu } = useUnifiedContextMenu({
@@ -154,9 +167,12 @@ export const useDesktopView = ({
     onRefresh,
     onCreateCluster: async (target) => {
       try {
-        const list = (Array.isArray(target?.selectedFilePaths) && target.selectedFilePaths.length > 0)
-          ? target.selectedFilePaths
-          : (target?.filePath ? [target.filePath] : []);
+        const list =
+          Array.isArray(target?.selectedFilePaths) && target.selectedFilePaths.length > 0
+            ? target.selectedFilePaths
+            : target?.filePath
+              ? [target.filePath]
+              : [];
         if (!list || list.length === 0) return;
         const res = await window.electronAPI?.createCluster?.({ filePaths: list });
         if (!res?.success) {
@@ -168,9 +184,12 @@ export const useDesktopView = ({
       }
     },
     onAddToCluster: (target) => {
-      const list = (Array.isArray(target?.selectedFilePaths) && target.selectedFilePaths.length > 0)
-        ? target.selectedFilePaths
-        : (target?.filePath ? [target.filePath] : []);
+      const list =
+        Array.isArray(target?.selectedFilePaths) && target.selectedFilePaths.length > 0
+          ? target.selectedFilePaths
+          : target?.filePath
+            ? [target.filePath]
+            : [];
       if (!list || list.length === 0) return;
       setAddToClusterState({ open: true, filePaths: list });
     },
@@ -180,8 +199,12 @@ export const useDesktopView = ({
     },
     // Cluster callbacks (desktop)
     onClusterInfo: (cluster) => {
-      try { console.log('[Cluster] info requested:', cluster); } catch (_) {}
-      try { window.dispatchEvent(new CustomEvent('open-cluster-dialog', { detail: cluster?.id })); } catch (_) {}
+      try {
+        console.log('[Cluster] info requested:', cluster);
+      } catch (_) {}
+      try {
+        window.dispatchEvent(new CustomEvent('open-cluster-dialog', { detail: cluster?.id }));
+      } catch (_) {}
     },
     onRenameCluster: (cluster) => {
       if (!cluster?.id) return;
@@ -196,13 +219,17 @@ export const useDesktopView = ({
     },
     onConsolidateClusters: async (payload) => {
       try {
-        const ids = Array.isArray(payload?.selectedClusterIds) ? payload.selectedClusterIds.filter(Boolean) : [];
+        const ids = Array.isArray(payload?.selectedClusterIds)
+          ? payload.selectedClusterIds.filter(Boolean)
+          : [];
         if (ids.length < 2) return;
         const toId = ids[0];
         // 隨機挑選一個簇，採用其名稱與圖標（主成員）
         const chosenId = ids[Math.floor(Math.random() * ids.length)];
         let chosen = null;
-        try { chosen = await window.electronAPI?.getCluster?.(chosenId); } catch (_) {}
+        try {
+          chosen = await window.electronAPI?.getCluster?.(chosenId);
+        } catch (_) {}
         // 逐一合併其餘簇到 toId
         for (let i = 1; i < ids.length; i++) {
           const fromId = ids[i];
@@ -232,13 +259,21 @@ export const useDesktopView = ({
           }
         }
         // 嘗試刷新視圖
-        try { onRefresh && onRefresh(); } catch (_) {}
+        try {
+          onRefresh && onRefresh();
+        } catch (_) {}
         // 重設簇選中：僅保留合併後的目標簇
-        try { window.dispatchEvent(new CustomEvent('clusters-selection-reset', { detail: { ids: [toId] } })); } catch (_) {}
+        try {
+          window.dispatchEvent(
+            new CustomEvent('clusters-selection-reset', { detail: { ids: [toId] } })
+          );
+        } catch (_) {}
       } catch (err) {
         console.error('[DesktopView] 合簇流程錯誤:', err);
       } finally {
-        try { closeMenu && closeMenu(); } catch (_) {}
+        try {
+          closeMenu && closeMenu();
+        } catch (_) {}
       }
     },
     // 將簇加入資料夾（右鍵菜單：cluster-add-to-folder）— 走統一『加入資料夾』流程，支援簇/遊戲混合多選
@@ -248,13 +283,22 @@ export const useDesktopView = ({
         ...cluster,
         type: 'cluster',
         // 確保至少包含當前簇 id
-        selectedClusterIds: Array.isArray(cluster.selectedClusterIds) && cluster.selectedClusterIds.length > 0
-          ? Array.from(new Set(cluster.selectedClusterIds.map(String)))
-          : (cluster.id != null ? [String(cluster.id)] : []),
+        selectedClusterIds:
+          Array.isArray(cluster.selectedClusterIds) && cluster.selectedClusterIds.length > 0
+            ? Array.from(new Set(cluster.selectedClusterIds.map(String)))
+            : cluster.id != null
+              ? [String(cluster.id)]
+              : [],
         // 附帶目前已選中的遊戲 filePath（若有）
-        selectedFilePaths: Array.isArray(cluster.selectedFilePaths) ? Array.from(new Set(cluster.selectedFilePaths)) : []
+        selectedFilePaths: Array.isArray(cluster.selectedFilePaths)
+          ? Array.from(new Set(cluster.selectedFilePaths))
+          : [],
       };
-      try { onAddToFolder && onAddToFolder(payload); } catch (e) { console.error(e); }
+      try {
+        onAddToFolder && onAddToFolder(payload);
+      } catch (e) {
+        console.error(e);
+      }
     },
   });
 
@@ -277,62 +321,62 @@ export const useDesktopView = ({
     ContextMenuElement,
     openMenu,
     closeMenu,
-    ClusterSelectElement: (
-      React.createElement(ClusterSelectDialog, {
-        isOpen: addToClusterState.open,
-        onClose: () => setAddToClusterState({ open: false, filePaths: [] }),
-        onSelect: async (cluster) => {
-          try {
-            const res = await window.electronAPI?.addGamesToCluster?.(cluster.id, addToClusterState.filePaths);
-            if (!res?.success) {
-              console.error('[DesktopView] 加入到簇失敗:', res?.error || res);
-            }
-          } catch (e) {
-            console.error('[DesktopView] 加入到簇調用異常:', e);
-          } finally {
-            setAddToClusterState({ open: false, filePaths: [] });
+    ClusterSelectElement: React.createElement(ClusterSelectDialog, {
+      isOpen: addToClusterState.open,
+      onClose: () => setAddToClusterState({ open: false, filePaths: [] }),
+      onSelect: async (cluster) => {
+        try {
+          const res = await window.electronAPI?.addGamesToCluster?.(
+            cluster.id,
+            addToClusterState.filePaths
+          );
+          if (!res?.success) {
+            console.error('[DesktopView] 加入到簇失敗:', res?.error || res);
           }
+        } catch (e) {
+          console.error('[DesktopView] 加入到簇調用異常:', e);
+        } finally {
+          setAddToClusterState({ open: false, filePaths: [] });
         }
-      })
-    ),
-    ClusterMergeElement: (
-      React.createElement(ClusterSelectDialog, {
-        isOpen: mergeState.open,
-        onClose: () => setMergeState({ open: false, from: null }),
-        excludeIds: mergeState.from ? [mergeState.from.id] : [],
-        onSelect: async (toCluster) => {
-          try {
-            const res = await window.electronAPI?.mergeClusters?.(mergeState.from.id, toCluster.id);
-            if (!res?.success) {
-              console.error('[DesktopView] 合併簇失敗:', res?.error || res);
-            }
-          } catch (e) {
-            console.error('[DesktopView] 合併簇調用異常:', e);
-          } finally {
-            setMergeState({ open: false, from: null });
+      },
+    }),
+    ClusterMergeElement: React.createElement(ClusterSelectDialog, {
+      isOpen: mergeState.open,
+      onClose: () => setMergeState({ open: false, from: null }),
+      excludeIds: mergeState.from ? [mergeState.from.id] : [],
+      onSelect: async (toCluster) => {
+        try {
+          const res = await window.electronAPI?.mergeClusters?.(mergeState.from.id, toCluster.id);
+          if (!res?.success) {
+            console.error('[DesktopView] 合併簇失敗:', res?.error || res);
           }
+        } catch (e) {
+          console.error('[DesktopView] 合併簇調用異常:', e);
+        } finally {
+          setMergeState({ open: false, from: null });
         }
-      })
-    ),
-    ClusterRenameElement: (
-      React.createElement(RenameDialog, {
-        isOpen: renameState.open,
-        defaultValue: renameState.cluster?.name || '',
-        onClose: () => setRenameState({ open: false, cluster: null }),
-        onConfirm: async (newName) => {
-          try {
-            if (!renameState.cluster?.id) return;
-            const res = await window.electronAPI?.updateCluster?.({ id: renameState.cluster.id, name: newName });
-            if (!res?.success) {
-              console.warn('[DesktopView] 重命名簇失敗:', res?.error || res);
-            }
-          } catch (e) {
-            console.error('[DesktopView] 重命名簇異常:', e);
-          } finally {
-            setRenameState({ open: false, cluster: null });
+      },
+    }),
+    ClusterRenameElement: React.createElement(RenameDialog, {
+      isOpen: renameState.open,
+      defaultValue: renameState.cluster?.name || '',
+      onClose: () => setRenameState({ open: false, cluster: null }),
+      onConfirm: async (newName) => {
+        try {
+          if (!renameState.cluster?.id) return;
+          const res = await window.electronAPI?.updateCluster?.({
+            id: renameState.cluster.id,
+            name: newName,
+          });
+          if (!res?.success) {
+            console.warn('[DesktopView] 重命名簇失敗:', res?.error || res);
           }
+        } catch (e) {
+          console.error('[DesktopView] 重命名簇異常:', e);
+        } finally {
+          setRenameState({ open: false, cluster: null });
         }
-      })
-    )
+      },
+    }),
   };
 };

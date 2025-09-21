@@ -12,10 +12,10 @@ class GameStore {
         selectedGames: [],
         dragState: { isDragging: false, draggedItems: [] },
         searchTerm: '',
-        loading: false
-      }
+        loading: false,
+      },
     };
-    
+
     this.listeners = new Set();
     this.actionQueue = [];
     this.isDispatching = false;
@@ -40,7 +40,7 @@ class GameStore {
     }
 
     this.isDispatching = true;
-    
+
     try {
       const newState = this.reduce(this.state, action);
       if (newState !== this.state) {
@@ -49,11 +49,11 @@ class GameStore {
       }
     } finally {
       this.isDispatching = false;
-      
+
       // Process queued actions
       if (this.actionQueue.length > 0) {
         const queued = this.actionQueue.splice(0);
-        queued.forEach(queuedAction => this.dispatch(queuedAction));
+        queued.forEach((queuedAction) => this.dispatch(queuedAction));
       }
     }
   }
@@ -64,52 +64,52 @@ class GameStore {
       case 'GAMES_LOADED': {
         const games = [...action.payload];
         const gamesById = {};
-        games.forEach(game => {
+        games.forEach((game) => {
           gamesById[game.filePath] = game;
         });
-        
+
         return {
           ...state,
           games,
           gamesById,
-          ui: { ...state.ui, loading: false }
+          ui: { ...state.ui, loading: false },
         };
       }
 
       case 'GAMES_INCREMENTAL_UPDATE': {
         const { added = [], updated = [], removed = [] } = action.payload;
         const gamesById = { ...state.gamesById };
-        
+
         // Add new games
-        added.forEach(game => {
+        added.forEach((game) => {
           gamesById[game.filePath] = game;
         });
-        
+
         // Update existing games
-        updated.forEach(game => {
+        updated.forEach((game) => {
           gamesById[game.filePath] = game;
         });
-        
+
         // Remove deleted games
-        removed.forEach(filePath => {
+        removed.forEach((filePath) => {
           delete gamesById[filePath];
         });
-        
+
         // Rebuild games array
         const games = Object.values(gamesById);
-        
+
         return { ...state, games, gamesById };
       }
 
       case 'FOLDER_MEMBERSHIP_CHANGED': {
         const { filePaths, folderId, operation } = action.payload;
         const folderMembership = { ...state.folderMembership };
-        
-        filePaths.forEach(filePath => {
+
+        filePaths.forEach((filePath) => {
           if (!folderMembership[filePath]) {
             folderMembership[filePath] = [];
           }
-          
+
           const folders = [...folderMembership[filePath]];
           if (operation === 'add' && !folders.includes(folderId)) {
             folders.push(folderId);
@@ -119,41 +119,41 @@ class GameStore {
           }
           folderMembership[filePath] = folders;
         });
-        
+
         return { ...state, folderMembership };
       }
 
       case 'UI_SET_SELECTED': {
         return {
           ...state,
-          ui: { ...state.ui, selectedGames: [...action.payload] }
+          ui: { ...state.ui, selectedGames: [...action.payload] },
         };
       }
 
       case 'UI_SET_DRAG_STATE': {
         return {
           ...state,
-          ui: { ...state.ui, dragState: action.payload }
+          ui: { ...state.ui, dragState: action.payload },
         };
       }
 
       case 'UI_SET_SEARCH_TERM': {
         return {
           ...state,
-          ui: { ...state.ui, searchTerm: action.payload }
+          ui: { ...state.ui, searchTerm: action.payload },
         };
       }
 
       case 'UI_SET_LOADING': {
         return {
           ...state,
-          ui: { ...state.ui, loading: action.payload }
+          ui: { ...state.ui, loading: action.payload },
         };
       }
 
       case 'FOLDERS_LOADED': {
         const folders = new Map();
-        action.payload.forEach(folder => folders.set(folder.id, folder));
+        action.payload.forEach((folder) => folders.set(folder.id, folder));
         return { ...state, folders };
       }
 
@@ -164,7 +164,7 @@ class GameStore {
 
   // Notify all listeners of state change
   notifyListeners() {
-    this.listeners.forEach(listener => {
+    this.listeners.forEach((listener) => {
       try {
         listener(this.state);
       } catch (e) {
@@ -179,14 +179,14 @@ class GameStore {
   }
 
   getGamesByFolder(folderId) {
-    return this.state.games.filter(game => {
+    return this.state.games.filter((game) => {
       const folders = this.state.folderMembership[game.filePath];
       return folders && folders.includes(folderId);
     });
   }
 
   getUncategorizedGames() {
-    return this.state.games.filter(game => {
+    return this.state.games.filter((game) => {
       const folders = this.state.folderMembership[game.filePath];
       return !folders || folders.length === 0;
     });
@@ -195,37 +195,37 @@ class GameStore {
   getFilteredGames(searchTerm = '') {
     const games = this.state.games;
     if (!searchTerm) return games;
-    
+
     const term = searchTerm.toLowerCase();
-    return games.filter(game => 
-      game.gameName?.toLowerCase().includes(term) ||
-      game.vendor?.toLowerCase().includes(term)
+    return games.filter(
+      (game) =>
+        game.gameName?.toLowerCase().includes(term) || game.vendor?.toLowerCase().includes(term)
     );
   }
 
   // Action creators
   static actions = {
     loadGames: (games) => ({ type: 'GAMES_LOADED', payload: games }),
-    
-    incrementalUpdate: (changes) => ({ 
-      type: 'GAMES_INCREMENTAL_UPDATE', 
-      payload: changes 
+
+    incrementalUpdate: (changes) => ({
+      type: 'GAMES_INCREMENTAL_UPDATE',
+      payload: changes,
     }),
-    
+
     folderMembershipChanged: (filePaths, folderId, operation) => ({
       type: 'FOLDER_MEMBERSHIP_CHANGED',
-      payload: { filePaths, folderId, operation }
+      payload: { filePaths, folderId, operation },
     }),
-    
+
     setSelected: (filePaths) => ({ type: 'UI_SET_SELECTED', payload: filePaths }),
-    
+
     setDragState: (dragState) => ({ type: 'UI_SET_DRAG_STATE', payload: dragState }),
-    
+
     setSearchTerm: (term) => ({ type: 'UI_SET_SEARCH_TERM', payload: term }),
-    
+
     setLoading: (loading) => ({ type: 'UI_SET_LOADING', payload: loading }),
-    
-    loadFolders: (folders) => ({ type: 'FOLDERS_LOADED', payload: folders })
+
+    loadFolders: (folders) => ({ type: 'FOLDERS_LOADED', payload: folders }),
   };
 }
 

@@ -72,15 +72,21 @@ function validate(config) {
   // Lightweight validation with defaults fill-in
   const merged = deepMerge(DEFAULTS, config || {});
   // Ensure booleans for romCache
-  if (typeof merged.emulators?.freej2mePlus?.romCache !== 'boolean') merged.emulators.freej2mePlus.romCache = true;
+  if (typeof merged.emulators?.freej2mePlus?.romCache !== 'boolean')
+    merged.emulators.freej2mePlus.romCache = true;
   if (typeof merged.emulators?.ke?.romCache !== 'boolean') merged.emulators.ke.romCache = true;
-  if (typeof merged.emulators?.libretro?.romCache !== 'boolean') merged.emulators.libretro.romCache = false;
+  if (typeof merged.emulators?.libretro?.romCache !== 'boolean')
+    merged.emulators.libretro.romCache = false;
   // Clamp some numeric defaults to sane ranges
   const d = merged.emulators.freej2mePlus?.defaults || {};
-  if (typeof d.width !== 'number' || !Number.isFinite(d.width)) d.width = DEFAULTS.emulators.freej2mePlus.defaults.width;
-  if (typeof d.height !== 'number' || !Number.isFinite(d.height)) d.height = DEFAULTS.emulators.freej2mePlus.defaults.height;
-  if (typeof d.scale !== 'number' || !Number.isFinite(d.scale)) d.scale = DEFAULTS.emulators.freej2mePlus.defaults.scale;
-  if (typeof d.framerate !== 'number' || !Number.isFinite(d.framerate)) d.framerate = DEFAULTS.emulators.freej2mePlus.defaults.framerate;
+  if (typeof d.width !== 'number' || !Number.isFinite(d.width))
+    d.width = DEFAULTS.emulators.freej2mePlus.defaults.width;
+  if (typeof d.height !== 'number' || !Number.isFinite(d.height))
+    d.height = DEFAULTS.emulators.freej2mePlus.defaults.height;
+  if (typeof d.scale !== 'number' || !Number.isFinite(d.scale))
+    d.scale = DEFAULTS.emulators.freej2mePlus.defaults.scale;
+  if (typeof d.framerate !== 'number' || !Number.isFinite(d.framerate))
+    d.framerate = DEFAULTS.emulators.freej2mePlus.defaults.framerate;
   d.width = Math.max(64, Math.min(1080, d.width));
   d.height = Math.max(64, Math.min(1920, d.height));
   d.scale = Math.max(1, Math.min(5, d.scale));
@@ -126,7 +132,9 @@ function writeYamlAtomic(filePath, dataObj) {
   fs.writeFileSync(tmp, text, 'utf8');
   // keep a simple backup of previous config
   if (fs.existsSync(filePath)) {
-    try { fse.copySync(filePath, filePath + CONFIG_BAK_SUFFIX, { overwrite: true }); } catch (_) {}
+    try {
+      fse.copySync(filePath, filePath + CONFIG_BAK_SUFFIX, { overwrite: true });
+    } catch (_) {}
   }
   fs.renameSync(tmp, filePath);
 }

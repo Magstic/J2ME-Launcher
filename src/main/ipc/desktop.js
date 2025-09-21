@@ -10,10 +10,21 @@ function register({ ipcMain, DataStore, toIconUrl }) {
     try {
       const games = sqlGetDesktopGames();
       const clusters = sqlGetDesktopClusters();
-      const gameItems = games.map(g => ({ type: 'game', ...g, iconUrl: toIconUrl(g.iconPath) }));
-      const clusterItems = clusters.map(c => ({ type: 'cluster', ...c, iconUrl: toIconUrl(c.effectiveIconPath) }));
+      const gameItems = games.map((g) => ({ type: 'game', ...g, iconUrl: toIconUrl(g.iconPath) }));
+      const clusterItems = clusters.map((c) => ({
+        type: 'cluster',
+        ...c,
+        iconUrl: toIconUrl(c.effectiveIconPath),
+      }));
       const items = [...clusterItems, ...gameItems];
-      try { console.log('[desktop:get-desktop-items] clusters=', clusterItems.length, 'games=', gameItems.length); } catch {}
+      try {
+        console.log(
+          '[desktop:get-desktop-items] clusters=',
+          clusterItems.length,
+          'games=',
+          gameItems.length
+        );
+      } catch {}
       return items;
     } catch (error) {
       console.error('獲取桌面項目失敗:', error);

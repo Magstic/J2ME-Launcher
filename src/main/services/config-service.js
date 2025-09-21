@@ -4,7 +4,7 @@ const fs = require('fs');
 
 /**
  * ConfigService - Centralized configuration management
- * 
+ *
  * "Do one thing and do it well" - Unix Philosophy
  * Single responsibility: manage all application configuration
  * Stateless design with intelligent fallback resolution
@@ -69,9 +69,9 @@ class ConfigService {
   /**
    * Intelligent Java path resolution
    * Priority: Custom config → Environment variables → System defaults
-   * 
+   *
    * "Perfect is the enemy of good" - but this covers all real-world cases
-   * 
+   *
    * @returns {string} Java executable path
    */
   resolveJavaPath() {
@@ -103,10 +103,10 @@ class ConfigService {
   isValidJavaPath(javaPath) {
     try {
       if (!fs.existsSync(javaPath)) return false;
-      
+
       const stat = fs.statSync(javaPath);
       if (!stat.isFile()) return false;
-      
+
       // On Unix-like systems, check executable permission
       if (process.platform !== 'win32') {
         try {
@@ -115,7 +115,7 @@ class ConfigService {
           return false;
         }
       }
-      
+
       return true;
     } catch {
       return false;
@@ -137,7 +137,7 @@ class ConfigService {
     if (!this.isValidJavaPath(javaPath)) {
       // Provide detailed error context for debugging
       const reasons = [];
-      
+
       if (!fs.existsSync(javaPath)) {
         reasons.push('file does not exist');
       } else {
@@ -153,7 +153,7 @@ class ConfigService {
           }
         }
       }
-      
+
       const errorMsg = `Invalid Java path: ${javaPath} (${reasons.join(', ')})`;
       console.error('[ConfigService]', errorMsg);
       throw new Error(errorMsg);

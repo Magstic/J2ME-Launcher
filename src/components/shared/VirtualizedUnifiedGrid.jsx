@@ -3,7 +3,14 @@ import { createPortal } from 'react-dom';
 import { FixedSizeGrid as Grid } from 'react-window';
 import GameCard from '../GameCard';
 import ClusterCard from '../ClusterCard';
-import { CARD_WIDTH, GRID_GAP, ITEM_WIDTH, ITEM_HEIGHT, VIRTUALIZATION_THRESHOLD, FLIP_DURATION } from '@config/perf';
+import {
+  CARD_WIDTH,
+  GRID_GAP,
+  ITEM_WIDTH,
+  ITEM_HEIGHT,
+  VIRTUALIZATION_THRESHOLD,
+  FLIP_DURATION,
+} from '@config/perf';
 import useSelectionBox from '@shared/hooks/useSelectionBox';
 import useDragSession from '@shared/hooks/useDragSession';
 import { AppIconSvg } from '@/assets/icons';
@@ -15,7 +22,23 @@ import { AppIconSvg } from '@/assets/icons';
 
 // Grid Cell 渲染器
 const GridCell = React.memo(({ columnIndex, rowIndex, style, data }) => {
-  const { items, columns, selectedSet, onItemClick, onItemContextMenu, onItemMouseDownKey, onItemDragStart, onItemDragEnd, dragState, gameCardExtraProps, onClusterClick, onClusterContextMenu, onClusterDragStart, onClusterDragEnd, clustersList } = data;
+  const {
+    items,
+    columns,
+    selectedSet,
+    onItemClick,
+    onItemContextMenu,
+    onItemMouseDownKey,
+    onItemDragStart,
+    onItemDragEnd,
+    dragState,
+    gameCardExtraProps,
+    onClusterClick,
+    onClusterContextMenu,
+    onClusterDragStart,
+    onClusterDragEnd,
+    clustersList,
+  } = data;
   const index = rowIndex * columns + columnIndex;
 
   if (index >= items.length) return <div style={style} />;
@@ -33,10 +56,14 @@ const GridCell = React.memo(({ columnIndex, rowIndex, style, data }) => {
 
   // 渲染遊戲
   if (item.type === 'game') {
-    const extra = (typeof gameCardExtraProps === 'function') ? (gameCardExtraProps(item) || {}) : (gameCardExtraProps || {});
+    const extra =
+      typeof gameCardExtraProps === 'function'
+        ? gameCardExtraProps(item) || {}
+        : gameCardExtraProps || {};
     const key = `game:${item.filePath}`;
     const isSelected = selectedSet.has(key);
-    const isDraggingSelf = dragState.isDragging && dragState.draggedItem?.filePath === item.filePath;
+    const isDraggingSelf =
+      dragState.isDragging && dragState.draggedItem?.filePath === item.filePath;
 
     return (
       <div style={cellStyle}>
@@ -63,16 +90,19 @@ const GridCell = React.memo(({ columnIndex, rowIndex, style, data }) => {
     const key = `cluster:${item.id}`;
     const isSelectedCluster = !!selectedSet?.has(key);
     // 僅保留仍存在於當前列表中的選中簇 ID
-    const currentSet = new Set((clustersList || []).map(c => String(c.id)));
+    const currentSet = new Set((clustersList || []).map((c) => String(c.id)));
     const rawIds = Array.from(selectedSet || [])
-      .filter(k => typeof k === 'string' && k.startsWith('cluster:'))
-      .map(k => k.slice(8));
-    const filteredIds = rawIds.filter(id => currentSet.has(String(id)));
+      .filter((k) => typeof k === 'string' && k.startsWith('cluster:'))
+      .map((k) => k.slice(8));
+    const filteredIds = rawIds.filter((id) => currentSet.has(String(id)));
     const isMulti = filteredIds.length > 1 && filteredIds.includes(String(item.id));
     // 將當前選中的遊戲（filePath）也附帶給右鍵菜單，支援『混合選擇』情境
-    const selectedGameFilePaths = (selectedSet && selectedSet.size > 0)
-      ? Array.from(selectedSet).filter(k => typeof k === 'string' && k.startsWith('game:')).map(k => k.slice(5))
-      : [];
+    const selectedGameFilePaths =
+      selectedSet && selectedSet.size > 0
+        ? Array.from(selectedSet)
+            .filter((k) => typeof k === 'string' && k.startsWith('game:'))
+            .map((k) => k.slice(5))
+        : [];
     const clusterPayload = isMulti
       ? { ...item, selectedClusterIds: filteredIds, selectedFilePaths: selectedGameFilePaths }
       : { ...item, selectedFilePaths: selectedGameFilePaths };
@@ -129,7 +159,13 @@ const VirtualizedUnifiedGrid = ({
   dragSource = { type: 'desktop', id: null },
 }) => {
   const containerRef = React.useRef(null);
-  const [gridDimensions, setGridDimensions] = React.useState({ width: 800, height: 600, columnCount: 5, rowCount: 1, itemWidth: ITEM_WIDTH });
+  const [gridDimensions, setGridDimensions] = React.useState({
+    width: 800,
+    height: 600,
+    columnCount: 5,
+    rowCount: 1,
+    itemWidth: ITEM_WIDTH,
+  });
 
   // 框選（統一：同時覆蓋遊戲與簇）
   const sel = useSelectionBox({
@@ -137,10 +173,14 @@ const VirtualizedUnifiedGrid = ({
     controlled: selectionControlled,
     selectedSet: selectionProps.selectedSet,
     onSelectedChange: selectionProps.onSelectedChange,
-    isBlankArea: selectionProps.isBlankArea || ((e) => {
-      const el = e.target;
-      return !(el?.closest && el.closest('.game-card, .cluster-card, .folder-card, .context-menu'));
-    }),
+    isBlankArea:
+      selectionProps.isBlankArea ||
+      ((e) => {
+        const el = e.target;
+        return !(
+          el?.closest && el.closest('.game-card, .cluster-card, .folder-card, .context-menu')
+        );
+      }),
     hitSelector: '.game-card, .cluster-card',
     fadeDuration: FLIP_DURATION,
     gamesList: itemsProp || games,
@@ -148,7 +188,10 @@ const VirtualizedUnifiedGrid = ({
   });
 
   // 準備 clusters 清單供拖拽/右鍵使用
-  const clustersList = React.useMemo(() => (itemsProp || []).filter?.(x => x?.type === 'cluster') || [], [itemsProp]);
+  const clustersList = React.useMemo(
+    () => (itemsProp || []).filter?.((x) => x?.type === 'cluster') || [],
+    [itemsProp]
+  );
 
   // 從統一選擇集中派生：遊戲 filePaths 與簇 ids（供拖拽與右鍵使用）
   const selectedGameRef = React.useRef(new Set());
@@ -157,7 +200,7 @@ const VirtualizedUnifiedGrid = ({
     const keys = sel.selected || new Set();
     const gameSet = new Set();
     const clusterSet = new Set();
-    keys.forEach(k => {
+    keys.forEach((k) => {
       if (typeof k === 'string') {
         if (k.startsWith('game:')) gameSet.add(k.slice(5));
         else if (k.startsWith('cluster:')) clusterSet.add(k.slice(8));
@@ -168,17 +211,24 @@ const VirtualizedUnifiedGrid = ({
   }, [sel.selected]);
 
   // 拖拽會話
-  const { handleGameDragStart, handleClusterDragStart, endDragSession } = useDragSession({ selectedRef: selectedGameRef, games, source: dragSource, clusters: clustersList, selectedClustersRef });
+  const { handleGameDragStart, handleClusterDragStart, endDragSession } = useDragSession({
+    selectedRef: selectedGameRef,
+    games,
+    source: dragSource,
+    clusters: clustersList,
+    selectedClustersRef,
+  });
 
   // 統一 Items：若提供 itemsProp 則優先使用；否則由 games 推導
   const items = React.useMemo(() => {
     if (Array.isArray(itemsProp)) return itemsProp;
-    return games.map(game => ({ ...game, type: 'game' }));
+    return games.map((game) => ({ ...game, type: 'game' }));
   }, [itemsProp, games]);
 
   // 計算網格尺寸
   const calculateGridDimensions = React.useCallback(() => {
-    if (!containerRef.current) return { width: 800, height: 600, columnCount: 5, rowCount: 1, itemWidth: ITEM_WIDTH };
+    if (!containerRef.current)
+      return { width: 800, height: 600, columnCount: 5, rowCount: 1, itemWidth: ITEM_WIDTH };
 
     const containerWidth = containerRef.current.clientWidth;
     const containerHeight = containerRef.current.clientHeight;
@@ -210,7 +260,7 @@ const VirtualizedUnifiedGrid = ({
       columnCount: baseColumnCount,
       rowCount,
       itemWidth: adaptiveItemWidth,
-      leftOffset: 0 // 暫時移除居中偏移以避免水平滾動條
+      leftOffset: 0, // 暫時移除居中偏移以避免水平滾動條
     };
   }, [items.length]);
 
@@ -230,11 +280,11 @@ const VirtualizedUnifiedGrid = ({
   React.useEffect(() => {
     const onReset = (e) => {
       try {
-        const arr = (e && e.detail && Array.isArray(e.detail.ids)) ? e.detail.ids : [];
-        const clusterKeys = new Set((arr || []).map(id => `cluster:${String(id)}`));
+        const arr = e && e.detail && Array.isArray(e.detail.ids) ? e.detail.ids : [];
+        const clusterKeys = new Set((arr || []).map((id) => `cluster:${String(id)}`));
         sel.setSelected(clusterKeys);
         // 同步 ref 派生
-        selectedClustersRef.current = new Set((arr || []).map(id => String(id)));
+        selectedClustersRef.current = new Set((arr || []).map((id) => String(id)));
         selectedGameRef.current = new Set();
       } catch (_) {}
     };
@@ -243,11 +293,14 @@ const VirtualizedUnifiedGrid = ({
   }, [sel.setSelected]);
 
   const itemCount = items.length;
-  const virtEnabled = !!(virtualization?.enabled) && itemCount >= VIRTUALIZATION_THRESHOLD;
+  const virtEnabled = !!virtualization?.enabled && itemCount >= VIRTUALIZATION_THRESHOLD;
   const rowCount = Math.ceil(itemCount / gridDimensions.columnCount);
 
   // 事件處理器
-  const keyForItem = React.useCallback((it) => (it?.type === 'cluster' ? `cluster:${it.id}` : `game:${it.filePath}`), []);
+  const keyForItem = React.useCallback(
+    (it) => (it?.type === 'cluster' ? `cluster:${it.id}` : `game:${it.filePath}`),
+    []
+  );
   const keyIndexMap = React.useMemo(() => {
     const map = new Map();
     for (let i = 0; i < items.length; i++) {
@@ -259,147 +312,226 @@ const VirtualizedUnifiedGrid = ({
 
   const anchorIndexRef = React.useRef(null);
 
-  const onItemClick = React.useCallback((item) => {
-    if (item.type === 'game' && onGameClick) {
-      onGameClick(item);
-    } else if (item.type === 'cluster' && onClusterClick) {
-      onClusterClick(item);
-    }
-  }, [onGameClick, onClusterClick]);
-
-  const onItemContextMenu = React.useCallback((e, item) => {
-    if (item.type === 'game' && onGameContextMenu) {
-      const key = `game:${item.filePath}`;
-      const selKeys = sel.selected || new Set();
-      const selectedGamePaths = Array.from(selKeys)
-        .filter(k => typeof k === 'string' && k.startsWith('game:'))
-        .map(k => k.slice(5));
-      const useList = (selKeys.size > 1 && selKeys.has(key) && selectedGamePaths.length > 0)
-        ? selectedGamePaths
-        : [item.filePath];
-      // 附帶簇的多選 ID，支援混合選擇
-      const existing = new Set((clustersList || []).map(c => String(c.id)));
-      const clusterIds = Array.from(selKeys)
-        .filter(k => typeof k === 'string' && k.startsWith('cluster:'))
-        .map(k => k.slice(8))
-        .filter(id => existing.has(String(id)));
-      onGameContextMenu(e, item, useList, clusterIds);
-    } else if (item.type === 'cluster' && onClusterContextMenu) {
-      onClusterContextMenu(e, item);
-    }
-  }, [onGameContextMenu, onClusterContextMenu, sel.selected]);
-
-  const onItemMouseDownKey = React.useCallback((key, e) => {
-    try { e.stopPropagation(); } catch (_) {}
-    if (e.button === 2) return;
-    const curIdx = keyIndexMap.get(key);
-    const hasAnchor = typeof anchorIndexRef.current === 'number' && anchorIndexRef.current >= 0;
-    const isSelected = sel.selected.has(key);
-
-    if (e.shiftKey) {
-      const anchor = hasAnchor ? anchorIndexRef.current : curIdx;
-      const start = Math.min(anchor, curIdx);
-      const end = Math.max(anchor, curIdx);
-      const range = new Set();
-      for (let i = start; i <= end; i++) {
-        const k = keyForItem(items[i]);
-        if (k) range.add(k);
+  const onItemClick = React.useCallback(
+    (item) => {
+      if (item.type === 'game' && onGameClick) {
+        onGameClick(item);
+      } else if (item.type === 'cluster' && onClusterClick) {
+        onClusterClick(item);
       }
-      sel.setSelected(prev => {
-        if (e.ctrlKey || e.metaKey) {
-          const next = new Set(prev);
-          for (const k of range) next.add(k);
-          return next;
+    },
+    [onGameClick, onClusterClick]
+  );
+
+  const onItemContextMenu = React.useCallback(
+    (e, item) => {
+      if (item.type === 'game' && onGameContextMenu) {
+        const key = `game:${item.filePath}`;
+        const selKeys = sel.selected || new Set();
+        const selectedGamePaths = Array.from(selKeys)
+          .filter((k) => typeof k === 'string' && k.startsWith('game:'))
+          .map((k) => k.slice(5));
+        const useList =
+          selKeys.size > 1 && selKeys.has(key) && selectedGamePaths.length > 0
+            ? selectedGamePaths
+            : [item.filePath];
+        // 附帶簇的多選 ID，支援混合選擇
+        const existing = new Set((clustersList || []).map((c) => String(c.id)));
+        const clusterIds = Array.from(selKeys)
+          .filter((k) => typeof k === 'string' && k.startsWith('cluster:'))
+          .map((k) => k.slice(8))
+          .filter((id) => existing.has(String(id)));
+        onGameContextMenu(e, item, useList, clusterIds);
+      } else if (item.type === 'cluster' && onClusterContextMenu) {
+        onClusterContextMenu(e, item);
+      }
+    },
+    [onGameContextMenu, onClusterContextMenu, sel.selected]
+  );
+
+  const onItemMouseDownKey = React.useCallback(
+    (key, e) => {
+      try {
+        e.stopPropagation();
+      } catch (_) {}
+      if (e.button === 2) return;
+      const curIdx = keyIndexMap.get(key);
+      const hasAnchor = typeof anchorIndexRef.current === 'number' && anchorIndexRef.current >= 0;
+      const isSelected = sel.selected.has(key);
+
+      if (e.shiftKey) {
+        const anchor = hasAnchor ? anchorIndexRef.current : curIdx;
+        const start = Math.min(anchor, curIdx);
+        const end = Math.max(anchor, curIdx);
+        const range = new Set();
+        for (let i = start; i <= end; i++) {
+          const k = keyForItem(items[i]);
+          if (k) range.add(k);
         }
-        return range;
-      });
-      anchorIndexRef.current = anchor;
-    } else if (e.ctrlKey || e.metaKey) {
-      sel.setSelected(prev => {
-        const next = new Set(prev);
-        if (next.has(key)) next.delete(key); else next.add(key);
-        return next;
-      });
-      anchorIndexRef.current = curIdx;
-    } else {
-      if (isSelected && sel.selected.size > 1) {
-        return;
+        sel.setSelected((prev) => {
+          if (e.ctrlKey || e.metaKey) {
+            const next = new Set(prev);
+            for (const k of range) next.add(k);
+            return next;
+          }
+          return range;
+        });
+        anchorIndexRef.current = anchor;
+      } else if (e.ctrlKey || e.metaKey) {
+        sel.setSelected((prev) => {
+          const next = new Set(prev);
+          if (next.has(key)) next.delete(key);
+          else next.add(key);
+          return next;
+        });
+        anchorIndexRef.current = curIdx;
+      } else {
+        if (isSelected && sel.selected.size > 1) {
+          return;
+        }
+        sel.setSelected(new Set([key]));
+        anchorIndexRef.current = curIdx;
       }
-      sel.setSelected(new Set([key]));
-      anchorIndexRef.current = curIdx;
-    }
-  }, [keyIndexMap, items, keyForItem, sel.selected, sel.setSelected]);
+    },
+    [keyIndexMap, items, keyForItem, sel.selected, sel.setSelected]
+  );
 
-  const onItemDragStart = React.useCallback((filePath, e) => {
-    const g = games.find(x => x.filePath === filePath);
-    if (!g) return;
-    handleGameDragStart(e, g);
-    if (onDragStart) onDragStart(g, 'game');
-  }, [games, handleGameDragStart, onDragStart]);
+  const onItemDragStart = React.useCallback(
+    (filePath, e) => {
+      const g = games.find((x) => x.filePath === filePath);
+      if (!g) return;
+      handleGameDragStart(e, g);
+      if (onDragStart) onDragStart(g, 'game');
+    },
+    [games, handleGameDragStart, onDragStart]
+  );
 
-  const onItemDragEnd = React.useCallback((e) => {
-    try { 
-      const ms = 2500; 
-      const ts = Date.now(); 
-      try { console.log('[DRAG_UI] onItemDragEnd scheduled endDragSession in', ms, 'ms at', ts); } catch {}
-      setTimeout(() => { 
-        try { 
-          try { console.log('[DRAG_UI] onItemDragEnd -> endDragSession now at', Date.now(), 'scheduledAt=', ts); } catch {}
-          endDragSession(); 
-        } catch (_) { } 
-      }, ms); 
-    } catch (_) { }
-    if (onDragEnd) {
-      try { setTimeout(() => { try { onDragEnd(e); } catch (_) { } }, 150); } catch (_) { }
-    }
-  }, [endDragSession, onDragEnd]);
+  const onItemDragEnd = React.useCallback(
+    (e) => {
+      try {
+        const ms = 2500;
+        const ts = Date.now();
+        try {
+          console.log('[DRAG_UI] onItemDragEnd scheduled endDragSession in', ms, 'ms at', ts);
+        } catch {}
+        setTimeout(() => {
+          try {
+            try {
+              console.log(
+                '[DRAG_UI] onItemDragEnd -> endDragSession now at',
+                Date.now(),
+                'scheduledAt=',
+                ts
+              );
+            } catch {}
+            endDragSession();
+          } catch (_) {}
+        }, ms);
+      } catch (_) {}
+      if (onDragEnd) {
+        try {
+          setTimeout(() => {
+            try {
+              onDragEnd(e);
+            } catch (_) {}
+          }, 150);
+        } catch (_) {}
+      }
+    },
+    [endDragSession, onDragEnd]
+  );
 
-  const onClusterDragStart = React.useCallback((cluster, e) => {
-    handleClusterDragStart(e, cluster);
-    if (onDragStart) onDragStart(cluster, 'cluster');
-  }, [handleClusterDragStart, onDragStart]);
+  const onClusterDragStart = React.useCallback(
+    (cluster, e) => {
+      handleClusterDragStart(e, cluster);
+      if (onDragStart) onDragStart(cluster, 'cluster');
+    },
+    [handleClusterDragStart, onDragStart]
+  );
 
-  const onClusterDragEnd = React.useCallback((e) => {
-    try { 
-      const ms = 2500; 
-      const ts = Date.now(); 
-      try { console.log('[DRAG_UI] onClusterDragEnd scheduled endDragSession in', ms, 'ms at', ts); } catch {}
-      setTimeout(() => { 
-        try { 
-          try { console.log('[DRAG_UI] onClusterDragEnd -> endDragSession now at', Date.now(), 'scheduledAt=', ts); } catch {}
-          endDragSession(); 
-        } catch (_) { } 
-      }, ms); 
-    } catch (_) { }
-    if (onDragEnd) {
-      try { setTimeout(() => { try { onDragEnd(e); } catch (_) { } }, 150); } catch (_) { }
-    }
-  }, [endDragSession, onDragEnd]);
+  const onClusterDragEnd = React.useCallback(
+    (e) => {
+      try {
+        const ms = 2500;
+        const ts = Date.now();
+        try {
+          console.log('[DRAG_UI] onClusterDragEnd scheduled endDragSession in', ms, 'ms at', ts);
+        } catch {}
+        setTimeout(() => {
+          try {
+            try {
+              console.log(
+                '[DRAG_UI] onClusterDragEnd -> endDragSession now at',
+                Date.now(),
+                'scheduledAt=',
+                ts
+              );
+            } catch {}
+            endDragSession();
+          } catch (_) {}
+        }, ms);
+      } catch (_) {}
+      if (onDragEnd) {
+        try {
+          setTimeout(() => {
+            try {
+              onDragEnd(e);
+            } catch (_) {}
+          }, 150);
+        } catch (_) {}
+      }
+    },
+    [endDragSession, onDragEnd]
+  );
 
   // Grid 項目資料
-  const itemData = React.useMemo(() => ({
-    items,
-    columns: gridDimensions.columnCount,
-    itemWidth: gridDimensions.itemWidth,
-    selectedSet: sel.selected,
-    clustersList,
-    onItemClick,
-    onItemContextMenu,
-    onItemMouseDownKey,
-    onItemDragStart,
-    onItemDragEnd,
-    onClusterDragStart,
-    onClusterDragEnd,
-    dragState,
-    gameCardExtraProps,
-    onClusterClick,
-    onClusterContextMenu
-  }), [items, gridDimensions.columnCount, gridDimensions.itemWidth, sel.selected, clustersList, onItemClick, onItemContextMenu, onItemMouseDownKey, onItemDragStart, onItemDragEnd, onClusterDragStart, onClusterDragEnd, dragState, gameCardExtraProps, onClusterClick, onClusterContextMenu]);
+  const itemData = React.useMemo(
+    () => ({
+      items,
+      columns: gridDimensions.columnCount,
+      itemWidth: gridDimensions.itemWidth,
+      selectedSet: sel.selected,
+      clustersList,
+      onItemClick,
+      onItemContextMenu,
+      onItemMouseDownKey,
+      onItemDragStart,
+      onItemDragEnd,
+      onClusterDragStart,
+      onClusterDragEnd,
+      dragState,
+      gameCardExtraProps,
+      onClusterClick,
+      onClusterContextMenu,
+    }),
+    [
+      items,
+      gridDimensions.columnCount,
+      gridDimensions.itemWidth,
+      sel.selected,
+      clustersList,
+      onItemClick,
+      onItemContextMenu,
+      onItemMouseDownKey,
+      onItemDragStart,
+      onItemDragEnd,
+      onClusterDragStart,
+      onClusterDragEnd,
+      dragState,
+      gameCardExtraProps,
+      onClusterClick,
+      onClusterContextMenu,
+    ]
+  );
 
   // 右鍵處理
   const onContextMenu = (e) => {
-    try { e.preventDefault(); } catch (_) { }
-    try { e.stopPropagation(); } catch (_) { }
+    try {
+      e.preventDefault();
+    } catch (_) {}
+    try {
+      e.stopPropagation();
+    } catch (_) {}
     onBlankContextMenu && onBlankContextMenu(e);
   };
 
@@ -426,7 +558,7 @@ const VirtualizedUnifiedGrid = ({
               style={{
                 width: '128px',
                 height: '128px',
-                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
+                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))',
               }}
             />
           </div>
@@ -435,19 +567,24 @@ const VirtualizedUnifiedGrid = ({
     );
   }
 
-  const containerMouseDown = selectionControlled ? undefined : (e) => {
-    // 先交給框選系統處理
-    sel.onContainerMouseDown?.(e);
-    // 若點擊空白區域（非卡片/菜單），清空簇選中
-    try {
-      const isOnCard = !!(e.target?.closest && e.target.closest('.game-card, .cluster-card, .folder-card, .context-menu'));
-      const isLeft = e.button === 0;
-      if (!isOnCard && isLeft && !(e.ctrlKey || e.metaKey || e.shiftKey)) {
-        // 清空：交給 sel，自然清空
-        sel.setSelected(new Set());
-      }
-    } catch (_) {}
-  };
+  const containerMouseDown = selectionControlled
+    ? undefined
+    : (e) => {
+        // 先交給框選系統處理
+        sel.onContainerMouseDown?.(e);
+        // 若點擊空白區域（非卡片/菜單），清空簇選中
+        try {
+          const isOnCard = !!(
+            e.target?.closest &&
+            e.target.closest('.game-card, .cluster-card, .folder-card, .context-menu')
+          );
+          const isLeft = e.button === 0;
+          if (!isOnCard && isLeft && !(e.ctrlKey || e.metaKey || e.shiftKey)) {
+            // 清空：交給 sel，自然清空
+            sel.setSelected(new Set());
+          }
+        } catch (_) {}
+      };
 
   return (
     <div
@@ -470,19 +607,31 @@ const VirtualizedUnifiedGrid = ({
           overscanColumnCount={1}
           style={{
             overflowX: 'hidden',
-            marginLeft: gridDimensions.leftOffset || 0
+            marginLeft: gridDimensions.leftOffset || 0,
           }}
         >
           {GridCell}
         </Grid>
       ) : (
-        <div className="regular-grid-wrapper" style={{ position: 'relative', width: '100%', height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
-          <div className="regular-grid" style={{
+        <div
+          className="regular-grid-wrapper"
+          style={{
             position: 'relative',
-            width: gridDimensions.width,
-            height: rowCount * ITEM_HEIGHT,
-            marginLeft: gridDimensions.leftOffset
-          }}>
+            width: '100%',
+            height: '100%',
+            overflowY: 'auto',
+            overflowX: 'hidden',
+          }}
+        >
+          <div
+            className="regular-grid"
+            style={{
+              position: 'relative',
+              width: gridDimensions.width,
+              height: rowCount * ITEM_HEIGHT,
+              marginLeft: gridDimensions.leftOffset,
+            }}
+          >
             {items.map((item, index) => {
               const columnIndex = index % gridDimensions.columnCount;
               const rowIndex = Math.floor(index / gridDimensions.columnCount);
@@ -491,7 +640,7 @@ const VirtualizedUnifiedGrid = ({
                 left: columnIndex * gridDimensions.itemWidth,
                 top: rowIndex * ITEM_HEIGHT,
                 width: gridDimensions.itemWidth,
-                height: ITEM_HEIGHT
+                height: ITEM_HEIGHT,
               };
 
               const key = item.type === 'cluster' ? `cluster:${item.id}` : `game:${item.filePath}`;
@@ -510,33 +659,40 @@ const VirtualizedUnifiedGrid = ({
       )}
 
       {/* 框選矩形 */}
-      {selectionControlled ? (
-        (selectionProps.boxSelecting && selectionProps.selectionRect) ? (
-          createPortal(
-            <div
-              className={`selection-rect ${selectionProps.selectionFading ? 'fade-out' : ''}`}
-              style={{
-                position: 'fixed',
-                left: selectionProps.selectionRect.left,
-                top: selectionProps.selectionRect.top,
-                width: selectionProps.selectionRect.width,
-                height: selectionProps.selectionRect.height,
-                pointerEvents: 'none',
-              }}
-            />, document.body
-          )
-        ) : null
-      ) : (
-        sel.boxSelecting ? (
-          createPortal(
-            <div
-              ref={sel.selectionBoxRef}
-              className={`selection-rect ${sel.selectionFading ? 'fade-out' : ''}`}
-              style={{ position: 'fixed', left: 0, top: 0, width: 0, height: 0, pointerEvents: 'none' }}
-            />, document.body
-          )
-        ) : null
-      )}
+      {selectionControlled
+        ? selectionProps.boxSelecting && selectionProps.selectionRect
+          ? createPortal(
+              <div
+                className={`selection-rect ${selectionProps.selectionFading ? 'fade-out' : ''}`}
+                style={{
+                  position: 'fixed',
+                  left: selectionProps.selectionRect.left,
+                  top: selectionProps.selectionRect.top,
+                  width: selectionProps.selectionRect.width,
+                  height: selectionProps.selectionRect.height,
+                  pointerEvents: 'none',
+                }}
+              />,
+              document.body
+            )
+          : null
+        : sel.boxSelecting
+          ? createPortal(
+              <div
+                ref={sel.selectionBoxRef}
+                className={`selection-rect ${sel.selectionFading ? 'fade-out' : ''}`}
+                style={{
+                  position: 'fixed',
+                  left: 0,
+                  top: 0,
+                  width: 0,
+                  height: 0,
+                  pointerEvents: 'none',
+                }}
+              />,
+              document.body
+            )
+          : null}
     </div>
   );
 };

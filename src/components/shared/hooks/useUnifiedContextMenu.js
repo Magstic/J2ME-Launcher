@@ -25,54 +25,66 @@ export default function useUnifiedContextMenu(callbacks = {}) {
    * @param {Object=} ctx.extra 額外資訊（例如 folderId）
    * @param {string[]=} ctx.selectedFilePaths 若為多選，包含當前選集的所有 filePath
    */
-  const openMenu = useCallback((event, target, ctx) => {
-    if (!ctx || !ctx.view || !ctx.kind) return;
+  const openMenu = useCallback(
+    (event, target, ctx) => {
+      if (!ctx || !ctx.view || !ctx.kind) return;
 
-    let menuType = null;
-    let finalTarget = target;
+      let menuType = null;
+      let finalTarget = target;
 
-    if (ctx.view === 'desktop') {
-      if (ctx.kind === 'blank') return; // 停用桌面空白區域右鍵菜單
-      else if (ctx.kind === 'folder') menuType = 'folder';
-      else if (ctx.kind === 'game') menuType = 'game';
-      else if (ctx.kind === 'cluster') menuType = 'cluster';
-      else if (ctx.kind === 'game-grid') menuType = 'game-grid';
-    } else if (ctx.view === 'folder-window') {
-      if (ctx.kind === 'game') {
-        // 在資料夾視圖中，遊戲應使用 game-folder，並帶上 folderInfo 以顯示「移除」
-        menuType = 'game-folder';
-        if (finalTarget && !finalTarget.folderInfo && ctx.extra?.folderId != null) {
-          finalTarget = { ...finalTarget, folderInfo: { folderId: ctx.extra.folderId } };
+      if (ctx.view === 'desktop') {
+        if (ctx.kind === 'blank')
+          return; // 停用桌面空白區域右鍵菜單
+        else if (ctx.kind === 'folder') menuType = 'folder';
+        else if (ctx.kind === 'game') menuType = 'game';
+        else if (ctx.kind === 'cluster') menuType = 'cluster';
+        else if (ctx.kind === 'game-grid') menuType = 'game-grid';
+      } else if (ctx.view === 'folder-window') {
+        if (ctx.kind === 'game') {
+          // 在資料夾視圖中，遊戲應使用 game-folder，並帶上 folderInfo 以顯示「移除」
+          menuType = 'game-folder';
+          if (finalTarget && !finalTarget.folderInfo && ctx.extra?.folderId != null) {
+            finalTarget = { ...finalTarget, folderInfo: { folderId: ctx.extra.folderId } };
+          }
+        } else if (ctx.kind === 'cluster') {
+          menuType = 'cluster-folder';
+          if (finalTarget && !finalTarget.folderInfo && ctx.extra?.folderId != null) {
+            finalTarget = { ...finalTarget, folderInfo: { folderId: ctx.extra.folderId } };
+          }
+        } else if (ctx.kind === 'game-grid') {
+          menuType = 'game-grid';
+        } else if (ctx.kind === 'blank') {
+          // 目前資料夾視圖空白區域不顯示菜單，保持現狀。如需顯示可將其映射為 'desktop' 並在 ContextMenu 中增加條件過濾
+          return;
         }
-      } else if (ctx.kind === 'cluster') {
-        menuType = 'cluster-folder';
-        if (finalTarget && !finalTarget.folderInfo && ctx.extra?.folderId != null) {
-          finalTarget = { ...finalTarget, folderInfo: { folderId: ctx.extra.folderId } };
-        }
-      } else if (ctx.kind === 'game-grid') {
-        menuType = 'game-grid';
-      } else if (ctx.kind === 'blank') {
-        // 目前資料夾視圖空白區域不顯示菜單，保持現狀。如需顯示可將其映射為 'desktop' 並在 ContextMenu 中增加條件過濾
-        return;
+      } else if (ctx.view === 'drawer') {
+        // 抽屜視圖：主要用於資料夾右鍵菜單
+        if (ctx.kind === 'folder') menuType = 'folder';
+        else if (ctx.kind === 'blank') return; // 抽屜空白區域不顯示菜單
       }
-    } else if (ctx.view === 'drawer') {
-      // 抽屜視圖：主要用於資料夾右鍵菜單
-      if (ctx.kind === 'folder') menuType = 'folder';
-      else if (ctx.kind === 'blank') return; // 抽屜空白區域不顯示菜單
-    }
 
-    // 附加多選資料：若有提供 selectedFilePaths，將其附加到目標上
-    if (finalTarget && Array.isArray(ctx?.selectedFilePaths) && ctx.selectedFilePaths.length > 0) {
-      finalTarget = { ...finalTarget, selectedFilePaths: ctx.selectedFilePaths };
-    }
-    // 附加多選簇：支援『混合選擇』（在遊戲右鍵時也能把選中的簇一起加入資料夾）
-    if (finalTarget && Array.isArray(ctx?.selectedClusterIds) && ctx.selectedClusterIds.length > 0) {
-      finalTarget = { ...finalTarget, selectedClusterIds: ctx.selectedClusterIds };
-    }
+      // 附加多選資料：若有提供 selectedFilePaths，將其附加到目標上
+      if (
+        finalTarget &&
+        Array.isArray(ctx?.selectedFilePaths) &&
+        ctx.selectedFilePaths.length > 0
+      ) {
+        finalTarget = { ...finalTarget, selectedFilePaths: ctx.selectedFilePaths };
+      }
+      // 附加多選簇：支援『混合選擇』（在遊戲右鍵時也能把選中的簇一起加入資料夾）
+      if (
+        finalTarget &&
+        Array.isArray(ctx?.selectedClusterIds) &&
+        ctx.selectedClusterIds.length > 0
+      ) {
+        finalTarget = { ...finalTarget, selectedClusterIds: ctx.selectedClusterIds };
+      }
 
-    if (!menuType) return;
-    openContextMenu(event, finalTarget, menuType);
-  }, [openContextMenu]);
+      if (!menuType) return;
+      openContextMenu(event, finalTarget, menuType);
+    },
+    [openContextMenu]
+  );
 
   return {
     ContextMenuElement,

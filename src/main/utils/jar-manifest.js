@@ -6,7 +6,15 @@ async function getConfigGameName(jarPath, fallbackName) {
       yauzl.open(jarPath, { lazyEntries: true }, (err, zipfile) => {
         if (err || !zipfile) return resolve(fallbackName);
         let done = false;
-        const finish = (name) => { if (!done) { done = true; try { zipfile.close(); } catch(_){} resolve(name || fallbackName); } };
+        const finish = (name) => {
+          if (!done) {
+            done = true;
+            try {
+              zipfile.close();
+            } catch (_) {}
+            resolve(name || fallbackName);
+          }
+        };
         zipfile.on('error', () => finish(fallbackName));
         zipfile.on('entry', (entry) => {
           if (done) return;

@@ -9,9 +9,7 @@ export default function KEmulator({ romCache = true, onRomCacheChange, disabled 
   return (
     <>
       <RomCacheSwitch checked={romCache} onChange={onRomCacheChange} disabled={disabled} />
-      <div className="hint text-12 text-secondary">
-      {t('emulatorConfig.kemulator.hint')}
-      </div>
+      <div className="hint text-12 text-secondary">{t('emulatorConfig.kemulator.hint')}</div>
     </>
   );
 }

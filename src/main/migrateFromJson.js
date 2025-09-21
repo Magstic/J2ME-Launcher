@@ -5,7 +5,15 @@ const { app } = require('electron');
 const { getDB, hasAnyData } = require('./db');
 
 const KNOWN_GAME_FIELDS = new Set([
-  'filePath','gameName','vendor','version','md5','iconPath','mtimeMs','size','emulatorConfig'
+  'filePath',
+  'gameName',
+  'vendor',
+  'version',
+  'md5',
+  'iconPath',
+  'mtimeMs',
+  'size',
+  'emulatorConfig',
 ]);
 
 function readJsonSafe(p, fallback = null) {
@@ -20,7 +28,9 @@ function readJsonSafe(p, fallback = null) {
 }
 
 function ensureDir(p) {
-  try { fs.mkdirSync(p, { recursive: true }); } catch (_) {}
+  try {
+    fs.mkdirSync(p, { recursive: true });
+  } catch (_) {}
 }
 
 function migrateGamesAndSettings(db, userDataPath) {
@@ -50,7 +60,10 @@ function migrateGamesAndSettings(db, userDataPath) {
     ON CONFLICT(id) DO UPDATE SET emulators = excluded.emulators
   `);
 
-  let gameCount = 0, cfgCount = 0, dirCount = 0, setCount = 0;
+  let gameCount = 0,
+    cfgCount = 0,
+    dirCount = 0,
+    setCount = 0;
 
   db.transaction(() => {
     // games
@@ -65,7 +78,7 @@ function migrateGamesAndSettings(db, userDataPath) {
         iconPath: game.iconPath ?? null,
         mtimeMs: game.mtimeMs ?? null,
         size: game.size ?? null,
-        manifest: null
+        manifest: null,
       };
       // collect extra manifest fields
       const extra = {};
@@ -81,7 +94,7 @@ function migrateGamesAndSettings(db, userDataPath) {
         insertConfig.run({
           filePath,
           emulator: 'freej2mePlus',
-          config: JSON.stringify(game.emulatorConfig)
+          config: JSON.stringify(game.emulatorConfig),
         });
         cfgCount++;
       }
@@ -94,13 +107,13 @@ function migrateGamesAndSettings(db, userDataPath) {
         path: d.path ?? null,
         lastScanTime: d.lastScanTime ?? null,
         enabled: typeof d.enabled === 'boolean' ? (d.enabled ? 1 : 0) : null,
-        addedTime: d.addedTime ?? null
+        addedTime: d.addedTime ?? null,
       });
       dirCount++;
     }
 
     // settings.emulators as JSON
-    const emulators = (data.settings && data.settings.emulators) ? data.settings.emulators : {};
+    const emulators = data.settings && data.settings.emulators ? data.settings.emulators : {};
     upsertSettings.run({ emulators: JSON.stringify(emulators) });
     setCount = 1;
   })();
@@ -133,7 +146,9 @@ function migrateFolders(db, userDataPath) {
     VALUES (@folderId, @lastModified, @gameCount, @totalSize)
   `);
 
-  let fCount = 0, fgCount = 0, fmCount = 0;
+  let fCount = 0,
+    fgCount = 0,
+    fmCount = 0;
 
   db.transaction(() => {
     const folders = index.folders || [];
@@ -148,7 +163,7 @@ function migrateFolders(db, userDataPath) {
         createdAt: f.createdAt ?? null,
         updatedAt: f.updatedAt ?? null,
         sortOrder: f.sortOrder ?? null,
-        isVisible: typeof f.isVisible === 'boolean' ? (f.isVisible ? 1 : 0) : null
+        isVisible: typeof f.isVisible === 'boolean' ? (f.isVisible ? 1 : 0) : null,
       });
       fCount++;
 
@@ -161,7 +176,7 @@ function migrateFolders(db, userDataPath) {
             filePath: g.filePath ?? g.gameId ?? null,
             addedTime: g.addedTime ?? null,
             customName: g.customName ?? null,
-            notes: g.notes ?? ''
+            notes: g.notes ?? '',
           });
           fgCount++;
         }
@@ -171,7 +186,7 @@ function migrateFolders(db, userDataPath) {
           folderId: f.id,
           lastModified: content.metadata.lastModified ?? null,
           gameCount: content.metadata.gameCount ?? null,
-          totalSize: content.metadata.totalSize ?? null
+          totalSize: content.metadata.totalSize ?? null,
         });
         fmCount++;
       }

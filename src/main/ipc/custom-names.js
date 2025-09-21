@@ -1,7 +1,12 @@
 // src/main/ipc/custom-names.js
 // IPC handlers for custom game names and vendors
 
-const { updateCustomName, updateCustomVendor, updateCustomData, resetCustomNames } = require('../sql/custom-names');
+const {
+  updateCustomName,
+  updateCustomVendor,
+  updateCustomData,
+  resetCustomNames,
+} = require('../sql/custom-names');
 const { addUrlToGames } = require('../utils/icon-url');
 const { getAllGamesFromSql } = require('../sql/read');
 

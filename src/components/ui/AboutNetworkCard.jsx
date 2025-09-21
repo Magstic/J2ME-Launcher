@@ -38,9 +38,9 @@ export default function AboutNetworkCard({ developer, testers = [], paused = fal
       for (const entry of entries) {
         const cr = entry.contentRect;
         // Only react to width; keep a fixed base height to prevent infinite growth
-        setSize(prev => {
+        setSize((prev) => {
           const newW = Math.max(320, cr.width);
-          return (prev.w !== newW || prev.h !== BASE_HEIGHT) ? { w: newW, h: BASE_HEIGHT } : prev;
+          return prev.w !== newW || prev.h !== BASE_HEIGHT ? { w: newW, h: BASE_HEIGHT } : prev;
         });
       }
     });
@@ -52,7 +52,14 @@ export default function AboutNetworkCard({ developer, testers = [], paused = fal
     // Layout: center developer, testers on a ring with slight jitter
     const cx = size.w / 2;
     const cy = BASE_HEIGHT / 2;
-    const devNode = { id: developer.id || 'dev', kind: 'dev', x: cx, y: cy, r: 28, data: developer };
+    const devNode = {
+      id: developer.id || 'dev',
+      kind: 'dev',
+      x: cx,
+      y: cy,
+      r: 28,
+      data: developer,
+    };
     const n = Math.max(1, testers.length);
     // Base ring radius with safeguards against small heights
     const baseR = Math.max(40, Math.min(size.w, BASE_HEIGHT) / 2 - 28);
@@ -61,17 +68,17 @@ export default function AboutNetworkCard({ developer, testers = [], paused = fal
     const R = baseR * expandFactor;
 
     const testerNodes = testers.map((t, i) => {
-      const angle = (i / n) * Math.PI * 2 + (Math.PI / 12);
+      const angle = (i / n) * Math.PI * 2 + Math.PI / 12;
       // Increase jitter amplitude for small counts to avoid clustering
       const jitterAmp = n <= 3 ? 14 : 6;
       const jitter = ((i * 137) % 23) - 11; // deterministic base
-      const radialJitter = (jitter % jitterAmp);
+      const radialJitter = jitter % jitterAmp;
       const x = cx + (R + radialJitter) * Math.cos(angle);
       const y = cy + (R + radialJitter) * Math.sin(angle);
       return { id: t.id || `t-${i}`, kind: 'tester', x, y, r: 18, data: t };
     });
 
-    const links = testerNodes.map(n => ({ source: devNode, target: n }));
+    const links = testerNodes.map((n) => ({ source: devNode, target: n }));
     return { devNode, testerNodes, links };
   }, [size.w, developer, testers]);
 
@@ -82,7 +89,7 @@ export default function AboutNetworkCard({ developer, testers = [], paused = fal
 
   // initialize motion params whenever node set changes
   useEffect(() => {
-    const ids = [nodes.devNode.id, ...nodes.testerNodes.map(t => t.id)];
+    const ids = [nodes.devNode.id, ...nodes.testerNodes.map((t) => t.id)];
     const mp = { ...motionParamsRef.current };
     ids.forEach((id, i) => {
       if (!mp[id]) {
@@ -105,7 +112,9 @@ export default function AboutNetworkCard({ developer, testers = [], paused = fal
       }
     });
     // cleanup removed nodes
-    Object.keys(mp).forEach(id => { if (!ids.includes(id)) delete mp[id]; });
+    Object.keys(mp).forEach((id) => {
+      if (!ids.includes(id)) delete mp[id];
+    });
     motionParamsRef.current = mp;
   }, [nodes]);
 
@@ -135,7 +144,7 @@ export default function AboutNetworkCard({ developer, testers = [], paused = fal
       // exponential smoothing towards target offsets
       const alpha = 0.14; // smoothing factor (lower = smoother)
       const smoothed = { ...smoothOffsetsRef.current };
-      Object.keys(offs).forEach(id => {
+      Object.keys(offs).forEach((id) => {
         const prev = smoothed[id] || { dx: 0, dy: 0 };
         const next = offs[id];
         smoothed[id] = {
@@ -144,7 +153,9 @@ export default function AboutNetworkCard({ developer, testers = [], paused = fal
         };
       });
       // cleanup any removed ids
-      Object.keys(smoothed).forEach(id => { if (!offs[id]) delete smoothed[id]; });
+      Object.keys(smoothed).forEach((id) => {
+        if (!offs[id]) delete smoothed[id];
+      });
       smoothOffsetsRef.current = smoothed;
 
       // apply to node groups
@@ -154,7 +165,11 @@ export default function AboutNetworkCard({ developer, testers = [], paused = fal
         const apply = (node) => {
           const off = smoothed[node.id] || { dx: 0, dy: 0 };
           const g = nodeElemRef.current[node.id];
-          if (g) g.setAttribute('transform', `translate(${snap(node.x + off.dx)}, ${snap(node.y + off.dy)})`);
+          if (g)
+            g.setAttribute(
+              'transform',
+              `translate(${snap(node.x + off.dx)}, ${snap(node.y + off.dy)})`
+            );
         };
         apply(currentNodes.devNode);
         currentNodes.testerNodes.forEach(apply);
@@ -234,7 +249,12 @@ export default function AboutNetworkCard({ developer, testers = [], paused = fal
       }}
       onMouseLeave={handleLeave}
     >
-      <svg width="100%" height={BASE_HEIGHT} viewBox={`0 0 ${size.w} ${BASE_HEIGHT}`} style={{ display: 'block' }}>
+      <svg
+        width="100%"
+        height={BASE_HEIGHT}
+        viewBox={`0 0 ${size.w} ${BASE_HEIGHT}`}
+        style={{ display: 'block' }}
+      >
         {/* grid glow backdrop */}
         <defs>
           <radialGradient id="netGlow" cx="50%" cy="50%" r="50%">
@@ -249,11 +269,17 @@ export default function AboutNetworkCard({ developer, testers = [], paused = fal
         <rect x="0" y="0" width={size.w} height={BASE_HEIGHT} fill="url(#netGlow)" />
 
         {/* links */}
-        <g stroke="#4fc3f7" strokeOpacity="0.35" shapeRendering="geometricPrecision" strokeLinecap="round" style={{ pointerEvents: 'none' }}>
+        <g
+          stroke="#4fc3f7"
+          strokeOpacity="0.35"
+          shapeRendering="geometricPrecision"
+          strokeLinecap="round"
+          style={{ pointerEvents: 'none' }}
+        >
           {nodes.links.map((l, idx) => (
             <line
               key={`l-${idx}`}
-              ref={el => (lineElemRef.current[idx] = el)}
+              ref={(el) => (lineElemRef.current[idx] = el)}
               vectorEffect="non-scaling-stroke"
               x1={l.source.x}
               y1={l.source.y}
@@ -269,8 +295,13 @@ export default function AboutNetworkCard({ developer, testers = [], paused = fal
           onHover={setHover}
           registerRef={(id, el) => (nodeElemRef.current[id] = el)}
         />
-        {nodes.testerNodes.map(n => (
-          <AvatarNode key={n.id} node={n} onHover={setHover} registerRef={(id, el) => (nodeElemRef.current[id] = el)} />
+        {nodes.testerNodes.map((n) => (
+          <AvatarNode
+            key={n.id}
+            node={n}
+            onHover={setHover}
+            registerRef={(id, el) => (nodeElemRef.current[id] = el)}
+          />
         ))}
       </svg>
 
@@ -297,12 +328,19 @@ export default function AboutNetworkCard({ developer, testers = [], paused = fal
             willChange: 'opacity, transform',
           }}
         >
-          <div style={{ fontSize: 14, marginBottom: 6, color: 'var(--text-accent)' }}>{hover.person.name}</div>
+          <div style={{ fontSize: 14, marginBottom: 6, color: 'var(--text-accent)' }}>
+            {hover.person.name}
+          </div>
           {/* Link field */}
           <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4, display: 'flex', gap: 6 }}>
             <span style={{ color: 'var(--overlay-on-light-60)' }}>Link:</span>
             {hover.person.link ? (
-              <a href={hover.person.link} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-accent)', textDecoration: 'none' }}>
+              <a
+                href={hover.person.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: 'var(--text-accent)', textDecoration: 'none' }}
+              >
                 {hover.person.link.replace(/^https?:\/\//, '')}
               </a>
             ) : (
@@ -321,7 +359,8 @@ function AvatarNode({ node, onHover, registerRef }) {
     const svg = e.currentTarget.ownerSVGElement;
     if (!svg) return;
     const pt = svg.createSVGPoint();
-    pt.x = e.clientX; pt.y = e.clientY;
+    pt.x = e.clientX;
+    pt.y = e.clientY;
     const ctm = svg.getScreenCTM();
     const p = ctm ? pt.matrixTransform(ctm.inverse()) : { x, y };
     onHover({ x: p.x, y: p.y, person: data });
@@ -330,7 +369,7 @@ function AvatarNode({ node, onHover, registerRef }) {
 
   return (
     <g
-      ref={el => registerRef && registerRef(node.id, el)}
+      ref={(el) => registerRef && registerRef(node.id, el)}
       transform={`translate(${x}, ${y})`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -352,7 +391,21 @@ function AvatarNode({ node, onHover, registerRef }) {
       <circle r={r + 2} fill="var(--brand-cyan-18a)" />
       {/* avatar core */}
       <foreignObject x={-r} y={-r} width={r * 2} height={r * 2} filter="url(#softShadow)">
-        <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: kind === 'dev' ? 'linear-gradient(135deg,#4fc3f7,#00bcd4)' : 'linear-gradient(135deg,#9e9e9e,#757575)' }}>
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            borderRadius: '50%',
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background:
+              kind === 'dev'
+                ? 'linear-gradient(135deg,#4fc3f7,#00bcd4)'
+                : 'linear-gradient(135deg,#9e9e9e,#757575)',
+          }}
+        >
           <AvatarVisual name={data.name} avatarUrl={data.avatarUrl} size={r * 2 - 2} />
         </div>
       </foreignObject>
@@ -377,7 +430,7 @@ function AvatarVisual({ name, avatarUrl, size = 36 }) {
   const initials = (name || '?')
     .split(/\s|-/)
     .filter(Boolean)
-    .map(s => s[0]?.toUpperCase())
+    .map((s) => s[0]?.toUpperCase())
     .slice(0, 2)
     .join('');
   return (
@@ -392,7 +445,7 @@ function AvatarVisual({ name, avatarUrl, size = 36 }) {
         color: 'var(--text-primary)',
         fontWeight: 800,
         fontSize: Math.max(10, Math.floor(size * 0.42)),
-        background: 'linear-gradient(135deg,#fff,#b2ebf2)'
+        background: 'linear-gradient(135deg,#fff,#b2ebf2)',
       }}
     >
       {initials}

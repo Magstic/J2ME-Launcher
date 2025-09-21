@@ -9,15 +9,15 @@ export const useDesktopState = () => {
   const [folders, setFolders] = useState([]);
   const [desktopItems, setDesktopItems] = useState([]);
   const [desktopItemsLoaded, setDesktopItemsLoaded] = useState(false);
-  const [desktopItemsSupported] = useState(() => !!(window?.electronAPI?.getDesktopItems));
-  
+  const [desktopItemsSupported] = useState(() => !!window?.electronAPI?.getDesktopItems);
+
   // 批次操作狀態
   const [bulkMutating, setBulkMutating] = useState(false);
-  const [bulkStatus, setBulkStatus] = useState({ 
-    active: false, 
-    total: 0, 
-    done: 0, 
-    label: '' 
+  const [bulkStatus, setBulkStatus] = useState({
+    active: false,
+    total: 0,
+    done: 0,
+    label: '',
   });
 
   // 事件刷新抑制與受控刷新
@@ -68,15 +68,22 @@ export const useDesktopState = () => {
     const remain = suppressUntilRef.current - now;
     if (remain > 0) {
       if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
-      refreshTimerRef.current = setTimeout(() => {
-        refreshTimerRef.current = null;
-        guardedRefresh();
-      }, Math.min(remain + 20, 200));
+      refreshTimerRef.current = setTimeout(
+        () => {
+          refreshTimerRef.current = null;
+          guardedRefresh();
+        },
+        Math.min(remain + 20, 200)
+      );
       return;
     }
     (async () => {
-      try { await loadFolders(); } catch (_) {}
-      try { await loadDesktopItems(); } catch (_) {}
+      try {
+        await loadFolders();
+      } catch (_) {}
+      try {
+        await loadDesktopItems();
+      } catch (_) {}
     })();
   }, [loadFolders, loadDesktopItems]);
 
@@ -88,35 +95,39 @@ export const useDesktopState = () => {
   }, [loadFolders, loadDesktopItems]);
 
   // 獲取未分類的遊戲（桌面上顯示的遊戲）
-  const getUncategorizedGames = useCallback((games, searchQuery) => {
-    // 在搜索狀態下，返回所有（已在上層過濾過的）遊戲，確保包含資料夾內的遊戲
-    if (searchQuery && searchQuery.trim()) {
+  const getUncategorizedGames = useCallback(
+    (games, searchQuery) => {
+      // 在搜索狀態下，返回所有（已在上層過濾過的）遊戲，確保包含資料夾內的遊戲
+      if (searchQuery && searchQuery.trim()) {
+        return games;
+      }
+      // 非搜索狀態
+      if (desktopItemsSupported) {
+        // 支援桌面 API：
+        // - 已載入：使用桌面資料（即使為空）
+        // - 未載入：避免錯誤顯示，暫時返回空陣列
+        return desktopItemsLoaded ? desktopItems.filter((item) => item.type === 'game') : [];
+      }
+      // 不支援桌面 API：返回所有遊戲（向後兼容）
       return games;
-    }
-    // 非搜索狀態
-    if (desktopItemsSupported) {
-      // 支援桌面 API：
-      // - 已載入：使用桌面資料（即使為空）
-      // - 未載入：避免錯誤顯示，暫時返回空陣列
-      return desktopItemsLoaded
-        ? desktopItems.filter(item => item.type === 'game')
-        : [];
-    }
-    // 不支援桌面 API：返回所有遊戲（向後兼容）
-    return games;
-  }, [desktopItems, desktopItemsLoaded, desktopItemsSupported]);
+    },
+    [desktopItems, desktopItemsLoaded, desktopItemsSupported]
+  );
 
   // 取得桌面用的統一 Items（含簇 + 遊戲）。
   // 搜索時返回傳入的遊戲（映射為 items: type='game'），非搜索時返回後端提供的 desktopItems（可能包含簇）。
-  const getDesktopGridItems = useCallback((games, searchQuery) => {
-    if (searchQuery && searchQuery.trim()) {
-      return Array.isArray(games) ? games.map(game => ({ ...game, type: 'game' })) : [];
-    }
-    if (desktopItemsSupported) {
-      return desktopItemsLoaded ? desktopItems : [];
-    }
-    return Array.isArray(games) ? games.map(game => ({ ...game, type: 'game' })) : [];
-  }, [desktopItems, desktopItemsLoaded, desktopItemsSupported]);
+  const getDesktopGridItems = useCallback(
+    (games, searchQuery) => {
+      if (searchQuery && searchQuery.trim()) {
+        return Array.isArray(games) ? games.map((game) => ({ ...game, type: 'game' })) : [];
+      }
+      if (desktopItemsSupported) {
+        return desktopItemsLoaded ? desktopItems : [];
+      }
+      return Array.isArray(games) ? games.map((game) => ({ ...game, type: 'game' })) : [];
+    },
+    [desktopItems, desktopItemsLoaded, desktopItemsSupported]
+  );
 
   // 獲取桌面上的資料夾
   // 桌面不顯示資料夾，始終返回空陣列
@@ -142,17 +153,17 @@ export const useDesktopState = () => {
     setBulkMutating,
     bulkStatus,
     setBulkStatus,
-    
+
     // 刷新控制
     suppressUntilRef,
     refreshTimerRef,
     guardedRefresh,
     handleRefresh,
-    
+
     // 資料載入
     loadFolders,
     loadDesktopItems,
-    
+
     // 資料獲取
     getUncategorizedGames,
     getDesktopGridItems,

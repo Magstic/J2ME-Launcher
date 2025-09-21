@@ -4,11 +4,11 @@ import { useEffect, useCallback } from 'react';
  * 應用級事件監聽器
  * 管理全局事件監聽，包括遊戲更新、自動掃描、跨窗口事件
  */
-export const useAppEventListeners = ({ 
-  setGames, 
-  openGameInfoDialog, 
+export const useAppEventListeners = ({
+  setGames,
+  openGameInfoDialog,
   openClusterDialog,
-  openGameLaunchDialog, 
+  openGameLaunchDialog,
   openDirectoryManager,
   openEmulatorConfig,
   openBackup,
@@ -17,42 +17,77 @@ export const useAppEventListeners = ({
   gameLaunchDialog,
   gameInfoDialog,
   isDirectoryManagerOpen,
-  isEmulatorConfigOpen 
+  isEmulatorConfigOpen,
 }) => {
-  
   // 監聽全局的遊戲資訊事件（供網格視圖使用）
   useEffect(() => {
     const handleOpenGameInfo = (event) => {
-      if (gameLaunchDialog.isOpen || gameInfoDialog.isOpen || isDirectoryManagerOpen || isEmulatorConfigOpen) return;
+      if (
+        gameLaunchDialog.isOpen ||
+        gameInfoDialog.isOpen ||
+        isDirectoryManagerOpen ||
+        isEmulatorConfigOpen
+      )
+        return;
       const game = event.detail;
       if (game) openGameInfoDialog(game);
     };
     window.addEventListener('open-game-info', handleOpenGameInfo);
     return () => window.removeEventListener('open-game-info', handleOpenGameInfo);
-  }, [gameLaunchDialog.isOpen, gameInfoDialog.isOpen, isDirectoryManagerOpen, isEmulatorConfigOpen, openGameInfoDialog]);
+  }, [
+    gameLaunchDialog.isOpen,
+    gameInfoDialog.isOpen,
+    isDirectoryManagerOpen,
+    isEmulatorConfigOpen,
+    openGameInfoDialog,
+  ]);
 
   // 監聽全局的簇詳情事件
   useEffect(() => {
     const handleOpenClusterDialog = (event) => {
-      if (gameLaunchDialog.isOpen || gameInfoDialog.isOpen || isDirectoryManagerOpen || isEmulatorConfigOpen) return;
+      if (
+        gameLaunchDialog.isOpen ||
+        gameInfoDialog.isOpen ||
+        isDirectoryManagerOpen ||
+        isEmulatorConfigOpen
+      )
+        return;
       const clusterId = event.detail;
       if (clusterId) openClusterDialog?.(clusterId);
     };
     window.addEventListener('open-cluster-dialog', handleOpenClusterDialog);
     return () => window.removeEventListener('open-cluster-dialog', handleOpenClusterDialog);
-  }, [gameLaunchDialog.isOpen, gameInfoDialog.isOpen, isDirectoryManagerOpen, isEmulatorConfigOpen, openClusterDialog]);
+  }, [
+    gameLaunchDialog.isOpen,
+    gameInfoDialog.isOpen,
+    isDirectoryManagerOpen,
+    isEmulatorConfigOpen,
+    openClusterDialog,
+  ]);
 
   // 監聽全局的遊戲配置事件（右鍵『配置』）
   useEffect(() => {
     const handleOpenGameConfig = (e) => {
       const game = e?.detail;
       // 若已有任一彈窗開啟，忽略
-      if (gameLaunchDialog.isOpen || gameInfoDialog.isOpen || isDirectoryManagerOpen || isEmulatorConfigOpen) return;
+      if (
+        gameLaunchDialog.isOpen ||
+        gameInfoDialog.isOpen ||
+        isDirectoryManagerOpen ||
+        isEmulatorConfigOpen
+      )
+        return;
       if (game) openGameLaunchDialog(game, true);
     };
     window.addEventListener('open-game-config', handleOpenGameConfig);
     return () => window.removeEventListener('open-game-config', handleOpenGameConfig);
-  }, [gameLaunchDialog.isOpen, gameInfoDialog.isOpen, isDirectoryManagerOpen, isEmulatorConfigOpen, openGameLaunchDialog]);
+  }, [
+    gameLaunchDialog.isOpen,
+    gameInfoDialog.isOpen,
+    isDirectoryManagerOpen,
+    isEmulatorConfigOpen,
+    openGameLaunchDialog,
+  ]);
 
   // 監聽歡迎指南觸發的事件
   useEffect(() => {
@@ -78,10 +113,13 @@ export const useAppEventListeners = ({
     window.addEventListener('open-backup-config', handleOpenBackupConfig);
     window.addEventListener('open-settings-theme', handleOpenSettingsTheme);
     window.addEventListener('theme-change', handleThemeChange);
-    
+
     // 從引導觸發的事件
     window.addEventListener('open-emulator-config-from-guide', handleOpenEmulatorConfigFromGuide);
-    window.addEventListener('open-directory-manager-from-guide', handleOpenDirectoryManagerFromGuide);
+    window.addEventListener(
+      'open-directory-manager-from-guide',
+      handleOpenDirectoryManagerFromGuide
+    );
     window.addEventListener('open-backup-config-from-guide', handleOpenBackupConfigFromGuide);
 
     return () => {
@@ -90,8 +128,14 @@ export const useAppEventListeners = ({
       window.removeEventListener('open-backup-config', handleOpenBackupConfig);
       window.removeEventListener('open-settings-theme', handleOpenSettingsTheme);
       window.removeEventListener('theme-change', handleThemeChange);
-      window.removeEventListener('open-emulator-config-from-guide', handleOpenEmulatorConfigFromGuide);
-      window.removeEventListener('open-directory-manager-from-guide', handleOpenDirectoryManagerFromGuide);
+      window.removeEventListener(
+        'open-emulator-config-from-guide',
+        handleOpenEmulatorConfigFromGuide
+      );
+      window.removeEventListener(
+        'open-directory-manager-from-guide',
+        handleOpenDirectoryManagerFromGuide
+      );
       window.removeEventListener('open-backup-config-from-guide', handleOpenBackupConfigFromGuide);
     };
   }, [openEmulatorConfig, openDirectoryManager, openBackup, openSettings, setTheme]);
@@ -111,9 +155,9 @@ export const useAppEventListeners = ({
     // 增量更新處理器：僅更新受影響的遊戲
     const handleIncrementalUpdate = (updateData) => {
       const { action, affectedGames } = updateData;
-      
+
       if (!affectedGames || affectedGames.length === 0) return;
-      
+
       // 對於資料夾成員關係變更，我們需要重新獲取完整遊戲列表
       // 因為遊戲的資料夾徽章狀態可能改變
       if (action === 'folder-membership-changed' || action === 'drag-drop-completed') {

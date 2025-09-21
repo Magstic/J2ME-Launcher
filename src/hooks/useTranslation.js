@@ -6,13 +6,13 @@ import { useI18n } from '../contexts/I18nContext';
  */
 export const useTranslation = () => {
   const { t, currentLanguage, changeLanguage, isLoading, supportedLanguages } = useI18n();
-  
+
   return {
     t,
     language: currentLanguage,
     changeLanguage,
     isLoading,
-    supportedLanguages
+    supportedLanguages,
   };
 };
 

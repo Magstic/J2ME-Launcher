@@ -5,7 +5,7 @@ const {
   getFolderById: sqlGetFolderById,
   getGamesByFolder: sqlGetGamesByFolder,
   getUncategorizedGames: sqlGetUncategorizedGames,
-  getGamesInAnyFolder: sqlGetGamesInAnyFolder
+  getGamesInAnyFolder: sqlGetGamesInAnyFolder,
 } = require('../sql/folders-read');
 const {
   upsertFolder: sqlUpsertFolder,
@@ -13,7 +13,7 @@ const {
   addGameToFolder: sqlAddGameToFolder,
   addGamesToFolderBatch: sqlAddGamesToFolderBatch,
   removeGameFromFolder: sqlRemoveGameFromFolder,
-  removeGamesFromFolderBatch: sqlRemoveGamesFromFolderBatch
+  removeGamesFromFolderBatch: sqlRemoveGamesFromFolderBatch,
 } = require('../sql/folders-write');
 const { batchAddGamesToFolder } = require('../utils/batch-operations');
 const { getDB } = require('../db');
@@ -24,7 +24,8 @@ const { getStoreBridge } = require('../store-bridge');
 function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl }) {
   const path = require('path');
   const pathSep = process.platform === 'win32' ? '\\' : '/';
-  const looksLikePath = (s) => typeof s === 'string' && (s.includes('\\') || s.includes('/') || /\.(jar|jad)$/i.test(s));
+  const looksLikePath = (s) =>
+    typeof s === 'string' && (s.includes('\\') || s.includes('/') || /\.(jar|jad)$/i.test(s));
   const normalizePath = (p) => {
     if (!p || typeof p !== 'string') return p;
     const n = path.normalize(p);
@@ -49,12 +50,18 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
           candidate = normalizePath(val);
         }
       }
-      const alt = process.platform === 'win32' ? candidate.replace(/\\/g, '/') : candidate.replace(/\//g, '\\');
+      const alt =
+        process.platform === 'win32'
+          ? candidate.replace(/\\/g, '/')
+          : candidate.replace(/\//g, '\\');
       return { normalized: candidate, alt };
     });
     // 構建唯一候選集合
     const allCandidates = new Set();
-    perItem.forEach(({ normalized, alt }) => { allCandidates.add(normalized); allCandidates.add(alt); });
+    perItem.forEach(({ normalized, alt }) => {
+      allCandidates.add(normalized);
+      allCandidates.add(alt);
+    });
     // 單次查詢資料庫：哪些候選實際存在於 games.filePath 中
     let existing = new Set();
     try {
@@ -63,12 +70,16 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
       if (arr.length > 0) {
         // 動態 placeholders
         const placeholders = arr.map(() => '?').join(',');
-        const rows = db.prepare(`SELECT filePath FROM games WHERE filePath IN (${placeholders})`).all(...arr);
-        existing = new Set(rows.map(r => r.filePath));
+        const rows = db
+          .prepare(`SELECT filePath FROM games WHERE filePath IN (${placeholders})`)
+          .all(...arr);
+        existing = new Set(rows.map((r) => r.filePath));
       }
     } catch (_) {}
     // 根據存在性決定每個結果：優先 normalized，再退回 alt，最後 normalized
-    return perItem.map(({ normalized, alt }) => existing.has(normalized) ? normalized : (existing.has(alt) ? alt : normalized));
+    return perItem.map(({ normalized, alt }) =>
+      existing.has(normalized) ? normalized : existing.has(alt) ? alt : normalized
+    );
   };
   const resolveFilePath = (gameIdOrPath) => {
     // If it's a path-like string, normalize and return
@@ -77,8 +88,13 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
       // Probe DB to find canonical stored path (handles slash/backslash mismatch)
       try {
         const db = getDB();
-        const alt = process.platform === 'win32' ? normalized.replace(/\\/g, '/') : normalized.replace(/\//g, '\\');
-        const row = db.prepare('SELECT filePath FROM games WHERE filePath IN (?, ?) LIMIT 1').get(normalized, alt);
+        const alt =
+          process.platform === 'win32'
+            ? normalized.replace(/\\/g, '/')
+            : normalized.replace(/\//g, '\\');
+        const row = db
+          .prepare('SELECT filePath FROM games WHERE filePath IN (?, ?) LIMIT 1')
+          .get(normalized, alt);
         if (row && row.filePath) return row.filePath;
       } catch (_) {}
       return normalized;
@@ -90,8 +106,13 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
         const normalized = normalizePath(g.filePath);
         try {
           const db = getDB();
-          const alt = process.platform === 'win32' ? normalized.replace(/\\/g, '/') : normalized.replace(/\//g, '\\');
-          const row = db.prepare('SELECT filePath FROM games WHERE filePath IN (?, ?) LIMIT 1').get(normalized, alt);
+          const alt =
+            process.platform === 'win32'
+              ? normalized.replace(/\\/g, '/')
+              : normalized.replace(/\//g, '\\');
+          const row = db
+            .prepare('SELECT filePath FROM games WHERE filePath IN (?, ?) LIMIT 1')
+            .get(normalized, alt);
           if (row && row.filePath) return row.filePath;
         } catch (_) {}
         return normalized;
@@ -113,17 +134,32 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
       const arr = Array.isArray(gameIdsOrPaths) ? gameIdsOrPaths : [];
       if (!folderId || arr.length === 0) return { success: true, note: 'empty' };
       const filePaths = resolveManyFilePaths(arr);
-      try { console.log('[folders:add-batch] folderId=', folderId, 'count=', filePaths.length, 'sample=', filePaths.slice(0, 5)); } catch {}
+      try {
+        console.log(
+          '[folders:add-batch] folderId=',
+          folderId,
+          'count=',
+          filePaths.length,
+          'sample=',
+          filePaths.slice(0, 5)
+        );
+      } catch {}
       sqlAddGamesToFolderBatch(folderId, filePaths, {});
       // 廣播控制：若非 quiet，才進行一次廣播
       if (!options?.quiet) {
-        try { 
-          const updatedFolder = sqlGetFolderById(folderId); 
+        try {
+          const updatedFolder = sqlGetFolderById(folderId);
           if (updatedFolder) {
             const { getDB } = require('../db');
             const db = getDB();
-            const rawCnt = db.prepare(`SELECT COUNT(1) as c FROM folder_games WHERE folderId=?`).get(folderId)?.c || 0;
-            console.log('[folders:add-batch] folder counts after add:', { id: folderId, raw: rawCnt, visible: updatedFolder.gameCount });
+            const rawCnt =
+              db.prepare(`SELECT COUNT(1) as c FROM folder_games WHERE folderId=?`).get(folderId)
+                ?.c || 0;
+            console.log('[folders:add-batch] folder counts after add:', {
+              id: folderId,
+              raw: rawCnt,
+              visible: updatedFolder.gameCount,
+            });
             broadcastToAll('folder-updated', updatedFolder);
           }
         } catch (_) {}
@@ -148,7 +184,10 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
   ipcMain.handle('emit-folder-batch-updates', (event, folderId) => {
     try {
       if (folderId) {
-        try { const updatedFolder = sqlGetFolderById(folderId); if (updatedFolder) broadcastToAll('folder-updated', updatedFolder); } catch (_) {}
+        try {
+          const updatedFolder = sqlGetFolderById(folderId);
+          if (updatedFolder) broadcastToAll('folder-updated', updatedFolder);
+        } catch (_) {}
       }
       try {
         const { getAllGamesFromSql } = require('../sql/read');
@@ -244,17 +283,24 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
       let hideSet = new Set();
       try {
         const db = getDB();
-        const clusterIds = clusters.map(c => c.id);
+        const clusterIds = clusters.map((c) => c.id);
         if (clusterIds.length > 0) {
           const placeholders = clusterIds.map(() => '?').join(',');
-          const rows = db.prepare(`SELECT DISTINCT filePath FROM cluster_games WHERE clusterId IN (${placeholders})`).all(...clusterIds);
-          hideSet = new Set(rows.map(r => r.filePath));
+          const rows = db
+            .prepare(
+              `SELECT DISTINCT filePath FROM cluster_games WHERE clusterId IN (${placeholders})`
+            )
+            .all(...clusterIds);
+          hideSet = new Set(rows.map((r) => r.filePath));
         }
       } catch (_) {}
 
-      const filteredGames = games.filter(g => !hideSet.has(g.filePath));
+      const filteredGames = games.filter((g) => !hideSet.has(g.filePath));
       const gamesWithUrl = addUrlToGames(filteredGames);
-      const clustersWithUrl = clusters.map(c => ({ ...c, iconUrl: toIconUrl(c.effectiveIconPath || null) }));
+      const clustersWithUrl = clusters.map((c) => ({
+        ...c,
+        iconUrl: toIconUrl(c.effectiveIconPath || null),
+      }));
       return { folder, games: gamesWithUrl, clusters: clustersWithUrl };
     } catch (error) {
       console.error('獲取資料夾內容失敗:', error);
@@ -266,16 +312,31 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
   ipcMain.handle('add-game-to-folder', (event, gameId, folderId) => {
     try {
       const filePath = resolveFilePath(gameId);
-      try { console.log('[folders:add-one] folderId=', folderId, 'gameId=', gameId, 'resolvedPath=', filePath); } catch {}
+      try {
+        console.log(
+          '[folders:add-one] folderId=',
+          folderId,
+          'gameId=',
+          gameId,
+          'resolvedPath=',
+          filePath
+        );
+      } catch {}
       sqlAddGameToFolder(folderId, filePath);
       broadcastToAll('game-folder-changed', { gameId, folderId, action: 'add' });
-      try { 
-        const updatedFolder = sqlGetFolderById(folderId); 
+      try {
+        const updatedFolder = sqlGetFolderById(folderId);
         if (updatedFolder) {
           const db = getDB();
-          const rawCnt = db.prepare(`SELECT COUNT(1) as c FROM folder_games WHERE folderId=?`).get(folderId)?.c || 0;
-          console.log('[folders:add-one] folder counts after add:', { id: folderId, raw: rawCnt, visible: updatedFolder.gameCount });
-          broadcastToAll('folder-updated', updatedFolder); 
+          const rawCnt =
+            db.prepare(`SELECT COUNT(1) as c FROM folder_games WHERE folderId=?`).get(folderId)
+              ?.c || 0;
+          console.log('[folders:add-one] folder counts after add:', {
+            id: folderId,
+            raw: rawCnt,
+            visible: updatedFolder.gameCount,
+          });
+          broadcastToAll('folder-updated', updatedFolder);
         }
       } catch (_) {}
       // 異步廣播最新遊戲列表，避免阻塞 UI
@@ -299,7 +360,10 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
       const filePath = resolveFilePath(gameId);
       sqlRemoveGameFromFolder(folderId, filePath);
       broadcastToAll('game-folder-changed', { gameId, folderId, action: 'remove' });
-      try { const updatedFolder = sqlGetFolderById(folderId); if (updatedFolder) broadcastToAll('folder-updated', updatedFolder); } catch (_) {}
+      try {
+        const updatedFolder = sqlGetFolderById(folderId);
+        if (updatedFolder) broadcastToAll('folder-updated', updatedFolder);
+      } catch (_) {}
       // 異步廣播最新遊戲列表，避免阻塞 UI
       setImmediate(() => {
         try {
@@ -320,8 +384,16 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
     try {
       const filePath = resolveFilePath(gameId);
       // SQL move: remove then add
-      try { sqlRemoveGameFromFolder(fromFolderId, filePath); } catch (e) { console.warn('[SQL write] move remove failed:', e.message); }
-      try { sqlAddGameToFolder(toFolderId, filePath); } catch (e) { console.warn('[SQL write] move add failed:', e.message); }
+      try {
+        sqlRemoveGameFromFolder(fromFolderId, filePath);
+      } catch (e) {
+        console.warn('[SQL write] move remove failed:', e.message);
+      }
+      try {
+        sqlAddGameToFolder(toFolderId, filePath);
+      } catch (e) {
+        console.warn('[SQL write] move add failed:', e.message);
+      }
       broadcastToAll('game-folder-changed', { gameId, fromFolderId, toFolderId, action: 'move' });
       try {
         const fromFolder = sqlGetFolderById(fromFolderId);
@@ -381,26 +453,26 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
     try {
       const resolvedPaths = resolveManyFilePaths(Array.isArray(filePaths) ? filePaths : []);
       if (resolvedPaths.length === 0) return { success: true, count: 0 };
-      
+
       sqlRemoveGamesFromFolderBatch(folderId, resolvedPaths);
-      
+
       // 更新快取狀態
       const cache = getGameStateCache();
       const bridge = getStoreBridge();
       const changes = cache.updateFolderMembership(resolvedPaths, folderId, 'remove');
-      
+
       // Use unified store bridge instead of direct broadcast
       bridge.onCacheUpdate('folder-membership-changed', {
         filePaths: resolvedPaths,
         folderId,
-        operation: 'remove'
+        operation: 'remove',
       });
-      
-      try { 
-        const updatedFolder = sqlGetFolderById(folderId); 
-        if (updatedFolder) broadcastToAll('folder-updated', updatedFolder); 
+
+      try {
+        const updatedFolder = sqlGetFolderById(folderId);
+        if (updatedFolder) broadcastToAll('folder-updated', updatedFolder);
       } catch (_) {}
-      
+
       // 立即廣播完整遊戲列表更新，確保桌面同步
       setImmediate(() => {
         try {
@@ -409,7 +481,7 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
           broadcastToAll('games-updated', addUrlToGames(sqlGames));
         } catch (_) {}
       });
-      
+
       return { success: true, count: resolvedPaths.length };
     } catch (error) {
       console.error('批次移除遊戲失敗:', error);
@@ -421,14 +493,20 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
   ipcMain.handle('batch-add-games-to-folder', async (event, filePaths, folderId, options = {}) => {
     try {
       // 確保參數可序列化
-      const cleanFilePaths = Array.isArray(filePaths) ? filePaths.filter(fp => typeof fp === 'string') : [];
+      const cleanFilePaths = Array.isArray(filePaths)
+        ? filePaths.filter((fp) => typeof fp === 'string')
+        : [];
       const cleanFolderId = typeof folderId === 'string' ? folderId : String(folderId);
       const cleanOptions = {};
-      
+
       // 只保留可序列化的選項
       if (options && typeof options === 'object') {
         for (const [key, value] of Object.entries(options)) {
-          if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+          if (
+            typeof value === 'string' ||
+            typeof value === 'number' ||
+            typeof value === 'boolean'
+          ) {
             cleanOptions[key] = value;
           }
         }
@@ -436,12 +514,12 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
 
       // 定義批次處理函數
       const addGameToFolder = (filePath, folderId) => {
-        try { 
-          sqlAddGameToFolder(folderId, resolveFilePath(filePath), {}); 
-          return { success: true }; 
-        } catch (e) { 
-          console.warn('[SQL write] addGameToFolder failed:', e.message); 
-          throw e; 
+        try {
+          sqlAddGameToFolder(folderId, resolveFilePath(filePath), {});
+          return { success: true };
+        } catch (e) {
+          console.warn('[SQL write] addGameToFolder failed:', e.message);
+          throw e;
         }
       };
 
@@ -460,9 +538,9 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
       const result = await batchAddGamesToFolder(cleanFilePaths, cleanFolderId, {
         ...cleanOptions,
         addGameToFolder,
-        addGamesToFolderBatch
+        addGamesToFolderBatch,
       });
-      
+
       // 異步廣播更新，避免阻塞 UI
       setImmediate(() => {
         try {
@@ -471,14 +549,18 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
           broadcastToAll('games-updated', addUrlToGames(sqlGames));
         } catch (_) {}
       });
-      
-      try { 
-        const updatedFolder = sqlGetFolderById(folderId); 
-        if (updatedFolder) broadcastToAll('folder-updated', updatedFolder); 
+
+      try {
+        const updatedFolder = sqlGetFolderById(folderId);
+        if (updatedFolder) broadcastToAll('folder-updated', updatedFolder);
       } catch (_) {}
-      
-      broadcastToAll('game-folder-changed', { folderId, action: 'batch-add', count: result.processed });
-      
+
+      broadcastToAll('game-folder-changed', {
+        folderId,
+        action: 'batch-add',
+        count: result.processed,
+      });
+
       return result;
     } catch (error) {
       console.error('批次加入遊戲到資料夾失敗:', error);

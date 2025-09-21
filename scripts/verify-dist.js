@@ -43,7 +43,9 @@ try {
 // Warn (do not fail) if BrowserWindow icon path is likely missing
 const publicIcon = path.join(root, 'public', 'icon.png');
 if (!fs.existsSync(publicIcon)) {
-  console.warn('[verify-dist] Warning: public/icon.png not found. Window icon may fall back to default.');
+  console.warn(
+    '[verify-dist] Warning: public/icon.png not found. Window icon may fall back to default.'
+  );
 }
 
 if (!ok) {

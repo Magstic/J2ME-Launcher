@@ -30,7 +30,7 @@ function stringifyTSV(rows, withHeader = true) {
   const out = [];
   if (withHeader) out.push('path\tmd5\tsize\tmtime');
   for (const r of rows || []) {
-    out.push(`${toPosix(r.path)}\t${r.md5 || ''}\t${Number(r.size||0)}\t${Number(r.mtime||0)}`);
+    out.push(`${toPosix(r.path)}\t${r.md5 || ''}\t${Number(r.size || 0)}\t${Number(r.mtime || 0)}`);
   }
   return out.join(os.EOL);
 }

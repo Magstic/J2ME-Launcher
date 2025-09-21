@@ -24,9 +24,14 @@ export default function useOutsideClick(ref, onOutside, options = {}) {
         onOutside && onOutside();
       } catch (_) {}
     };
-    events.forEach(evt => document.addEventListener(evt, handler, { capture }));
+    events.forEach((evt) => document.addEventListener(evt, handler, { capture }));
     return () => {
-      events.forEach(evt => document.removeEventListener(evt, handler, { capture }));
+      events.forEach((evt) => document.removeEventListener(evt, handler, { capture }));
     };
-  }, [ref, onOutside, capture, Array.isArray(options.events) ? options.events.join(',') : 'pointerdown']);
+  }, [
+    ref,
+    onOutside,
+    capture,
+    Array.isArray(options.events) ? options.events.join(',') : 'pointerdown',
+  ]);
 }

@@ -11,14 +11,14 @@ export const useFabMenu = () => {
 
   const openFab = useCallback(() => {
     // 取消關閉定時，避免即將關閉時又打開
-    if (fabHideTimer.current) { 
-      clearTimeout(fabHideTimer.current); 
-      fabHideTimer.current = null; 
+    if (fabHideTimer.current) {
+      clearTimeout(fabHideTimer.current);
+      fabHideTimer.current = null;
     }
     // 若已經開啟，立即保持開啟
-    if (fabOpen) { 
-      setFabOpen(true); 
-      return; 
+    if (fabOpen) {
+      setFabOpen(true);
+      return;
     }
     // 引入微小延時，避免穿越卡片邊界時造成生硬的進出
     if (!fabOpenTimer.current) {
@@ -31,9 +31,9 @@ export const useFabMenu = () => {
 
   const scheduleCloseFab = useCallback(() => {
     if (fabHideTimer.current) clearTimeout(fabHideTimer.current);
-    if (fabOpenTimer.current) { 
-      clearTimeout(fabOpenTimer.current); 
-      fabOpenTimer.current = null; 
+    if (fabOpenTimer.current) {
+      clearTimeout(fabOpenTimer.current);
+      fabOpenTimer.current = null;
     }
     fabHideTimer.current = setTimeout(() => {
       setFabOpen(false);
@@ -42,19 +42,22 @@ export const useFabMenu = () => {
   }, []);
 
   const toggleFab = useCallback(() => {
-    setFabOpen(v => !v);
+    setFabOpen((v) => !v);
   }, []);
 
   // 清理定時器
-  useEffect(() => () => {
-    if (fabHideTimer.current) clearTimeout(fabHideTimer.current);
-    if (fabOpenTimer.current) clearTimeout(fabOpenTimer.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (fabHideTimer.current) clearTimeout(fabHideTimer.current);
+      if (fabOpenTimer.current) clearTimeout(fabOpenTimer.current);
+    },
+    []
+  );
 
   return {
     fabOpen,
     openFab,
     scheduleCloseFab,
-    toggleFab
+    toggleFab,
   };
 };

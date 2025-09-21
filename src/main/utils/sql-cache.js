@@ -17,13 +17,18 @@ class SqlCache {
 
     // 常用查詢的 prepared statements
     const queries = {
-      getAllGames: 'SELECT * FROM games g WHERE EXISTS (SELECT 1 FROM directories d WHERE d.enabled = 1 AND g.filePath LIKE (d.path || \'%\')) ORDER BY gameName',
-      getGamesByFolder: 'SELECT g.* FROM folder_games fg JOIN games g ON g.filePath = fg.filePath COLLATE NOCASE WHERE fg.folderId = ? AND EXISTS (SELECT 1 FROM directories d WHERE d.enabled = 1 AND g.filePath LIKE (d.path || \'%\')) ORDER BY g.gameName',
-      getFolderGameCount: 'SELECT COUNT(1) as c FROM folder_games fg JOIN games g ON g.filePath = fg.filePath COLLATE NOCASE WHERE fg.folderId = ? AND EXISTS (SELECT 1 FROM directories d WHERE d.enabled = 1 AND g.filePath LIKE (d.path || \'%\'))',
-      getUncategorizedGames: 'SELECT g.* FROM games g WHERE EXISTS (SELECT 1 FROM directories d WHERE d.enabled = 1 AND g.filePath LIKE (d.path || \'%\')) AND NOT EXISTS (SELECT 1 FROM folder_games fg WHERE fg.filePath = g.filePath COLLATE NOCASE) ORDER BY g.gameName',
+      getAllGames:
+        "SELECT * FROM games g WHERE EXISTS (SELECT 1 FROM directories d WHERE d.enabled = 1 AND g.filePath LIKE (d.path || '%')) ORDER BY gameName",
+      getGamesByFolder:
+        "SELECT g.* FROM folder_games fg JOIN games g ON g.filePath = fg.filePath COLLATE NOCASE WHERE fg.folderId = ? AND EXISTS (SELECT 1 FROM directories d WHERE d.enabled = 1 AND g.filePath LIKE (d.path || '%')) ORDER BY g.gameName",
+      getFolderGameCount:
+        "SELECT COUNT(1) as c FROM folder_games fg JOIN games g ON g.filePath = fg.filePath COLLATE NOCASE WHERE fg.folderId = ? AND EXISTS (SELECT 1 FROM directories d WHERE d.enabled = 1 AND g.filePath LIKE (d.path || '%'))",
+      getUncategorizedGames:
+        "SELECT g.* FROM games g WHERE EXISTS (SELECT 1 FROM directories d WHERE d.enabled = 1 AND g.filePath LIKE (d.path || '%')) AND NOT EXISTS (SELECT 1 FROM folder_games fg WHERE fg.filePath = g.filePath COLLATE NOCASE) ORDER BY g.gameName",
       getFolderMembership: 'SELECT folderId, filePath FROM folder_games',
-      insertFolderGame: 'INSERT OR REPLACE INTO folder_games (folderId, filePath, addedTime, customName, notes) VALUES (?, ?, ?, ?, ?)',
-      deleteFolderGame: 'DELETE FROM folder_games WHERE folderId=? AND filePath=?'
+      insertFolderGame:
+        'INSERT OR REPLACE INTO folder_games (folderId, filePath, addedTime, customName, notes) VALUES (?, ?, ?, ?, ?)',
+      deleteFolderGame: 'DELETE FROM folder_games WHERE folderId=? AND filePath=?',
     };
 
     for (const [name, sql] of Object.entries(queries)) {
@@ -39,7 +44,7 @@ class SqlCache {
   getAllGames() {
     const stmt = this.statements.get('getAllGames');
     if (!stmt) return [];
-    
+
     try {
       return stmt.all();
     } catch (e) {
@@ -52,7 +57,7 @@ class SqlCache {
   getGamesByFolder(folderId) {
     const stmt = this.statements.get('getGamesByFolder');
     if (!stmt) return [];
-    
+
     try {
       return stmt.all(folderId);
     } catch (e) {
@@ -65,7 +70,7 @@ class SqlCache {
   getFolderGameCount(folderId) {
     const stmt = this.statements.get('getFolderGameCount');
     if (!stmt) return 0;
-    
+
     try {
       const row = stmt.get(folderId);
       return row ? row.c : 0;
@@ -79,7 +84,7 @@ class SqlCache {
   getUncategorizedGames() {
     const stmt = this.statements.get('getUncategorizedGames');
     if (!stmt) return [];
-    
+
     try {
       return stmt.all();
     } catch (e) {
@@ -92,7 +97,7 @@ class SqlCache {
   getFolderMembership() {
     const stmt = this.statements.get('getFolderMembership');
     if (!stmt) return [];
-    
+
     try {
       return stmt.all();
     } catch (e) {
@@ -110,7 +115,13 @@ class SqlCache {
       const tx = this.db.transaction((paths) => {
         for (const fp of paths) {
           if (!fp) continue;
-          stmt.run(folderId, fp, payload.addedTime || null, payload.customName || null, payload.notes || null);
+          stmt.run(
+            folderId,
+            fp,
+            payload.addedTime || null,
+            payload.customName || null,
+            payload.notes || null
+          );
         }
       });
       tx(filePaths);

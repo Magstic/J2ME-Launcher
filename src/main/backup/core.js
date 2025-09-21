@@ -38,17 +38,21 @@ function stableStringify(obj) {
 }
 
 function statOrNull(p) {
-  try { return fs.statSync(p); } catch { return null; }
+  try {
+    return fs.statSync(p);
+  } catch {
+    return null;
+  }
 }
 
 function resolveItems(app, groups) {
   const userRoot = app.getPath('userData'); // e.g. %APPDATA%/OurApp
   const roamingRoot = path.dirname(userRoot); // e.g. %APPDATA%
   const groupSet = new Set(groups || []);
-  const selectedGroups = BACKUP_SPEC.groups.filter(g => groupSet.has(g.key));
+  const selectedGroups = BACKUP_SPEC.groups.filter((g) => groupSet.has(g.key));
   const items = [];
   for (const g of selectedGroups) {
-    for (const rel of (g.items || [])) {
+    for (const rel of g.items || []) {
       // Probe both under userData and Roaming; pick the most recently modified if both exist
       const candUser = path.join(userRoot, rel);
       const candRoam = path.join(roamingRoot, rel);
@@ -58,20 +62,40 @@ function resolveItems(app, groups) {
       let chosenSt = null;
       if (stUser && stUser.isFile() && stRoam && stRoam.isFile()) {
         // Both exist: pick newer mtime
-        const newer = (stUser.mtimeMs || 0) >= (stRoam.mtimeMs || 0) ? { abs: candUser, st: stUser, where: 'userData' } : { abs: candRoam, st: stRoam, where: 'roaming' };
-        chosenAbs = newer.abs; chosenSt = newer.st;
-        try { console.log('[backup:core] duplicate item exists in both locations; picking newer', { rel, picked: newer.where }); } catch (_) {}
+        const newer =
+          (stUser.mtimeMs || 0) >= (stRoam.mtimeMs || 0)
+            ? { abs: candUser, st: stUser, where: 'userData' }
+            : { abs: candRoam, st: stRoam, where: 'roaming' };
+        chosenAbs = newer.abs;
+        chosenSt = newer.st;
+        try {
+          console.log('[backup:core] duplicate item exists in both locations; picking newer', {
+            rel,
+            picked: newer.where,
+          });
+        } catch (_) {}
       } else if (stUser && stUser.isFile()) {
-        chosenAbs = candUser; chosenSt = stUser;
+        chosenAbs = candUser;
+        chosenSt = stUser;
       } else if (stRoam && stRoam.isFile()) {
-        chosenAbs = candRoam; chosenSt = stRoam;
+        chosenAbs = candRoam;
+        chosenSt = stRoam;
       }
       if (!chosenAbs) {
-        try { console.log('[backup:core] missing item', { rel, tried: [candUser, candRoam] }); } catch (_) {}
+        try {
+          console.log('[backup:core] missing item', { rel, tried: [candUser, candRoam] });
+        } catch (_) {}
         continue; // skip missing/non-regular
       }
-      try { console.log('[backup:core] add item', { rel, abs: chosenAbs }); } catch (_) {}
-      items.push({ rel: toPosix(rel), abs: chosenAbs, size: chosenSt.size, mtime: Math.floor(chosenSt.mtimeMs || 0) });
+      try {
+        console.log('[backup:core] add item', { rel, abs: chosenAbs });
+      } catch (_) {}
+      items.push({
+        rel: toPosix(rel),
+        abs: chosenAbs,
+        size: chosenSt.size,
+        mtime: Math.floor(chosenSt.mtimeMs || 0),
+      });
     }
   }
   // Dynamically resolve emulator-dependent paths when requested
@@ -89,13 +113,19 @@ function resolveItems(app, groups) {
         try {
           const stBase = statOrNull(baseDir);
           if (!stBase || !stBase.isDirectory()) return;
-        } catch (_) { return; }
+        } catch (_) {
+          return;
+        }
         const stack = [''];
         while (stack.length) {
           const sub = stack.pop();
           const dir = path.join(baseDir, sub);
           let ents = [];
-          try { ents = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { continue; }
+          try {
+            ents = fs.readdirSync(dir, { withFileTypes: true });
+          } catch (_) {
+            continue;
+          }
           for (const ent of ents) {
             const relChild = sub ? path.join(sub, ent.name) : ent.name;
             const absChild = path.join(baseDir, relChild);
@@ -128,15 +158,27 @@ function resolveItems(app, groups) {
       const lr = emus.libretro || {};
       const raBase = lr.retroarchPath ? path.dirname(lr.retroarchPath) : '';
       if (raBase) {
-        if (needRms) walk(path.join(raBase, 'saves', 'FreeJ2ME-Plus', 'freej2me', 'rms'), 'external/libretro/freej2me/rms');
-        if (needEmuCfg) walk(path.join(raBase, 'saves', 'FreeJ2ME-Plus', 'freej2me', 'config'), 'external/libretro/freej2me/config');
+        if (needRms)
+          walk(
+            path.join(raBase, 'saves', 'FreeJ2ME-Plus', 'freej2me', 'rms'),
+            'external/libretro/freej2me/rms'
+          );
+        if (needEmuCfg)
+          walk(
+            path.join(raBase, 'saves', 'FreeJ2ME-Plus', 'freej2me', 'config'),
+            'external/libretro/freej2me/config'
+          );
       }
       for (const it of dyn) {
-        try { console.log('[backup:core] add dynamic', { rel: it.rel, abs: it.abs }); } catch (_) {}
+        try {
+          console.log('[backup:core] add dynamic', { rel: it.rel, abs: it.abs });
+        } catch (_) {}
         items.push(it);
       }
     } catch (e) {
-      try { console.log('[backup:core] dynamic resolve error', { error: e && e.message }); } catch (_) {}
+      try {
+        console.log('[backup:core] dynamic resolve error', { error: e && e.message });
+      } catch (_) {}
     }
   }
   return items;
@@ -191,19 +233,33 @@ function diff(fullMode, localRows, remoteRows) {
   return { upload, del };
 }
 
-async function runBackup({ app, mode, providerName, providerParams, groups, ipcSender, onProgress }) {
+async function runBackup({
+  app,
+  mode,
+  providerName,
+  providerParams,
+  groups,
+  ipcSender,
+  onProgress,
+}) {
   // Optional place for future DB compaction; currently a no-op to avoid coupling
 
   // Load provider (S3 only for now)
   let provider;
   if (providerName === 's3') {
-    try { console.log('[backup:core] init provider', { providerName, groups, mode }); } catch (_) {}
+    try {
+      console.log('[backup:core] init provider', { providerName, groups, mode });
+    } catch (_) {}
     provider = require('./providers/s3').createS3Provider(providerParams);
   } else if (providerName === 'dropbox') {
-    try { console.log('[backup:core] init provider', { providerName, groups, mode }); } catch (_) {}
+    try {
+      console.log('[backup:core] init provider', { providerName, groups, mode });
+    } catch (_) {}
     provider = require('./providers/dropbox').createDropboxProvider(providerParams);
   } else if (providerName === 'webdav') {
-    try { console.log('[backup:core] init provider', { providerName, groups, mode }); } catch (_) {}
+    try {
+      console.log('[backup:core] init provider', { providerName, groups, mode });
+    } catch (_) {}
     provider = require('./providers/webdav').createWebdavProvider(providerParams);
   } else {
     throw new Error(`Unsupported provider: ${providerName}`);
@@ -211,7 +267,9 @@ async function runBackup({ app, mode, providerName, providerParams, groups, ipcS
 
   const fullMode = mode === 'full';
   let items = resolveItems(app, groups);
-  try { console.log('[backup:core] resolved items', { count: items.length }); } catch (_) {}
+  try {
+    console.log('[backup:core] resolved items', { count: items.length });
+  } catch (_) {}
 
   // If database group selected, create a consistent snapshot data.backup.db and replace DB file list
   try {
@@ -220,7 +278,9 @@ async function runBackup({ app, mode, providerName, providerParams, groups, ipcS
       const backupRel = 'j2me-launcher/data.backup.db';
       const backupAbs = path.join(roamingRoot, 'j2me-launcher', 'data.backup.db');
       fse.ensureDirSync(path.dirname(backupAbs));
-      try { console.log('[backup:core] sqlite backup start', { to: backupAbs }); } catch (_) {}
+      try {
+        console.log('[backup:core] sqlite backup start', { to: backupAbs });
+      } catch (_) {}
       const { getDB } = require('../db');
       const db = getDB();
       // Perform SQLite online backup to a single consistent file
@@ -228,15 +288,26 @@ async function runBackup({ app, mode, providerName, providerParams, groups, ipcS
       const st = statOrNull(backupAbs);
       if (st && st.isFile()) {
         // Filter out original trio and only keep the snapshot
-        items = items.filter(it => !/j2me-launcher\/data\.db(\-shm|\-wal)?$/.test(it.rel));
-        items.push({ rel: backupRel, abs: backupAbs, size: st.size, mtime: Math.floor(st.mtimeMs || 0) });
-        try { console.log('[backup:core] sqlite backup done', { size: st.size }); } catch (_) {}
+        items = items.filter((it) => !/j2me-launcher\/data\.db(\-shm|\-wal)?$/.test(it.rel));
+        items.push({
+          rel: backupRel,
+          abs: backupAbs,
+          size: st.size,
+          mtime: Math.floor(st.mtimeMs || 0),
+        });
+        try {
+          console.log('[backup:core] sqlite backup done', { size: st.size });
+        } catch (_) {}
       } else {
-        try { console.log('[backup:core] sqlite backup missing after backup'); } catch (_) {}
+        try {
+          console.log('[backup:core] sqlite backup missing after backup');
+        } catch (_) {}
       }
     }
   } catch (e) {
-    try { console.log('[backup:core] sqlite backup error', { error: e && e.message }); } catch (_) {}
+    try {
+      console.log('[backup:core] sqlite backup error', { error: e && e.message });
+    } catch (_) {}
   }
 
   // Map rel -> absolute path for upload phase
@@ -247,22 +318,30 @@ async function runBackup({ app, mode, providerName, providerParams, groups, ipcS
   const remoteIndexText = await provider.readText('index.tsv');
   const remoteRows = remoteIndexText ? parseTSV(remoteIndexText) : [];
   const remoteMap = rowsToMap(remoteRows);
-  try { console.log('[backup:core] remote index', { count: remoteRows.length }); } catch (_) {}
+  try {
+    console.log('[backup:core] remote index', { count: remoteRows.length });
+  } catch (_) {}
 
   // Build local index. Do NOT reuse remote index as cache; compute from actual local files.
   // (Optional: implement a separate local cache file in the future.)
   const localRows = await buildLocalIndex(items, new Map());
-  try { console.log('[backup:core] local index built', { count: localRows.length }); } catch (_) {}
+  try {
+    console.log('[backup:core] local index built', { count: localRows.length });
+  } catch (_) {}
 
   const { upload, del } = diff(fullMode, localRows, remoteRows);
-  try { console.log('[backup:core] plan', { upload: upload.length, delete: del.length, mode }); } catch (_) {}
+  try {
+    console.log('[backup:core] plan', { upload: upload.length, delete: del.length, mode });
+  } catch (_) {}
 
   const total = upload.length;
   let done = 0;
   const send = (payload) => {
     if (onProgress) onProgress(payload);
     if (ipcSender) {
-      try { ipcSender.send('backup:progress', payload); } catch (_) {}
+      try {
+        ipcSender.send('backup:progress', payload);
+      } catch (_) {}
     }
   };
 
@@ -272,14 +351,16 @@ async function runBackup({ app, mode, providerName, providerParams, groups, ipcS
       await provider.deleteFile(rel);
       send({ type: 'delete', rel });
     } catch (e) {
-      try { console.log('[backup:core] delete error', { rel, error: e && e.message }); } catch (_) {}
+      try {
+        console.log('[backup:core] delete error', { rel, error: e && e.message });
+      } catch (_) {}
       send({ type: 'error', rel, message: e.message || String(e) });
     }
   }
 
   // uploads
   for (const rel of upload) {
-    const row = localRows.find(r => r.path === rel);
+    const row = localRows.find((r) => r.path === rel);
     if (!row) continue;
     try {
       const absPath = absByRel.get(rel) || path.join(app.getPath('userData'), rel);
@@ -289,7 +370,9 @@ async function runBackup({ app, mode, providerName, providerParams, groups, ipcS
       done++;
       send({ type: 'upload-done', rel, done, total });
     } catch (e) {
-      try { console.log('[backup:core] upload error', { rel, error: e && e.message }); } catch (_) {}
+      try {
+        console.log('[backup:core] upload error', { rel, error: e && e.message });
+      } catch (_) {}
       send({ type: 'error', rel, message: e.message || String(e) });
     }
   }
@@ -305,12 +388,18 @@ async function runBackup({ app, mode, providerName, providerParams, groups, ipcS
       createdAt: Date.now(),
       mode,
       groups: Array.isArray(groups) ? groups : [],
-      counts: { files: localRows.length, uploaded: upload.length, deleted: del.length }
+      counts: { files: localRows.length, uploaded: upload.length, deleted: del.length },
     };
-    try { await provider.writeText('index.meta.json', JSON.stringify(meta, null, 2)); } catch (_) {}
-    try { console.log('[backup:core] wrote index.tsv & index.meta.json'); } catch (_) {}
+    try {
+      await provider.writeText('index.meta.json', JSON.stringify(meta, null, 2));
+    } catch (_) {}
+    try {
+      console.log('[backup:core] wrote index.tsv & index.meta.json');
+    } catch (_) {}
   } catch (e) {
-    try { console.log('[backup:core] index write error', { error: e && e.message }); } catch (_) {}
+    try {
+      console.log('[backup:core] index write error', { error: e && e.message });
+    } catch (_) {}
     send({ type: 'error', rel: 'index.tsv', message: e.message || String(e) });
   }
 
@@ -321,13 +410,19 @@ async function planRestore({ app, providerName, providerParams, groups }) {
   // Load provider
   let provider;
   if (providerName === 's3') {
-    try { console.log('[restore:plan] init provider', { providerName, groups }); } catch (_) {}
+    try {
+      console.log('[restore:plan] init provider', { providerName, groups });
+    } catch (_) {}
     provider = require('./providers/s3').createS3Provider(providerParams);
   } else if (providerName === 'dropbox') {
-    try { console.log('[restore:plan] init provider', { providerName, groups }); } catch (_) {}
+    try {
+      console.log('[restore:plan] init provider', { providerName, groups });
+    } catch (_) {}
     provider = require('./providers/dropbox').createDropboxProvider(providerParams);
   } else if (providerName === 'webdav') {
-    try { console.log('[restore:plan] init provider', { providerName, groups }); } catch (_) {}
+    try {
+      console.log('[restore:plan] init provider', { providerName, groups });
+    } catch (_) {}
     provider = require('./providers/webdav').createWebdavProvider(providerParams);
   } else {
     throw new Error(`Unsupported provider: ${providerName}`);
@@ -339,7 +434,12 @@ async function planRestore({ app, providerName, providerParams, groups }) {
   const remoteRows = remoteIndexText ? parseTSV(remoteIndexText) : [];
   // Optional meta
   let remoteMeta = null;
-  try { const metaText = await provider.readText('index.meta.json'); remoteMeta = metaText ? JSON.parse(metaText) : null; } catch (_) { remoteMeta = null; }
+  try {
+    const metaText = await provider.readText('index.meta.json');
+    remoteMeta = metaText ? JSON.parse(metaText) : null;
+  } catch (_) {
+    remoteMeta = null;
+  }
   // Build local index for existing items only
   const localRows = await buildLocalIndex(items, new Map());
 
@@ -361,7 +461,10 @@ async function planRestore({ app, providerName, providerParams, groups }) {
   let ignorePatterns = [];
   try {
     const conf = loadConfig();
-    const userIgnores = conf && conf.backup && Array.isArray(conf.backup.ignorePatterns) ? conf.backup.ignorePatterns : [];
+    const userIgnores =
+      conf && conf.backup && Array.isArray(conf.backup.ignorePatterns)
+        ? conf.backup.ignorePatterns
+        : [];
     const ignoreConfigYml = !!(conf && conf.backup && conf.backup.ignoreConfigYml === true);
     if (ignoreConfigYml) ignorePatterns.push('j2me-launcher/config.yml');
     ignorePatterns = [...ignorePatterns, ...userIgnores];
@@ -390,7 +493,8 @@ async function planRestore({ app, providerName, providerParams, groups }) {
     const lmt = lrow.mtime || 0;
     const rmt = rrow.mtime || 0;
     const sameMd5 = (lrow.md5 || '') === (rrow.md5 || '');
-    if (sameMd5) md5Equal.push(p); else md5Different.push(p);
+    if (sameMd5) md5Equal.push(p);
+    else md5Different.push(p);
     if (lmt > rmt) localNewerPaths.push(p);
     else if (rmt > lmt) remoteNewerPaths.push(p);
     details.push({
@@ -400,7 +504,7 @@ async function planRestore({ app, providerName, providerParams, groups }) {
       sameMd5,
       localNewer: lmt > rmt,
       remoteNewer: rmt > lmt,
-      ignored: isIgnored(p)
+      ignored: isIgnored(p),
     });
   }
 
@@ -418,7 +522,7 @@ async function planRestore({ app, providerName, providerParams, groups }) {
         path.join(userRoot, localDbRel),
         path.join(roamingRoot, localDbRel),
         path.join(roamingRoot, 'j2me-launcher', 'data.db-wal'),
-        path.join(roamingRoot, 'j2me-launcher', 'data.db-shm')
+        path.join(roamingRoot, 'j2me-launcher', 'data.db-shm'),
       ];
       let localDbLatest = 0;
       let localDbPath = null;
@@ -448,7 +552,9 @@ async function planRestore({ app, providerName, providerParams, groups }) {
           if (!walExists && !shmExists && localDbPath && fs.existsSync(localDbPath)) {
             dbMd5 = await md5File(localDbPath);
           }
-        } catch (_) { dbMd5 = null; }
+        } catch (_) {
+          dbMd5 = null;
+        }
         const localDbRow = { md5: dbMd5, size: null, mtime: localDbLatest };
         details.push({
           path: localDbRel,
@@ -458,9 +564,10 @@ async function planRestore({ app, providerName, providerParams, groups }) {
           localNewer: localDbLatest > rmt,
           remoteNewer: rmt > localDbLatest,
           ignored: false,
-          syntheticDb: true
+          syntheticDb: true,
         });
-        if (localDbLatest > rmt) localNewerPaths.push(localDbRel); else if (rmt > localDbLatest) remoteNewerPaths.push(localDbRel);
+        if (localDbLatest > rmt) localNewerPaths.push(localDbRel);
+        else if (rmt > localDbLatest) remoteNewerPaths.push(localDbRel);
         md5Different.push(localDbRel);
       }
     }
@@ -468,13 +575,22 @@ async function planRestore({ app, providerName, providerParams, groups }) {
 
   // Compute decision: conflict if there exists non-ignored path with md5Different on intersection
   let decision = 'ok';
-  const hasRealConflict = details.some(d => !d.ignored && !d.sameMd5);
+  const hasRealConflict = details.some((d) => !d.ignored && !d.sameMd5);
   if (hasRealConflict) decision = 'conflict';
   // Backward-compatible special case: if all differences are localNewer (and not ignored), tag as conflict-local-newer
-  const anyDiff = details.filter(d => !d.ignored && !d.sameMd5);
-  if (anyDiff.length > 0 && anyDiff.every(d => d.localNewer)) decision = 'conflict-local-newer';
+  const anyDiff = details.filter((d) => !d.ignored && !d.sameMd5);
+  if (anyDiff.length > 0 && anyDiff.every((d) => d.localNewer)) decision = 'conflict-local-newer';
 
-  try { console.log('[restore:plan] summary', { localCount: localRows.length, remoteCount: remoteRows.length, intersectCount, localLatest, remoteLatest, decision }); } catch (_) {}
+  try {
+    console.log('[restore:plan] summary', {
+      localCount: localRows.length,
+      remoteCount: remoteRows.length,
+      intersectCount,
+      localLatest,
+      remoteLatest,
+      decision,
+    });
+  } catch (_) {}
   return {
     decision,
     meta: { remote: remoteMeta },
@@ -488,21 +604,34 @@ async function planRestore({ app, providerName, providerParams, groups }) {
     remoteNewerPaths,
     md5Equal,
     md5Different,
-    details
+    details,
   };
 }
 
-async function runRestore({ app, providerName, providerParams, groups, force, includePaths = null }) {
+async function runRestore({
+  app,
+  providerName,
+  providerParams,
+  groups,
+  force,
+  includePaths = null,
+}) {
   // Load provider
   let provider;
   if (providerName === 's3') {
-    try { console.log('[restore:run] init provider', { providerName, groups, force }); } catch (_) {}
+    try {
+      console.log('[restore:run] init provider', { providerName, groups, force });
+    } catch (_) {}
     provider = require('./providers/s3').createS3Provider(providerParams);
   } else if (providerName === 'dropbox') {
-    try { console.log('[restore:run] init provider', { providerName, groups, force }); } catch (_) {}
+    try {
+      console.log('[restore:run] init provider', { providerName, groups, force });
+    } catch (_) {}
     provider = require('./providers/dropbox').createDropboxProvider(providerParams);
   } else if (providerName === 'webdav') {
-    try { console.log('[restore:run] init provider', { providerName, groups, force }); } catch (_) {}
+    try {
+      console.log('[restore:run] init provider', { providerName, groups, force });
+    } catch (_) {}
     provider = require('./providers/webdav').createWebdavProvider(providerParams);
   } else {
     throw new Error(`Unsupported provider: ${providerName}`);
@@ -529,25 +658,35 @@ async function runRestore({ app, providerName, providerParams, groups, force, in
     const localDbRel = 'j2me-launcher/data.db';
     const includeDb = shouldInclude(backupRel) || (includeSet && includeSet.has(localDbRel));
     if (!includeDb) {
-      try { console.log('[restore:run] skip db by includePaths'); } catch (_) {}
+      try {
+        console.log('[restore:run] skip db by includePaths');
+      } catch (_) {}
     } else {
-    try { console.log('[restore:run] db restore start', { to: targetDb, rel: backupRel }); } catch (_) {}
-    // Close DB if open
-    try {
-      const { closeDB } = require('../db');
-      try { closeDB(); } catch (_) {}
-    } catch (_) {}
-    // Write snapshot to data.db
-    const fse = require('fs-extra');
-    fse.ensureDirSync(path.dirname(targetDb));
-    await provider.downloadFile(backupRel, targetDb);
-    // Remove WAL/SHM if exist
-    for (const ext of ['-wal', '-shm']) {
-      const p = targetDb + ext;
-      try { if (fs.existsSync(p)) fs.unlinkSync(p); } catch (_) {}
-    }
-    dbRestored = true;
-    try { console.log('[restore:run] db restore done'); } catch (_) {}
+      try {
+        console.log('[restore:run] db restore start', { to: targetDb, rel: backupRel });
+      } catch (_) {}
+      // Close DB if open
+      try {
+        const { closeDB } = require('../db');
+        try {
+          closeDB();
+        } catch (_) {}
+      } catch (_) {}
+      // Write snapshot to data.db
+      const fse = require('fs-extra');
+      fse.ensureDirSync(path.dirname(targetDb));
+      await provider.downloadFile(backupRel, targetDb);
+      // Remove WAL/SHM if exist
+      for (const ext of ['-wal', '-shm']) {
+        const p = targetDb + ext;
+        try {
+          if (fs.existsSync(p)) fs.unlinkSync(p);
+        } catch (_) {}
+      }
+      dbRestored = true;
+      try {
+        console.log('[restore:run] db restore done');
+      } catch (_) {}
     }
   }
 
@@ -557,7 +696,7 @@ async function runRestore({ app, providerName, providerParams, groups, force, in
   let restored = 0;
   for (const g of BACKUP_SPEC.groups) {
     if (!groupSet.has(g.key)) continue;
-    for (const rel of (g.items || [])) {
+    for (const rel of g.items || []) {
       // Skip DB trio; DB handled above via snapshot
       if (/j2me-launcher\/data\.db(\-wal|\-shm)?$/.test(rel)) continue;
       // If snapshot file exists remotely and equals rel, it will be handled if matches
@@ -567,7 +706,17 @@ async function runRestore({ app, providerName, providerParams, groups, force, in
       const absUser = path.join(userRoot, rel);
       const absRoam = path.join(roamingRoot, rel);
       const targetAbs = fs.existsSync(path.dirname(absUser)) ? absUser : absRoam;
-      try { await provider.downloadFile(rel, targetAbs); restored++; try { console.log('[restore:run] file restored', { rel, to: targetAbs }); } catch (_) {} } catch (e) { try { console.log('[restore:run] file restore error', { rel, error: e && e.message }); } catch (_) {} }
+      try {
+        await provider.downloadFile(rel, targetAbs);
+        restored++;
+        try {
+          console.log('[restore:run] file restored', { rel, to: targetAbs });
+        } catch (_) {}
+      } catch (e) {
+        try {
+          console.log('[restore:run] file restore error', { rel, error: e && e.message });
+        } catch (_) {}
+      }
     }
   }
 
@@ -581,21 +730,35 @@ async function runRestore({ app, providerName, providerParams, groups, force, in
     const fj = emus.freej2mePlus || {};
     const fjBase = fj.jarPath ? path.dirname(fj.jarPath) : '';
     if (fjBase) {
-      if (groupSet.has('rms')) mapping.push({ prefix: 'external/freej2mePlus/rms/', base: path.join(fjBase, 'rms') });
-      if (groupSet.has('emuConfig')) mapping.push({ prefix: 'external/freej2mePlus/config/', base: path.join(fjBase, 'config') });
+      if (groupSet.has('rms'))
+        mapping.push({ prefix: 'external/freej2mePlus/rms/', base: path.join(fjBase, 'rms') });
+      if (groupSet.has('emuConfig'))
+        mapping.push({
+          prefix: 'external/freej2mePlus/config/',
+          base: path.join(fjBase, 'config'),
+        });
     }
     // KEmulator
     const ke = emus.ke || {};
     const keBase = ke.jarPath ? path.dirname(ke.jarPath) : '';
     if (keBase) {
-      if (groupSet.has('rms')) mapping.push({ prefix: 'external/kemulator/rms/', base: path.join(keBase, 'rms') });
+      if (groupSet.has('rms'))
+        mapping.push({ prefix: 'external/kemulator/rms/', base: path.join(keBase, 'rms') });
     }
     // Libretro
     const lr = emus.libretro || {};
     const raBase = lr.retroarchPath ? path.dirname(lr.retroarchPath) : '';
     if (raBase) {
-      if (groupSet.has('rms')) mapping.push({ prefix: 'external/libretro/freej2me/rms/', base: path.join(raBase, 'saves', 'FreeJ2ME-Plus', 'freej2me', 'rms') });
-      if (groupSet.has('emuConfig')) mapping.push({ prefix: 'external/libretro/freej2me/config/', base: path.join(raBase, 'saves', 'FreeJ2ME-Plus', 'freej2me', 'config') });
+      if (groupSet.has('rms'))
+        mapping.push({
+          prefix: 'external/libretro/freej2me/rms/',
+          base: path.join(raBase, 'saves', 'FreeJ2ME-Plus', 'freej2me', 'rms'),
+        });
+      if (groupSet.has('emuConfig'))
+        mapping.push({
+          prefix: 'external/libretro/freej2me/config/',
+          base: path.join(raBase, 'saves', 'FreeJ2ME-Plus', 'freej2me', 'config'),
+        });
     }
     // For each remote row that matches any prefix, download back to base+relative
     for (const row of remoteRows) {
@@ -605,22 +768,44 @@ async function runRestore({ app, providerName, providerParams, groups, force, in
         if (rel.startsWith(m.prefix)) {
           const sub = rel.substring(m.prefix.length);
           const target = path.join(m.base, sub);
-          try { fse.ensureDirSync(path.dirname(target)); } catch (_) {}
-          try { await provider.downloadFile(rel, target); restored++; try { console.log('[restore:run] external restored', { rel, to: target }); } catch (_) {} } catch (e) { try { console.log('[restore:run] external restore error', { rel, error: e && e.message }); } catch (_) {} }
+          try {
+            fse.ensureDirSync(path.dirname(target));
+          } catch (_) {}
+          try {
+            await provider.downloadFile(rel, target);
+            restored++;
+            try {
+              console.log('[restore:run] external restored', { rel, to: target });
+            } catch (_) {}
+          } catch (e) {
+            try {
+              console.log('[restore:run] external restore error', { rel, error: e && e.message });
+            } catch (_) {}
+          }
           break;
         }
       }
     }
   } catch (e) {
-    try { console.log('[restore:run] dynamic external restore error', { error: e && e.message }); } catch (_) {}
+    try {
+      console.log('[restore:run] dynamic external restore error', { error: e && e.message });
+    } catch (_) {}
   }
 
   // After DB restore, force a full rescan to regenerate derived data (e.g., icons)
   try {
     if (dbRestored) {
-      try { console.log('[restore:run] triggering full rescan to rebuild icons'); } catch (_) {}
+      try {
+        console.log('[restore:run] triggering full rescan to rebuild icons');
+      } catch (_) {}
       const { processMultipleDirectories } = require('../jar-parser');
-      try { await processMultipleDirectories(null, true); } catch (e) { try { console.log('[restore:run] full rescan error', { error: e && e.message }); } catch (_) {} }
+      try {
+        await processMultipleDirectories(null, true);
+      } catch (e) {
+        try {
+          console.log('[restore:run] full rescan error', { error: e && e.message });
+        } catch (_) {}
+      }
     }
   } catch (_) {}
 

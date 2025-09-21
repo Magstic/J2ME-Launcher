@@ -5,6 +5,7 @@
 ## 概述
 
 別名系統的主要目標：
+
 - **清晰的匯入路徑**：避免深層相對路徑
 - **穩定的依賴關係**：檔案移動時不需更新匯入
 - **模組化設計**：促進組件重用和架構清晰
@@ -13,10 +14,12 @@
 ## 別名（權威來源）
 
 定義位置：
+
 - `vite.config.js` → `resolve.alias`
 - `jsconfig.json` → `compilerOptions.paths`
 
 目前映射（Vite：`vite.config.js`）：
+
 - `@` → `src`
 - `@components` → `src/components`
 - `@ui` → `src/components/ui`
@@ -26,6 +29,7 @@
 - `@styles` → `src/styles`
 
 JS 路徑提示（`jsconfig.json`）：
+
 - `@/*` → `src/*`
 - `@components/*` → `src/components/*`
 - `@ui/*` → `src/components/ui/*`
@@ -34,6 +38,7 @@ JS 路徑提示（`jsconfig.json`）：
 - `@config/*` → `src/config/*`
 
 注意：
+
 - `@shared` 指向 UI 層的共享元件資料夾 `src/components/shared`。
 - 專案頂層的 `src/shared`（例如 `src/shared/backup/spec.js`、`src/shared/backup/indexTSV.js`）沒有設定 alias，以避免命名混淆。請在 `src/main` 或渲染端以相對路徑匯入（例如：在 `src/main/ipc/backup.js` 以 `require('../shared/backup/spec')` 匯入）。
 
@@ -84,15 +89,15 @@ import { useDesktopManager } from '@hooks/useDesktopManager';
 
 // 使用範例
 const handleAddToFolder = async (games, folderId) => {
-  const safeGames = games.map(game => ({
+  const safeGames = games.map((game) => ({
     filePath: String(game.filePath),
     gameName: String(game.gameName || ''),
     // 只保留可序列化的屬性
   }));
-  
-  return safeIpcCall(() => 
+
+  return safeIpcCall(() =>
     window.electronAPI.batchAddGamesToFolder(
-      safeGames.map(g => g.filePath),
+      safeGames.map((g) => g.filePath),
       String(folderId)
     )
   );
@@ -191,6 +196,7 @@ const handleAddToFolder = async (games, folderId) => {
 **問題**：`Cannot resolve module '@components/...'`
 
 **解決方案**：
+
 1. 檢查 `vite.config.js` 中的 `resolve.alias` 配置
 2. 檢查 `jsconfig.json` 中的 `compilerOptions.paths` 配置
 3. 重啟 Vite dev server：`npm run dev`
@@ -201,6 +207,7 @@ const handleAddToFolder = async (games, folderId) => {
 **問題**：`Circular dependency detected`
 
 **解決方案**：
+
 1. 使用依賴分析工具：`npx madge --circular src/`
 2. 重構模組結構，提取共享依賴
 3. 使用動態匯入打破循環
@@ -210,6 +217,7 @@ const handleAddToFolder = async (games, folderId) => {
 **問題**：`Prefer alias import over relative path`
 
 **解決方案**：
+
 1. 更新匯入路徑使用別名
 2. 檢查 `eslint.config.js` 中的相關規則
 3. 使用 `npm run lint:fix` 自動修復
@@ -217,12 +225,14 @@ const handleAddToFolder = async (games, folderId) => {
 ### 維護清單
 
 #### 定期檢查
+
 - [ ] 檢查彙總出口檔案的完整性
 - [ ] 更新文檔中的匯出列表
 - [ ] 驗證所有別名路徑的有效性
 - [ ] 測試新組件的匯入路徑
 
 #### 性能監控
+
 - 使用 Vite 的 bundle analyzer 分析模組大小
 - 監控彙總出口的加載時間
 - 避免在彙總出口中包含大型依賴

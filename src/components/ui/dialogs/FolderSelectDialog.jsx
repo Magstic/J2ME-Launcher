@@ -1,23 +1,23 @@
 import React, { useRef } from 'react';
 import './FolderSelectDialog.css';
-import ModalWithFooter from "../ModalWithFooter.jsx";
+import ModalWithFooter from '../ModalWithFooter.jsx';
 import { useTranslation } from '@hooks/useTranslation';
 
-const FolderSelectDialog = ({ 
-  isOpen, 
-  folders = [], 
-  onClose, 
+const FolderSelectDialog = ({
+  isOpen,
+  folders = [],
+  onClose,
   onSelect,
   // 新接口（推薦）：直接傳遞文案字串
   title,
   message,
   // 舊接口（兼容）：早期錯誤命名，實為字串而非回調
   onTitle,
-  onMessage
+  onMessage,
 }) => {
   const { t } = useTranslation();
-  const effectiveTitle = (title ?? onTitle) ?? t('desktopManager.folderSelect.title');
-  const effectiveMessage = (message ?? onMessage) ?? t('desktopManager.folderSelect.single');
+  const effectiveTitle = title ?? onTitle ?? t('desktopManager.folderSelect.title');
+  const effectiveMessage = message ?? onMessage ?? t('desktopManager.folderSelect.single');
   const requestCloseRef = useRef(null);
   if (!isOpen) return null;
 
@@ -36,7 +36,10 @@ const FolderSelectDialog = ({
       footer={
         <div className="folder-select-footer">
           {/* 使用共用按鈕樣式，統一尺寸與風格 */}
-          <button className="btn btn-secondary" onClick={() => requestCloseRef.current && requestCloseRef.current()}>
+          <button
+            className="btn btn-secondary"
+            onClick={() => requestCloseRef.current && requestCloseRef.current()}
+          >
             {t('app.cancel')}
           </button>
         </div>
@@ -51,7 +54,7 @@ const FolderSelectDialog = ({
           </div>
         ) : (
           <div className="folder-list">
-            {folders.map(folder => (
+            {folders.map((folder) => (
               <div
                 key={folder.id}
                 className="folder-item"

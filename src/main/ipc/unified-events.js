@@ -2,6 +2,29 @@
 // Unified event system replacing scattered broadcast mechanisms
 
 const { getStoreBridge } = require('../store-bridge');
+const { BrowserWindow } = require('electron');
+
+// Compatibility helper: directly send to all renderer windows
+function sendToAllWindows(channel, payload, excludeWindowId = null) {
+  try {
+    const wins = BrowserWindow.getAllWindows();
+    for (const win of wins) {
+      if (excludeWindowId && win && win.id === excludeWindowId) continue;
+      if (win && !win.isDestroyed() && win.webContents) {
+        try {
+          win.webContents.send(channel, payload);
+        } catch (e) {
+          console.error(
+            '[UnifiedEvents] Failed to send to window:',
+            e && e.message ? e.message : e
+          );
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[UnifiedEvents] sendToAllWindows error:', e && e.message ? e.message : e);
+  }
+}
 
 class UnifiedEventSystem {
   constructor() {
@@ -14,12 +37,12 @@ class UnifiedEventSystem {
   // Queue event for batched processing
   queueEvent(eventType, payload) {
     this.eventQueue.push({ type: eventType, payload, timestamp: Date.now() });
-    
+
     // Batch events to avoid overwhelming the UI
     if (this.batchTimeout) {
       clearTimeout(this.batchTimeout);
     }
-    
+
     this.batchTimeout = setTimeout(() => {
       this.processBatch();
     }, 16); // ~60fps batching
@@ -33,21 +56,22 @@ class UnifiedEventSystem {
 
   flush() {
     if (this.eventQueue.length === 0) return;
-    
+
     const events = [...this.eventQueue];
     this.eventQueue = [];
-    
+
     try {
       // Group events by type for intelligent merging
       const groupedEvents = this.groupEvents(events);
-      
+
       // Send merged events with individual error handling
       for (const [eventType, eventData] of groupedEvents) {
         try {
-          this.broadcastToAll(eventType, eventData);
+          // Process grouped events using the smart handler
+          this.processEventGroup(eventType, eventData);
         } catch (error) {
           console.error(`[UnifiedEvents] Failed to broadcast ${eventType}:`, error);
-          
+
           // Re-queue critical events for retry
           if (this.isCriticalEvent(eventType)) {
             this.queueEvent(eventType, eventData, 'high');
@@ -56,9 +80,9 @@ class UnifiedEventSystem {
       }
     } catch (error) {
       console.error('[UnifiedEvents] Critical error during flush:', error);
-      
+
       // Emergency fallback: re-queue all events
-      events.forEach(event => {
+      events.forEach((event) => {
         this.eventQueue.push(event);
       });
     }
@@ -70,7 +94,7 @@ class UnifiedEventSystem {
       'games-loaded',
       'games-incremental-update',
       'folder-membership-changed',
-      'store-sync'
+      'store-sync',
     ];
     return criticalEvents.includes(eventType);
   }
@@ -78,14 +102,14 @@ class UnifiedEventSystem {
   // Group similar events to reduce redundant updates
   groupEvents(events) {
     const groups = new Map();
-    
+
     for (const event of events) {
       if (!groups.has(event.type)) {
         groups.set(event.type, []);
       }
       groups.get(event.type).push(event);
     }
-    
+
     return groups;
   }
 
@@ -96,10 +120,10 @@ class UnifiedEventSystem {
         // Only send the latest games update
         const latestGamesUpdate = events[events.length - 1];
         this.bridge.onCacheUpdate('games-loaded', {
-          games: latestGamesUpdate.payload
+          games: latestGamesUpdate.payload,
         });
         break;
-        
+
       case 'folder-membership-changed':
         // Merge all folder membership changes
         const mergedChanges = this.mergeFolderChanges(events);
@@ -107,33 +131,34 @@ class UnifiedEventSystem {
           this.bridge.onCacheUpdate('folder-membership-changed', change);
         }
         break;
-        
+
       case 'folder-updated':
         // Send all folder updates (they're typically different folders)
         for (const event of events) {
           this.bridge.broadcastToRenderers({
             type: 'FOLDER_UPDATED',
-            payload: event.payload
+            payload: event.payload,
           });
         }
         break;
-        
+
       case 'drag-session-started':
       case 'drag-session-ended':
         // Only send the latest drag session state
         const latestDragEvent = events[events.length - 1];
         this.bridge.broadcastToRenderers({
-          type: eventType === 'drag-session-started' ? 'DRAG_SESSION_STARTED' : 'DRAG_SESSION_ENDED',
-          payload: latestDragEvent.payload
+          type:
+            eventType === 'drag-session-started' ? 'DRAG_SESSION_STARTED' : 'DRAG_SESSION_ENDED',
+          payload: latestDragEvent.payload,
         });
         break;
-        
+
       default:
         // Pass through other events as-is
         for (const event of events) {
           this.bridge.broadcastToRenderers({
             type: event.type.toUpperCase().replace(/-/g, '_'),
-            payload: event.payload
+            payload: event.payload,
           });
         }
     }
@@ -142,20 +167,20 @@ class UnifiedEventSystem {
   // Merge folder membership changes to reduce redundant updates
   mergeFolderChanges(events) {
     const changeMap = new Map(); // folderId -> { add: Set, remove: Set }
-    
+
     for (const event of events) {
       const { folderId, filePaths, operation } = event.payload;
-      
+
       if (!changeMap.has(folderId)) {
         changeMap.set(folderId, { add: new Set(), remove: new Set() });
       }
-      
+
       const changes = changeMap.get(folderId);
       const pathSet = changes[operation];
-      
-      filePaths.forEach(path => pathSet.add(path));
+
+      filePaths.forEach((path) => pathSet.add(path));
     }
-    
+
     // Convert back to array format
     const result = [];
     for (const [folderId, changes] of changeMap) {
@@ -163,18 +188,18 @@ class UnifiedEventSystem {
         result.push({
           folderId,
           filePaths: Array.from(changes.add),
-          operation: 'add'
+          operation: 'add',
         });
       }
       if (changes.remove.size > 0) {
         result.push({
           folderId,
           filePaths: Array.from(changes.remove),
-          operation: 'remove'
+          operation: 'remove',
         });
       }
     }
-    
+
     return result;
   }
 
@@ -184,8 +209,14 @@ class UnifiedEventSystem {
   }
 
   // Replace legacy broadcastToAll function
-  broadcastToAll(eventType, payload) {
-    this.queueEvent(eventType, payload);
+  // Compatibility mode: immediately send to renderer channels to preserve existing UI wiring.
+  // Supports excludeWindowId to avoid echo to sender when needed.
+  broadcastToAll(eventType, payload, excludeWindowId = null) {
+    try {
+      sendToAllWindows(eventType, payload, excludeWindowId);
+    } catch (e) {
+      console.warn('[UnifiedEvents] Legacy broadcast failed:', e && e.message ? e.message : e);
+    }
   }
 
   // Shutdown cleanup
@@ -193,7 +224,7 @@ class UnifiedEventSystem {
     if (this.batchTimeout) {
       clearTimeout(this.batchTimeout);
     }
-    
+
     // Process remaining events
     if (this.eventQueue.length > 0) {
       this.processBatch();
@@ -217,8 +248,8 @@ function broadcastToAll(eventType, payload) {
   eventSystem.broadcastToAll(eventType, payload);
 }
 
-module.exports = { 
-  UnifiedEventSystem, 
-  getUnifiedEventSystem, 
-  broadcastToAll 
+module.exports = {
+  UnifiedEventSystem,
+  getUnifiedEventSystem,
+  broadcastToAll,
 };

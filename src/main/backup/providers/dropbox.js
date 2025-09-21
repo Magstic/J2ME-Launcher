@@ -17,7 +17,7 @@ const API_RPC = 'https://api.dropboxapi.com';
 function joinPosix(a, b) {
   if (!a) return b || '';
   if (!b) return a || '';
-  return `${a.replace(/\/+$/,'')}/${b.replace(/^\/+/, '')}`;
+  return `${a.replace(/\/+$/, '')}/${b.replace(/^\/+/, '')}`;
 }
 
 function normalizePrefix(p) {
@@ -59,16 +59,20 @@ function httpRequest({ method, url, headers = {}, body = null, stream = null }) 
 }
 
 function parseJsonSafe(text) {
-  try { return JSON.parse(text); } catch { return null; }
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
 }
 
 function createDropboxProvider(params = {}) {
   const {
-    accessToken,       // required (initial)
-    refreshToken,      // optional
-    clientId,          // optional (for refresh)
-    clientSecret,      // optional (if using confidential app; not needed for PKCE public apps)
-    prefix = '',       // optional remote base path inside app folder
+    accessToken, // required (initial)
+    refreshToken, // optional
+    clientId, // optional (for refresh)
+    clientSecret, // optional (if using confidential app; not needed for PKCE public apps)
+    prefix = '', // optional remote base path inside app folder
   } = params;
 
   if (!accessToken) throw new Error('dropbox: missing accessToken');
@@ -96,16 +100,23 @@ function createDropboxProvider(params = {}) {
       method: 'POST',
       url: API_RPC + '/oauth2/token',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: Buffer.from(form.toString(), 'utf8')
+      body: Buffer.from(form.toString(), 'utf8'),
     });
     if (res.status >= 200 && res.status < 300) {
       const json = parseJsonSafe(res.text) || {};
       if (json.access_token) tokenState.accessToken = json.access_token;
       if (json.refresh_token) tokenState.refreshToken = json.refresh_token;
-      try { console.log('[backup:dropbox] token refreshed'); } catch (_) {}
+      try {
+        console.log('[backup:dropbox] token refreshed');
+      } catch (_) {}
       return true;
     } else {
-      try { console.log('[backup:dropbox] token refresh failed', { status: res.status, body: res.text }); } catch (_) {}
+      try {
+        console.log('[backup:dropbox] token refresh failed', {
+          status: res.status,
+          body: res.text,
+        });
+      } catch (_) {}
       return false;
     }
   }
@@ -113,23 +124,32 @@ function createDropboxProvider(params = {}) {
   async function apiContent(method, path, bodyStreamOrBuffer, extraHeaders = {}) {
     const token = await getToken();
     const headers = {
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
       'Dropbox-API-Arg': JSON.stringify({ path }),
       ...extraHeaders,
     };
-    let body = null, stream = null;
+    let body = null,
+      stream = null;
     if (Buffer.isBuffer(bodyStreamOrBuffer)) body = bodyStreamOrBuffer;
-    else if (bodyStreamOrBuffer && typeof bodyStreamOrBuffer.pipe === 'function') stream = bodyStreamOrBuffer;
+    else if (bodyStreamOrBuffer && typeof bodyStreamOrBuffer.pipe === 'function')
+      stream = bodyStreamOrBuffer;
 
-    const url = API_CONTENT + (method === 'POST' && extraHeaders['Content-Type'] === 'application/octet-stream'
-      ? '/2/files/upload'
-      : (method === 'POST' && extraHeaders['Dropbox-API-Arg'] ? '/2/files/download' : '/2/files/download'));
+    const url =
+      API_CONTENT +
+      (method === 'POST' && extraHeaders['Content-Type'] === 'application/octet-stream'
+        ? '/2/files/upload'
+        : method === 'POST' && extraHeaders['Dropbox-API-Arg']
+          ? '/2/files/download'
+          : '/2/files/download');
 
     // For download, Dropbox wants POST to /2/files/download with no body
-    const finalUrl = (method === 'POST' && extraHeaders['Dropbox-API-Arg']) ? API_CONTENT + '/2/files/download' : url;
+    const finalUrl =
+      method === 'POST' && extraHeaders['Dropbox-API-Arg']
+        ? API_CONTENT + '/2/files/download'
+        : url;
 
     const res = await httpRequest({ method, url: finalUrl, headers, body, stream });
-    if (res.status === 401 && await tryRefreshToken()) {
+    if (res.status === 401 && (await tryRefreshToken())) {
       return apiContent(method, path, bodyStreamOrBuffer, extraHeaders);
     }
     return res;
@@ -140,10 +160,10 @@ function createDropboxProvider(params = {}) {
     const res = await httpRequest({
       method: 'POST',
       url: API_RPC + pathname,
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: Buffer.from(JSON.stringify(json || {}), 'utf8')
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: Buffer.from(JSON.stringify(json || {}), 'utf8'),
     });
-    if (res.status === 401 && await tryRefreshToken()) {
+    if (res.status === 401 && (await tryRefreshToken())) {
       return apiRpc(pathname, json);
     }
     return res;
@@ -152,87 +172,133 @@ function createDropboxProvider(params = {}) {
   return {
     async readText(relPath) {
       const dp = toPath(relPath);
-      try { console.log('[backup:dropbox] readText', { path: dp }); } catch (_) {}
+      try {
+        console.log('[backup:dropbox] readText', { path: dp });
+      } catch (_) {}
       const res = await httpRequest({
         method: 'POST',
         url: API_CONTENT + '/2/files/download',
-        headers: { 'Authorization': `Bearer ${await getToken()}`, 'Dropbox-API-Arg': JSON.stringify({ path: dp }) }
+        headers: {
+          Authorization: `Bearer ${await getToken()}`,
+          'Dropbox-API-Arg': JSON.stringify({ path: dp }),
+        },
       });
-      if (res.status === 401 && await tryRefreshToken()) return this.readText(relPath);
+      if (res.status === 401 && (await tryRefreshToken())) return this.readText(relPath);
       if (res.status === 409 || res.status === 404) return null; // not found
-      if (res.status < 200 || res.status >= 300) { try { console.log('[backup:dropbox] readText error', { status: res.status, body: res.text }); } catch (_) {} return null; }
+      if (res.status < 200 || res.status >= 300) {
+        try {
+          console.log('[backup:dropbox] readText error', { status: res.status, body: res.text });
+        } catch (_) {}
+        return null;
+      }
       return res.text;
     },
 
     async writeText(relPath, text) {
       const dp = toPath(relPath);
       const body = Buffer.from(String(text || ''), 'utf8');
-      try { console.log('[backup:dropbox] writeText', { path: dp, bytes: body.length }); } catch (_) {}
+      try {
+        console.log('[backup:dropbox] writeText', { path: dp, bytes: body.length });
+      } catch (_) {}
       const res = await httpRequest({
         method: 'POST',
         url: API_CONTENT + '/2/files/upload',
         headers: {
-          'Authorization': `Bearer ${await getToken()}`,
+          Authorization: `Bearer ${await getToken()}`,
           'Content-Type': 'application/octet-stream',
-          'Dropbox-API-Arg': JSON.stringify({ path: dp, mode: { '.tag': 'overwrite' }, mute: true })
+          'Dropbox-API-Arg': JSON.stringify({
+            path: dp,
+            mode: { '.tag': 'overwrite' },
+            mute: true,
+          }),
         },
-        body
+        body,
       });
-      if (res.status === 401 && await tryRefreshToken()) return this.writeText(relPath, text);
-      if (res.status < 200 || res.status >= 300) throw new Error(`dropbox writeText failed: ${res.status}`);
+      if (res.status === 401 && (await tryRefreshToken())) return this.writeText(relPath, text);
+      if (res.status < 200 || res.status >= 300)
+        throw new Error(`dropbox writeText failed: ${res.status}`);
     },
 
     async uploadFile(relPath, localPath, size, onProgress) {
       const dp = toPath(relPath);
       const stream = fs.createReadStream(localPath);
       // Note: no progress events via raw https without extra work; call onProgress at start/end
-      try { console.log('[backup:dropbox] uploadFile start', { path: dp, localPath, size }); } catch (_) {}
+      try {
+        console.log('[backup:dropbox] uploadFile start', { path: dp, localPath, size });
+      } catch (_) {}
       if (onProgress) onProgress(0);
       const res = await httpRequest({
         method: 'POST',
         url: API_CONTENT + '/2/files/upload',
         headers: {
-          'Authorization': `Bearer ${await getToken()}`,
+          Authorization: `Bearer ${await getToken()}`,
           'Content-Type': 'application/octet-stream',
-          'Dropbox-API-Arg': JSON.stringify({ path: dp, mode: { '.tag': 'overwrite' }, mute: true })
+          'Dropbox-API-Arg': JSON.stringify({
+            path: dp,
+            mode: { '.tag': 'overwrite' },
+            mute: true,
+          }),
         },
-        stream
+        stream,
       });
-      if (res.status === 401 && await tryRefreshToken()) return this.uploadFile(relPath, localPath, size, onProgress);
-      if (res.status < 200 || res.status >= 300) throw new Error(`dropbox uploadFile failed: ${res.status} ${res.text}`);
+      if (res.status === 401 && (await tryRefreshToken()))
+        return this.uploadFile(relPath, localPath, size, onProgress);
+      if (res.status < 200 || res.status >= 300)
+        throw new Error(`dropbox uploadFile failed: ${res.status} ${res.text}`);
       if (onProgress) onProgress(100);
-      try { console.log('[backup:dropbox] uploadFile done', { path: dp }); } catch (_) {}
+      try {
+        console.log('[backup:dropbox] uploadFile done', { path: dp });
+      } catch (_) {}
     },
 
     async deleteFile(relPath) {
       const dp = toPath(relPath);
-      try { console.log('[backup:dropbox] deleteFile', { path: dp }); } catch (_) {}
+      try {
+        console.log('[backup:dropbox] deleteFile', { path: dp });
+      } catch (_) {}
       const res = await apiRpc('/2/files/delete_v2', { path: dp });
       if (res.status === 409 || res.status === 404) return; // not found
-      if (res.status < 200 || res.status >= 300) { try { console.log('[backup:dropbox] deleteFile error', { status: res.status, body: res.text }); } catch (_) {} }
+      if (res.status < 200 || res.status >= 300) {
+        try {
+          console.log('[backup:dropbox] deleteFile error', { status: res.status, body: res.text });
+        } catch (_) {}
+      }
     },
 
     async downloadFile(relPath, localPath) {
       const dp = toPath(relPath);
-      try { console.log('[backup:dropbox] downloadFile start', { path: dp, localPath }); } catch (_) {}
+      try {
+        console.log('[backup:dropbox] downloadFile start', { path: dp, localPath });
+      } catch (_) {}
       const res = await httpRequest({
         method: 'POST',
         url: API_CONTENT + '/2/files/download',
-        headers: { 'Authorization': `Bearer ${await getToken()}`, 'Dropbox-API-Arg': JSON.stringify({ path: dp }) }
+        headers: {
+          Authorization: `Bearer ${await getToken()}`,
+          'Dropbox-API-Arg': JSON.stringify({ path: dp }),
+        },
       });
-      if (res.status === 401 && await tryRefreshToken()) return this.downloadFile(relPath, localPath);
-      if (res.status < 200 || res.status >= 300) throw new Error(`dropbox downloadFile failed: ${res.status}`);
+      if (res.status === 401 && (await tryRefreshToken()))
+        return this.downloadFile(relPath, localPath);
+      if (res.status < 200 || res.status >= 300)
+        throw new Error(`dropbox downloadFile failed: ${res.status}`);
       await new Promise((resolve, reject) => {
-        try { fse.ensureDirSync(require('path').dirname(localPath)); } catch (_) {}
-        fs.writeFile(localPath, res.buffer, (err) => err ? reject(err) : resolve());
+        try {
+          fse.ensureDirSync(require('path').dirname(localPath));
+        } catch (_) {}
+        fs.writeFile(localPath, res.buffer, (err) => (err ? reject(err) : resolve()));
       });
-      try { console.log('[backup:dropbox] downloadFile done', { path: dp }); } catch (_) {}
+      try {
+        console.log('[backup:dropbox] downloadFile done', { path: dp });
+      } catch (_) {}
     },
 
     async list(prefixRel = '') {
       const dp = toPath(prefixRel).replace(/\/+$/, '');
       const pathArg = dp === '/' ? '' : dp; // Dropbox app folder root is empty string
-      try { console.log('[backup:dropbox] list', { path: pathArg }); } catch (_) {}
+      try {
+        console.log('[backup:dropbox] list', { path: pathArg });
+      } catch (_) {}
       const entries = [];
       let hasMore = true;
       let cursor = null;
@@ -240,13 +306,27 @@ function createDropboxProvider(params = {}) {
         // Ensure parent folder exists logically; Dropbox list_folder needs path or empty for root
       }
       // First call
-      let res = await apiRpc('/2/files/list_folder', { path: pathArg, recursive: true, include_deleted: false });
+      let res = await apiRpc('/2/files/list_folder', {
+        path: pathArg,
+        recursive: true,
+        include_deleted: false,
+      });
       if (res.status === 409) return [];
-      if (res.status < 200 || res.status >= 300) { try { console.log('[backup:dropbox] list error', { status: res.status, body: res.text }); } catch (_) {} return []; }
+      if (res.status < 200 || res.status >= 300) {
+        try {
+          console.log('[backup:dropbox] list error', { status: res.status, body: res.text });
+        } catch (_) {}
+        return [];
+      }
       let json = parseJsonSafe(res.text) || {};
-      (json.entries || []).forEach(e => {
+      (json.entries || []).forEach((e) => {
         if (e['.tag'] === 'file') {
-          entries.push({ filename: e.path_lower, basename: e.name, isDirectory: false, size: Number(e.size || 0) });
+          entries.push({
+            filename: e.path_lower,
+            basename: e.name,
+            isDirectory: false,
+            size: Number(e.size || 0),
+          });
         }
       });
       hasMore = !!json.has_more;
@@ -256,9 +336,14 @@ function createDropboxProvider(params = {}) {
         res = await apiRpc('/2/files/list_folder/continue', { cursor });
         if (res.status < 200 || res.status >= 300) break;
         json = parseJsonSafe(res.text) || {};
-        (json.entries || []).forEach(e => {
+        (json.entries || []).forEach((e) => {
           if (e['.tag'] === 'file') {
-            entries.push({ filename: e.path_lower, basename: e.name, isDirectory: false, size: Number(e.size || 0) });
+            entries.push({
+              filename: e.path_lower,
+              basename: e.name,
+              isDirectory: false,
+              size: Number(e.size || 0),
+            });
           }
         });
         hasMore = !!json.has_more;

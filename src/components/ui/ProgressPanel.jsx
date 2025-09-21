@@ -14,7 +14,7 @@ export default function ProgressPanel({
   done = 0,
   total = 0,
   percent, // 可直接指定 0-100，否則用 done/total 計算
-  status,  // 左側狀態文字（例如：狀態：上傳中）
+  status, // 左側狀態文字（例如：狀態：上傳中）
   countText, // 右側文字（例如：12 / 123），若未提供且 total>0 則顯示 done/total
   current, // 顯示於下一行的細節（例如：當前：xxx）
   className = '',
@@ -46,7 +46,15 @@ export default function ProgressPanel({
     <div className={`card card-muted p-12 ${className}`}>
       {title ? <div className="card-title">{title}</div> : null}
       {/* 外框 */}
-      <div style={{ position: 'relative', height: 8, borderRadius: 6, background: 'var(--overlay-on-light-12)', overflow: 'hidden' }}>
+      <div
+        style={{
+          position: 'relative',
+          height: 8,
+          borderRadius: 6,
+          background: 'var(--overlay-on-light-12)',
+          overflow: 'hidden',
+        }}
+      >
         <div
           style={{
             position: 'absolute',
@@ -61,13 +69,30 @@ export default function ProgressPanel({
         />
       </div>
       {(status || showCount) && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 12, opacity: 0.9 }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            marginTop: 8,
+            fontSize: 12,
+            opacity: 0.9,
+          }}
+        >
           <div>{status || ''}</div>
           {showCount ? <div>{rightText}</div> : <div />}
         </div>
       )}
       {current ? (
-        <div style={{ marginTop: 6, fontSize: 12, opacity: 0.8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div
+          style={{
+            marginTop: 6,
+            fontSize: 12,
+            opacity: 0.8,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
           {current}
         </div>
       ) : null}

@@ -37,7 +37,10 @@
   background: var(--background-primary);
   color: var(--text-primary);
   cursor: pointer;
-  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s,
+    background-color 0.2s;
 }
 
 .select-button.placeholder {
@@ -69,7 +72,10 @@
   margin-left: 12px;
   transition: transform 0.2s ease;
 }
-.select-caret.up { transform: rotate(180deg); }
+
+.select-caret.up {
+  transform: rotate(180deg);
+}
 
 /* Popover */
 .select-popover {

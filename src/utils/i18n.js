@@ -11,27 +11,36 @@ import { SUPPORTED_LANGUAGES } from '../contexts/I18nContext';
  */
 export const detectBrowserLanguage = () => {
   const browserLang = navigator.language || navigator.userLanguage;
-  
+
   // 直接匹配
   if (SUPPORTED_LANGUAGES[browserLang]) {
     return browserLang;
   }
-  
+
   // 匹配語言前綴
   const langPrefix = browserLang.split('-')[0];
-  const matchedLang = Object.keys(SUPPORTED_LANGUAGES).find(lang => 
-    lang.startsWith(langPrefix)
-  );
-  
+  const matchedLang = Object.keys(SUPPORTED_LANGUAGES).find((lang) => lang.startsWith(langPrefix));
+
   if (matchedLang) {
     return matchedLang;
   }
-  
+
   // 特殊處理中文
   if (langPrefix === 'zh') {
-    return browserLang.includes('TW') || browserLang.includes('Hant') ? 'zh-TW' : 'zh-TW';
+    const lower = (browserLang || '').toLowerCase();
+    // 簡體（中國大陸/新加坡/馬來西亞 或含 Hans）→ zh-CN；
+    // 其餘中文（臺灣/香港/澳門 或含 Hant）→ zh-TW；
+    if (
+      lower.includes('cn') ||
+      lower.includes('hans') ||
+      lower.includes('sg') ||
+      lower.includes('my')
+    ) {
+      return 'zh-CN';
+    }
+    return 'zh-TW';
   }
-  
+
   // 預設返回繁體中文
   return 'zh-TW';
 };
@@ -46,7 +55,7 @@ export const formatTranslation = (template, params = {}) => {
   if (!template || typeof template !== 'string') {
     return template || '';
   }
-  
+
   return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
     return params[key] !== undefined ? params[key] : match;
   });
@@ -60,9 +69,10 @@ export const formatTranslation = (template, params = {}) => {
 export const getLanguageNativeName = (langCode) => {
   const nativeNames = {
     'zh-TW': '繁體中文',
-    'en-US': 'English'
+    'zh-CN': '简体中文',
+    'en-US': 'English',
   };
-  
+
   return nativeNames[langCode] || langCode;
 };
 
@@ -73,7 +83,7 @@ export const getLanguageNativeName = (langCode) => {
  */
 export const isRTLLanguage = (langCode) => {
   const rtlLanguages = ['ar', 'he', 'fa', 'ur'];
-  return rtlLanguages.some(rtl => langCode.startsWith(rtl));
+  return rtlLanguages.some((rtl) => langCode.startsWith(rtl));
 };
 
 /**
@@ -85,7 +95,7 @@ export const isValidTranslationKey = (key) => {
   if (!key || typeof key !== 'string') {
     return false;
   }
-  
+
   // 檢查是否符合 a.b.c 的格式
   return /^[a-zA-Z][a-zA-Z0-9]*(\.[a-zA-Z][a-zA-Z0-9]*)*$/.test(key);
 };
@@ -95,5 +105,5 @@ export default {
   formatTranslation,
   getLanguageNativeName,
   isRTLLanguage,
-  isValidTranslationKey
+  isValidTranslationKey,
 };

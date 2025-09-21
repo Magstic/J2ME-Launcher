@@ -151,7 +151,7 @@ class DataStore {
     // 檢查 SQL 中是否存在該目錄
     try {
       const { getDirectories: sqlGetDirectories } = require('./sql/directories');
-      const existsInSql = (sqlGetDirectories() || []).some(d => d.path === directoryPath);
+      const existsInSql = (sqlGetDirectories() || []).some((d) => d.path === directoryPath);
       if (existsInSql) {
         console.log(`[DataStore] removeDirectory: delegating to SQL layer -> ${directoryPath}`);
         // 清理目錄下的圖標快取
@@ -219,7 +219,6 @@ class DataStore {
     this.cleanupOrphanIcons();
   }
 
-
   /**
    * 获取启用的目录列表（委託給 SQL 層）
    * @returns {Array<object>} 启用的目录配置数组
@@ -246,19 +245,19 @@ class DataStore {
     if (!existingGame) {
       return true; // 新文件，需要扫描
     }
-    
+
     // 检查修改时间
     if (existingGame.mtimeMs !== currentMtimeMs) {
       console.log(`文件修改时间变化，需要重新扫描: ${path.basename(filePath)}`);
       return true;
     }
-    
+
     // 检查MD5（如果有的话）
     if (currentMd5 && existingGame.md5 && existingGame.md5 !== currentMd5) {
       console.log(`文件MD5变化，需要重新扫描: ${path.basename(filePath)}`);
       return true;
     }
-    
+
     return false; // 文件未变化，跳过扫描
   }
 
@@ -318,7 +317,6 @@ class DataStore {
     const { setEmulatorConfig } = require('./config/yaml-config');
     return setEmulatorConfig(partial || {});
   }
-
 }
 
 // 导出单例

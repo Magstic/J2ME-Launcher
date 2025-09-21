@@ -25,7 +25,10 @@
   will-change: transform, opacity;
   transform: translateZ(0);
 }
-.selection-rect.fade-out { opacity: 0; }
+
+.selection-rect.fade-out {
+  opacity: 0;
+}
 
 /* 載入狀態容器（不含轉圈本體）由各視圖自行控制布局 */
 .loading-spinner {
@@ -48,8 +51,13 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* 拖拽預覽元素（桌面/資料夾視圖共用） */
@@ -157,7 +165,11 @@
 
 /* === 通用按鈕增強 === */
 .btn.soft-hover {
-  transition: background-color 0.18s ease, color 0.18s ease, filter 0.18s ease, transform 0.06s ease;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    filter 0.18s ease,
+    transform 0.06s ease;
 }
 
 .btn.soft-hover:hover {
@@ -240,13 +252,13 @@
 }
 
 /* === 通用數字輸入樣式 === */
-input[type="number"].form-input::-webkit-outer-spin-button,
-input[type="number"].form-input::-webkit-inner-spin-button {
+input[type='number'].form-input::-webkit-outer-spin-button,
+input[type='number'].form-input::-webkit-inner-spin-button {
   appearance: none;
   margin: 0;
 }
 
-input[type="number"].form-input {
+input[type='number'].form-input {
   appearance: textfield; /* Firefox */
   appearance: none;
 }

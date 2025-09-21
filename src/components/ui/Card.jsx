@@ -5,8 +5,10 @@ export default function Card({ variant = 'default', className = '', children, ..
     'config-card', // preserve existing hook for styles
     'card',
     variant === 'muted' ? 'card-muted' : null,
-    className
-  ].filter(Boolean).join(' ');
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
   return (
     <div className={classes} {...rest}>
       {children}

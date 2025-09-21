@@ -11,6 +11,7 @@
 專案使用 `stylelint-config-standard` 作為基礎配置，無額外自訂規則檔案。
 
 ### 執行腳本（package.json）
+
 ```json
 {
   "scripts": {
@@ -21,6 +22,7 @@
 ```
 
 ### 說明
+
 - **基礎配置**：`stylelint-config-standard@^36.0.1`
   - 採用官方推薦的標準規範，涵蓋常見最佳實踐
   - 包含現代 CSS 語法支援與最佳實踐規則
@@ -31,8 +33,10 @@
 ## 樣式編寫最佳實踐
 
 ### 設計代幣系統
+
 - **優先使用設計代幣**：參考 `src/styles/theme.css` 和 `src/styles/tokens.css`
 - **變數命名規範**：使用 CSS 自訂屬性（CSS Variables）
+
   ```css
   /* ✅ 推薦 */
   .game-card {
@@ -41,17 +45,18 @@
     padding: var(--spacing-md);
     box-shadow: var(--shadow-sm);
   }
-  
+
   /* ❌ 避免 */
   .game-card {
     background: #ffffff;
     border-radius: 8px;
     padding: 16px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
   ```
 
 ### 組件樣式組織
+
 - **職責分離**：組件樣式只負責尺寸、佈局、動畫
 - **外觀統一**：背景、邊框、陰影、圓角由全域樣式提供
 - **覆寫原則**：限制在組件根節點，並添加註解說明
@@ -63,11 +68,11 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: var(--spacing-md);
-  
+
   /* 尺寸相關 */
   width: 100%;
   height: 100%;
-  
+
   /* 動畫相關 */
   transition: opacity var(--duration-fast) var(--easing-standard);
 }
@@ -80,6 +85,7 @@
 ```
 
 ### 動畫與過渡
+
 - **沿用既有模式**：參考 `.desktop-shift-layer` 等既有實作
 - **性能優先**：使用 `transform` 和 `opacity` 進行動畫
 - **減少動畫支援**：遵循 `prefers-reduced-motion` 媒體查詢
@@ -104,6 +110,7 @@
 ```
 
 ## 常見指令
+
 - **檢查樣式**：
   - `npm run stylelint`
 - **自動修復**（謹慎使用）：
@@ -117,11 +124,13 @@
 ### 全域樣式系統 (`src/styles/`)
 
 #### 核心樣式檔案
+
 - **`theme.css`** - 主題變數與色彩系統
 - **`tokens.css`** - 設計系統代幣（間距、字型、圓角等）
 - **`utility.css`** - 工具類樣式（Utility Classes）
 
 #### 組件樣式檔案
+
 - **`dialog.css`** - 對話框通用樣式
 - **`buttons.css`** - 按鈕樣式系統
 - **`focus-ring.css`** - 焦點環與可訪問性樣式
@@ -131,11 +140,13 @@
 與 `.jsx` 檔案同目錄的 `.css` 檔案：
 
 #### 主要組件樣式
+
 - **`DirectoryManager.css`** - 目錄管理器樣式
 - **`Desktop.css`** - 桌面主介面樣式
 - **`FolderDrawer.css`** - 資料夾抽屉樣式
 
 #### 樣式組織原則
+
 ```css
 /* 組件樣式檔案結構範例 */
 
@@ -185,11 +196,7 @@
       }
     ]
   },
-  "ignoreFiles": [
-    "node_modules/**",
-    "dist/**",
-    "build/**"
-  ]
+  "ignoreFiles": ["node_modules/**", "dist/**", "build/**"]
 }
 ```
 
@@ -199,20 +206,28 @@
 
 ```css
 /* Block */
-.game-card { }
+.game-card {
+}
 
 /* Element */
-.game-card__title { }
-.game-card__icon { }
-.game-card__actions { }
+.game-card__title {
+}
+.game-card__icon {
+}
+.game-card__actions {
+}
 
 /* Modifier */
-.game-card--selected { }
-.game-card--loading { }
-.game-card--large { }
+.game-card--selected {
+}
+.game-card--loading {
+}
+.game-card--large {
+}
 
 /* Element + Modifier */
-.game-card__title--truncated { }
+.game-card__title--truncated {
+}
 ```
 
 ### 性能考量

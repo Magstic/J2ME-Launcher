@@ -23,7 +23,7 @@ export default function useContextMenu(callbacks = {}) {
   }, []);
 
   const close = useCallback(() => {
-    setState(prev => ({ ...prev, isVisible: false }));
+    setState((prev) => ({ ...prev, isVisible: false }));
   }, []);
 
   const Element = state.isVisible ? (
@@ -36,5 +36,10 @@ export default function useContextMenu(callbacks = {}) {
     />
   ) : null;
 
-  return { contextMenu: state, openContextMenu: open, closeContextMenu: close, ContextMenuElement: Element };
+  return {
+    contextMenu: state,
+    openContextMenu: open,
+    closeContextMenu: close,
+    ContextMenuElement: Element,
+  };
 }

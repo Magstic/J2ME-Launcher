@@ -11,13 +11,13 @@ const path = require('path');
 
 function normalizePrefix(p) {
   if (!p) return '';
-  return p.replace(/^\/+/,'').replace(/\/+$/,'');
+  return p.replace(/^\/+/, '').replace(/\/+$/, '');
 }
 
 function joinPosix(a, b) {
   if (!a) return b || '';
   if (!b) return a || '';
-  return `${a.replace(/\/+$/,'')}/${b.replace(/^\/+/, '')}`;
+  return `${a.replace(/\/+$/, '')}/${b.replace(/^\/+/, '')}`;
 }
 
 function toPosix(p) {
@@ -37,22 +37,25 @@ function requestRaw({ method, url, headers = {}, body = null, stream = null }) {
   return new Promise((resolve, reject) => {
     const u = new URL(url);
     const client = u.protocol === 'http:' ? http : https;
-    const req = client.request({
-      method,
-      protocol: u.protocol,
-      hostname: u.hostname,
-      port: u.port || (u.protocol === 'http:' ? 80 : 443),
-      path: u.pathname + (u.search || ''),
-      headers
-    }, (res) => {
-      const chunks = [];
-      res.on('data', (c) => chunks.push(Buffer.from(c)));
-      res.on('end', () => {
-        const buffer = Buffer.concat(chunks);
-        const text = buffer.toString('utf8');
-        resolve({ status: res.statusCode || 0, headers: res.headers, buffer, text });
-      });
-    });
+    const req = client.request(
+      {
+        method,
+        protocol: u.protocol,
+        hostname: u.hostname,
+        port: u.port || (u.protocol === 'http:' ? 80 : 443),
+        path: u.pathname + (u.search || ''),
+        headers,
+      },
+      (res) => {
+        const chunks = [];
+        res.on('data', (c) => chunks.push(Buffer.from(c)));
+        res.on('end', () => {
+          const buffer = Buffer.concat(chunks);
+          const text = buffer.toString('utf8');
+          resolve({ status: res.statusCode || 0, headers: res.headers, buffer, text });
+        });
+      }
+    );
     req.on('error', reject);
     if (stream) {
       stream.on('error', (e) => req.destroy(e));
@@ -73,11 +76,11 @@ function ensureLeadingSlash(p) {
 
 function createWebdavProvider(params = {}) {
   const {
-    baseUrl,           // required, e.g. https://webdav.example.com/remote.php/dav/files/user
-    username,          // optional if bearerToken provided
-    password,          // optional if bearerToken provided
-    bearerToken,       // optional
-    prefix = ''        // optional directory under the baseUrl to store files
+    baseUrl, // required, e.g. https://webdav.example.com/remote.php/dav/files/user
+    username, // optional if bearerToken provided
+    password, // optional if bearerToken provided
+    bearerToken, // optional
+    prefix = '', // optional directory under the baseUrl to store files
   } = params;
 
   if (!baseUrl) throw new Error('webdav: missing baseUrl');
@@ -93,9 +96,15 @@ function createWebdavProvider(params = {}) {
     return base + ensureLeadingSlash(safeRel);
   };
 
-  function debugLog(tag, obj) { try { console.log(`[backup:webdav] ${tag}`, obj); } catch (_) {} }
+  function debugLog(tag, obj) {
+    try {
+      console.log(`[backup:webdav] ${tag}`, obj);
+    } catch (_) {}
+  }
 
-  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+  function sleep(ms) {
+    return new Promise((r) => setTimeout(r, ms));
+  }
   function isRetryableStatus(s) {
     if (!s) return true; // network
     if (s === 409 || s === 412 || s === 423 || s === 425 || s === 429) return true;
@@ -110,7 +119,11 @@ function createWebdavProvider(params = {}) {
       : { 'If-None-Match': '*' };
     const res = await requestRaw({ method: 'MKCOL', url, headers });
     // Follow one redirect if provided
-    if ((res.status === 301 || res.status === 302 || res.status === 307 || res.status === 308) && res.headers && res.headers.location) {
+    if (
+      (res.status === 301 || res.status === 302 || res.status === 307 || res.status === 308) &&
+      res.headers &&
+      res.headers.location
+    ) {
       let next = res.headers.location;
       if (!next.endsWith('/')) next += '/';
       return await requestRaw({ method: 'MKCOL', url: next, headers });
@@ -122,7 +135,7 @@ function createWebdavProvider(params = {}) {
   async function ensureParentDirs(relPath) {
     try {
       // Build full directory chain: prefix parts + parent parts of relPath
-      const rootParts = (root ? toPosix(root).split('/').filter(Boolean) : []);
+      const rootParts = root ? toPosix(root).split('/').filter(Boolean) : [];
       const fileParts = toPosix(relPath).split('/').filter(Boolean);
       const parentParts = fileParts.slice(0, Math.max(0, fileParts.length - 1));
       // Create prefix chain first
@@ -138,7 +151,9 @@ function createWebdavProvider(params = {}) {
       }
       // Then create parent directories under prefix
       for (let i = 1; i <= parentParts.length; i++) {
-        const underRoot = root ? joinPosix(root, parentParts.slice(0, i).join('/')) : parentParts.slice(0, i).join('/');
+        const underRoot = root
+          ? joinPosix(root, parentParts.slice(0, i).join('/'))
+          : parentParts.slice(0, i).join('/');
         let url = base + ensureLeadingSlash(underRoot.split('/').map(encodeURIComponent).join('/'));
         if (!url.endsWith('/')) url += '/';
         debugLog('mkcol parent', { url });
@@ -157,9 +172,18 @@ function createWebdavProvider(params = {}) {
     async readText(relPath) {
       const url = toUrl(relPath);
       debugLog('readText', { url });
-      const res = await requestRaw({ method: 'GET', url, headers: authHeader ? { Authorization: authHeader, Accept: 'text/*' } : { Accept: 'text/*' } });
+      const res = await requestRaw({
+        method: 'GET',
+        url,
+        headers: authHeader
+          ? { Authorization: authHeader, Accept: 'text/*' }
+          : { Accept: 'text/*' },
+      });
       if (res.status === 404) return null;
-      if (res.status < 200 || res.status >= 300) { debugLog('readText error', { status: res.status }); return null; }
+      if (res.status < 200 || res.status >= 300) {
+        debugLog('readText error', { status: res.status });
+        return null;
+      }
       return res.text;
     },
 
@@ -168,7 +192,11 @@ function createWebdavProvider(params = {}) {
       const url = toUrl(relPath);
       const body = Buffer.from(String(text || ''), 'utf8');
       const baseHeaders = authHeader
-        ? { Authorization: authHeader, 'Content-Type': 'text/plain; charset=utf-8', 'Content-Length': String(body.length) }
+        ? {
+            Authorization: authHeader,
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Content-Length': String(body.length),
+          }
         : { 'Content-Type': 'text/plain; charset=utf-8', 'Content-Length': String(body.length) };
       let lastErrText = '';
       for (let attempt = 0; attempt < 3; attempt++) {
@@ -192,10 +220,22 @@ function createWebdavProvider(params = {}) {
       const url = toUrl(relPath);
       if (onProgress) onProgress(0);
       let contentLength = null;
-      try { if (typeof size === 'number' && size >= 0) contentLength = size; else contentLength = fs.statSync(localPath).size; } catch (_) { contentLength = null; }
+      try {
+        if (typeof size === 'number' && size >= 0) contentLength = size;
+        else contentLength = fs.statSync(localPath).size;
+      } catch (_) {
+        contentLength = null;
+      }
       const baseHeaders = authHeader
-        ? { Authorization: authHeader, 'Content-Type': 'application/octet-stream', ...(contentLength != null ? { 'Content-Length': String(contentLength) } : {}) }
-        : { 'Content-Type': 'application/octet-stream', ...(contentLength != null ? { 'Content-Length': String(contentLength) } : {}) };
+        ? {
+            Authorization: authHeader,
+            'Content-Type': 'application/octet-stream',
+            ...(contentLength != null ? { 'Content-Length': String(contentLength) } : {}),
+          }
+        : {
+            'Content-Type': 'application/octet-stream',
+            ...(contentLength != null ? { 'Content-Length': String(contentLength) } : {}),
+          };
       let lastErrText = '';
       for (let attempt = 0; attempt < 3; attempt++) {
         const stream = fs.createReadStream(localPath);
@@ -220,19 +260,31 @@ function createWebdavProvider(params = {}) {
     async deleteFile(relPath) {
       const url = toUrl(relPath);
       debugLog('deleteFile', { url });
-      const res = await requestRaw({ method: 'DELETE', url, headers: authHeader ? { Authorization: authHeader } : {} });
+      const res = await requestRaw({
+        method: 'DELETE',
+        url,
+        headers: authHeader ? { Authorization: authHeader } : {},
+      });
       // many servers return 204/200 or 404 if absent
-      if (res.status >= 400 && res.status !== 404) debugLog('deleteFile error', { status: res.status });
+      if (res.status >= 400 && res.status !== 404)
+        debugLog('deleteFile error', { status: res.status });
     },
 
     async downloadFile(relPath, localPath) {
       const url = toUrl(relPath);
       debugLog('downloadFile start', { url, localPath });
-      const res = await requestRaw({ method: 'GET', url, headers: authHeader ? { Authorization: authHeader } : {} });
-      if (res.status < 200 || res.status >= 300) throw new Error(`webdav downloadFile failed: ${res.status}`);
+      const res = await requestRaw({
+        method: 'GET',
+        url,
+        headers: authHeader ? { Authorization: authHeader } : {},
+      });
+      if (res.status < 200 || res.status >= 300)
+        throw new Error(`webdav downloadFile failed: ${res.status}`);
       await new Promise((resolve, reject) => {
-        try { fse.ensureDirSync(path.dirname(localPath)); } catch (_) {}
-        fs.writeFile(localPath, res.buffer, (err) => err ? reject(err) : resolve());
+        try {
+          fse.ensureDirSync(path.dirname(localPath));
+        } catch (_) {}
+        fs.writeFile(localPath, res.buffer, (err) => (err ? reject(err) : resolve()));
       });
       debugLog('downloadFile done', { url });
     },
@@ -242,24 +294,30 @@ function createWebdavProvider(params = {}) {
       const rel = toPosix(prefixRel).replace(/\/+$/, '');
       const relUrl = toUrl(rel || '');
       debugLog('list', { url: relUrl });
-      const headers = { 'Depth': 'infinity' };
+      const headers = { Depth: 'infinity' };
       if (authHeader) headers['Authorization'] = authHeader;
       headers['Content-Type'] = 'text/xml; charset="utf-8"';
       const body = Buffer.from(
         `<?xml version="1.0" encoding="utf-8"?>\n` +
-        `<d:propfind xmlns:d="DAV:">\n` +
-        `  <d:prop>\n` +
-        `    <d:displayname/>\n` +
-        `    <d:getcontentlength/>\n` +
-        `    <d:resourcetype/>\n` +
-        `  </d:prop>\n` +
-        `</d:propfind>\n`, 'utf8');
+          `<d:propfind xmlns:d="DAV:">\n` +
+          `  <d:prop>\n` +
+          `    <d:displayname/>\n` +
+          `    <d:getcontentlength/>\n` +
+          `    <d:resourcetype/>\n` +
+          `  </d:prop>\n` +
+          `</d:propfind>\n`,
+        'utf8'
+      );
       const res = await requestRaw({ method: 'PROPFIND', url: relUrl, headers, body });
-      if (res.status < 200 || res.status >= 300) { debugLog('list error', { status: res.status, text: res.text }); return []; }
+      if (res.status < 200 || res.status >= 300) {
+        debugLog('list error', { status: res.status, text: res.text });
+        return [];
+      }
       const text = res.text || '';
       // Very small XML parse: extract href, getcontentlength, resourcetype collection
       const entries = [];
-      const hrefRe = /<d:response>[\s\S]*?<d:href>([\s\S]*?)<\/d:href>[\s\S]*?<d:propstat>[\s\S]*?<d:prop>[\s\S]*?<d:getcontentlength>([0-9]+)?<[\s\S]*?<d:resourcetype>([\s\S]*?)<\/d:resourcetype>[\s\S]*?<\/d:prop>[\s\S]*?<\/d:propstat>[\s\S]*?<\/d:response>/gi;
+      const hrefRe =
+        /<d:response>[\s\S]*?<d:href>([\s\S]*?)<\/d:href>[\s\S]*?<d:propstat>[\s\S]*?<d:prop>[\s\S]*?<d:getcontentlength>([0-9]+)?<[\s\S]*?<d:resourcetype>([\s\S]*?)<\/d:resourcetype>[\s\S]*?<\/d:prop>[\s\S]*?<\/d:propstat>[\s\S]*?<\/d:response>/gi;
       const baseU = new URL(relUrl);
       const basePath = baseU.pathname.replace(/\/+$/, '') + (rel ? '' : '');
       let m;
@@ -291,12 +349,17 @@ function createWebdavProvider(params = {}) {
           const filename = (root ? joinPosix(root, relFull) : relFull).replace(/^\/+/, '');
           if (!seen.has(filename)) {
             seen.add(filename);
-            entries.push({ filename, basename: name, isDirectory: false, size: Number(sizeStr || 0) });
+            entries.push({
+              filename,
+              basename: name,
+              isDirectory: false,
+              size: Number(sizeStr || 0),
+            });
           }
         }
       }
       return entries;
-    }
+    },
   };
 }
 

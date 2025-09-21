@@ -25,7 +25,9 @@ function cleanupOrphanClusters() {
   return { success: true, deleted: res.changes || 0 };
 }
 
-function nowISO() { return new Date().toISOString(); }
+function nowISO() {
+  return new Date().toISOString();
+}
 
 // Create a cluster and optionally add initial members (all-or-nothing transaction)
 function createCluster(payload = {}) {
@@ -35,7 +37,9 @@ function createCluster(payload = {}) {
   const description = payload.description || null;
   const icon = payload.icon || null;
   const givenPrimary = normalizePathInput(payload.primaryFilePath || null);
-  const filePaths = Array.isArray(payload.filePaths) ? payload.filePaths.map(normalizePathInput).filter(Boolean) : [];
+  const filePaths = Array.isArray(payload.filePaths)
+    ? payload.filePaths.map(normalizePathInput).filter(Boolean)
+    : [];
   const createdAt = nowISO();
   const updatedAt = createdAt;
 
@@ -56,7 +60,9 @@ function createCluster(payload = {}) {
     let inserted = 0;
     let firstInserted = null;
     for (const fp of filePaths) {
-      try { ensureGame.run(fp); } catch (_) {}
+      try {
+        ensureGame.run(fp);
+      } catch (_) {}
       try {
         insertMember.run(id, fp, createdAt);
         inserted++;
@@ -77,14 +83,18 @@ function createCluster(payload = {}) {
     // 設定主成員：優先使用 payload.primaryFilePath，其次使用實際成功插入的第一個成員
     const primary = givenPrimary || firstInserted || null;
     if (primary) {
-      const exists = db.prepare(`SELECT 1 FROM cluster_games WHERE clusterId=? AND filePath=?`).get(id, primary);
+      const exists = db
+        .prepare(`SELECT 1 FROM cluster_games WHERE clusterId=? AND filePath=?`)
+        .get(id, primary);
       if (exists) setPrimary.run(primary, nowISO(), id);
     }
 
     // 若未提供名稱，則從簇成員中隨機挑選一個遊戲名稱作為預設名稱
     if (!name) {
       try {
-        const pick = db.prepare(`
+        const pick = db
+          .prepare(
+            `
           SELECT g.gameName AS n
           FROM cluster_games cg
           JOIN games g ON g.filePath = cg.filePath COLLATE NOCASE
@@ -92,10 +102,16 @@ function createCluster(payload = {}) {
             AND g.gameName IS NOT NULL AND TRIM(g.gameName) <> ''
           ORDER BY RANDOM()
           LIMIT 1
-        `).get(id);
+        `
+          )
+          .get(id);
         const picked = pick && pick.n ? pick.n : null;
         const finalName = picked || 'Cluster';
-        db.prepare(`UPDATE clusters SET name=?, updatedAt=? WHERE id=?`).run(finalName, nowISO(), id);
+        db.prepare(`UPDATE clusters SET name=?, updatedAt=? WHERE id=?`).run(
+          finalName,
+          nowISO(),
+          id
+        );
       } catch (_) {
         // 忽略命名失敗，保持為空或預設
       }
@@ -121,7 +137,9 @@ function addGamesToCluster(clusterId, filePaths) {
   const tx = db.transaction(() => {
     const t = nowISO();
     for (const fp of fps) {
-      try { ensureGame.run(fp); } catch (_) {}
+      try {
+        ensureGame.run(fp);
+      } catch (_) {}
       try {
         insertMember.run(clusterId, fp, t);
       } catch (e) {
@@ -143,13 +161,18 @@ function removeGameFromCluster(clusterId, filePath) {
   try {
     const row = db.prepare(`SELECT primaryFilePath FROM clusters WHERE id=?`).get(clusterId);
     if (row && row.primaryFilePath === fp) {
-      db.prepare(`UPDATE clusters SET primaryFilePath=NULL, updatedAt=? WHERE id=?`).run(nowISO(), clusterId);
+      db.prepare(`UPDATE clusters SET primaryFilePath=NULL, updatedAt=? WHERE id=?`).run(
+        nowISO(),
+        clusterId
+      );
     }
   } catch (_) {}
   // 如果簇已無任何成員，則自動刪除該簇（符合“空簇不保留”的預期）
   let clusterDeleted = 0;
   try {
-    const cntRow = db.prepare(`SELECT COUNT(1) AS c FROM cluster_games WHERE clusterId=?`).get(clusterId);
+    const cntRow = db
+      .prepare(`SELECT COUNT(1) AS c FROM cluster_games WHERE clusterId=?`)
+      .get(clusterId);
     const cnt = cntRow && typeof cntRow.c === 'number' ? cntRow.c : 0;
     if (cnt === 0) {
       const delCluster = db.prepare(`DELETE FROM clusters WHERE id=?`).run(clusterId);
@@ -164,8 +187,14 @@ function updateClusterMemberTags(clusterId, filePath, tags) {
   const db = getDB();
   const fp = normalizePathInput(filePath);
   let tagsJson = null;
-  try { tagsJson = tags == null ? null : JSON.stringify(tags); } catch (_) { tagsJson = null; }
-  const res = db.prepare(`UPDATE cluster_games SET tags=? WHERE clusterId=? AND filePath=?`).run(tagsJson, clusterId, fp);
+  try {
+    tagsJson = tags == null ? null : JSON.stringify(tags);
+  } catch (_) {
+    tagsJson = null;
+  }
+  const res = db
+    .prepare(`UPDATE cluster_games SET tags=? WHERE clusterId=? AND filePath=?`)
+    .run(tagsJson, clusterId, fp);
   return { success: true, updated: res.changes || 0 };
 }
 
@@ -173,9 +202,13 @@ function updateClusterMemberTags(clusterId, filePath, tags) {
 function setClusterPrimary(clusterId, filePath) {
   const db = getDB();
   const fp = normalizePathInput(filePath);
-  const exists = db.prepare(`SELECT 1 FROM cluster_games WHERE clusterId=? AND filePath=?`).get(clusterId, fp);
+  const exists = db
+    .prepare(`SELECT 1 FROM cluster_games WHERE clusterId=? AND filePath=?`)
+    .get(clusterId, fp);
   if (!exists) throw new Error('E_PRIMARY_NOT_MEMBER');
-  const res = db.prepare(`UPDATE clusters SET primaryFilePath=?, updatedAt=? WHERE id=?`).run(fp, nowISO(), clusterId);
+  const res = db
+    .prepare(`UPDATE clusters SET primaryFilePath=?, updatedAt=? WHERE id=?`)
+    .run(fp, nowISO(), clusterId);
   return { success: true, updated: res.changes || 0 };
 }
 
@@ -187,20 +220,33 @@ function updateCluster(payload = {}) {
   // allow partial update
   const fields = [];
   const params = [];
-  if (payload.name !== undefined) { fields.push('name=?'); params.push(payload.name); }
-  if (payload.description !== undefined) { fields.push('description=?'); params.push(payload.description); }
-  if (payload.icon !== undefined) { fields.push('icon=?'); params.push(payload.icon); }
+  if (payload.name !== undefined) {
+    fields.push('name=?');
+    params.push(payload.name);
+  }
+  if (payload.description !== undefined) {
+    fields.push('description=?');
+    params.push(payload.description);
+  }
+  if (payload.icon !== undefined) {
+    fields.push('icon=?');
+    params.push(payload.icon);
+  }
   if (payload.primaryFilePath !== undefined) {
     const fp = payload.primaryFilePath ? normalizePathInput(payload.primaryFilePath) : null;
     if (fp) {
-      const ok = db.prepare(`SELECT 1 FROM cluster_games WHERE clusterId=? AND filePath=?`).get(id, fp);
+      const ok = db
+        .prepare(`SELECT 1 FROM cluster_games WHERE clusterId=? AND filePath=?`)
+        .get(id, fp);
       if (!ok) throw new Error('E_PRIMARY_NOT_MEMBER');
-      fields.push('primaryFilePath=?'); params.push(fp);
+      fields.push('primaryFilePath=?');
+      params.push(fp);
     } else {
       fields.push('primaryFilePath=NULL');
     }
   }
-  fields.push('updatedAt=?'); params.push(nowISO());
+  fields.push('updatedAt=?');
+  params.push(nowISO());
   params.push(id);
 
   const sql = `UPDATE clusters SET ${fields.join(', ')} WHERE id=?`;
@@ -230,23 +276,33 @@ function mergeClusters(fromId, toId) {
 
     // Move members: update clusterId from source to target
     // This respects UNIQUE(filePath) across cluster_games since each filePath exists only once.
-    const beforeCountRow = db.prepare(`SELECT COUNT(1) AS c FROM cluster_games WHERE clusterId=?`).get(fromId);
+    const beforeCountRow = db
+      .prepare(`SELECT COUNT(1) AS c FROM cluster_games WHERE clusterId=?`)
+      .get(fromId);
     const beforeMoved = beforeCountRow ? beforeCountRow.c : 0;
     db.prepare(`UPDATE cluster_games SET clusterId=? WHERE clusterId=?`).run(toId, fromId);
 
     // Merge folder links: insert missing links then delete source links
-    db.prepare(`
+    db.prepare(
+      `
       INSERT OR IGNORE INTO folder_clusters (folderId, clusterId, addedTime)
       SELECT folderId, ?, COALESCE(addedTime, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
       FROM folder_clusters WHERE clusterId=?
-    `).run(toId, fromId);
+    `
+    ).run(toId, fromId);
     const delFolder = db.prepare(`DELETE FROM folder_clusters WHERE clusterId=?`).run(fromId);
 
     // Primary handling: keep target primary if set; if not set, adopt source primary if exists and now a member of target
     if (!tgt.primaryFilePath && src.primaryFilePath) {
-      const exists = db.prepare(`SELECT 1 FROM cluster_games WHERE clusterId=? AND filePath=?`).get(toId, src.primaryFilePath);
+      const exists = db
+        .prepare(`SELECT 1 FROM cluster_games WHERE clusterId=? AND filePath=?`)
+        .get(toId, src.primaryFilePath);
       if (exists) {
-        db.prepare(`UPDATE clusters SET primaryFilePath=?, updatedAt=? WHERE id=?`).run(src.primaryFilePath, nowISO(), toId);
+        db.prepare(`UPDATE clusters SET primaryFilePath=?, updatedAt=? WHERE id=?`).run(
+          src.primaryFilePath,
+          nowISO(),
+          toId
+        );
       }
     }
 

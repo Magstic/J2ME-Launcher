@@ -216,7 +216,10 @@
   background: var(--dialog-bg);
   color: var(--text-primary);
   outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
   box-sizing: border-box;
 }
 
@@ -232,16 +235,24 @@ input.form-input[readonly] {
 /* 下拉選擇美化 */
 select.form-input {
   appearance: none;
-  background-image: linear-gradient(45deg, transparent 50%, var(--text-secondary) 50%),
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--text-secondary) 50%),
     linear-gradient(135deg, var(--text-secondary) 50%, transparent 50%),
     linear-gradient(to right, transparent, transparent);
-  background-position: calc(100% - 18px) 50%, calc(100% - 12px) 50%, 100% 0;
-  background-size: 6px 6px, 6px 6px, 2.5em 100%;
+  background-position:
+    calc(100% - 18px) 50%,
+    calc(100% - 12px) 50%,
+    100% 0;
+  background-size:
+    6px 6px,
+    6px 6px,
+    2.5em 100%;
   background-repeat: no-repeat;
 }
 
 /* 單選框風格微調（保留原生但跟隨主題色） */
-input[type="radio"], input[type="checkbox"] {
+input[type='radio'],
+input[type='checkbox'] {
   accent-color: var(--accent-color);
 }
 
@@ -262,7 +273,11 @@ input[type="radio"], input[type="checkbox"] {
   color: var(--text-primary);
   cursor: pointer;
   user-select: none;
-  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease;
 }
 
 .radio-group .radio-option:hover {
@@ -272,7 +287,9 @@ input[type="radio"], input[type="checkbox"] {
 
 /* 選中狀態：更高對比度與描邊 */
 .radio-group .radio-option.checked {
-  background: color-mix(in srgb, var(--accent-color) 15%, transparent); /* 依主題色做柔和底色（代幣化） */
+  background: color-mix(in srgb, var(--accent-color) 15%, transparent);
+
+  /* 依主題色做柔和底色（代幣化） */
   border-color: var(--accent-color);
   box-shadow: 0 0 0 2px var(--focus-ring) inset;
 }
@@ -294,7 +311,10 @@ input[type="radio"], input[type="checkbox"] {
   display: inline-block;
   position: relative;
   cursor: pointer;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
 }
 
 .radio-input:focus-visible {
@@ -341,7 +361,7 @@ input[type="radio"], input[type="checkbox"] {
 }
 
 /* Modern checkboxes (scoped to modal to avoid global regressions) */
-.modal-body input[type="checkbox"] {
+.modal-body input[type='checkbox'] {
   appearance: none;
   width: 20px;
   height: 20px;
@@ -355,25 +375,28 @@ input[type="radio"], input[type="checkbox"] {
   display: inline-block;
   position: relative;
   cursor: pointer;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
 }
 
-.modal-body input[type="checkbox"]:hover {
+.modal-body input[type='checkbox']:hover {
   border-color: var(--accent-color);
 }
 
-.modal-body input[type="checkbox"]:focus-visible {
+.modal-body input[type='checkbox']:focus-visible {
   outline: none;
   box-shadow: var(--shadow-lg);
 }
 
-.modal-body input[type="checkbox"]:checked {
+.modal-body input[type='checkbox']:checked {
   background: var(--accent-color);
   border-color: var(--accent-color);
 }
 
-.modal-body input[type="checkbox"]:checked::after {
-  content: "";
+.modal-body input[type='checkbox']:checked::after {
+  content: '';
   position: absolute;
   top: 50%;
   left: 50%;
@@ -420,7 +443,9 @@ input[type="radio"], input[type="checkbox"] {
   justify-content: center;
   border-radius: 4px;
   color: var(--text-secondary);
-  transition: transform 0.15s ease, background 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease;
 }
 
 .section-header:hover .caret {
@@ -472,7 +497,7 @@ input[type="radio"], input[type="checkbox"] {
   /* 佔滿剩餘高度，空狀態才能垂直置中 */
 
   flex: 1 1 auto;
-  
+
   /* 重要：允許在彈性容器中縮小，啟用自身滾動 */
   min-height: 0;
 }
@@ -581,22 +606,22 @@ input[type="radio"], input[type="checkbox"] {
     width: 95vw;
     height: 85vh;
   }
-  
+
   .modal-body {
     padding: 16px;
   }
-  
+
   .action-buttons {
     flex-direction: column;
     gap: 8px;
   }
-  
+
   .directory-item {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
   }
-  
+
   .directory-actions {
     align-self: flex-end;
   }

@@ -9,9 +9,7 @@ export default function LibretroFJPlus({ romCache = false, onRomCacheChange, dis
   return (
     <>
       <RomCacheSwitch checked={romCache} onChange={onRomCacheChange} disabled={disabled} />
-      <div className="hint text-12 text-secondary">
-        {t('emulatorConfig.libretroFJP.hint')}
-      </div>
+      <div className="hint text-12 text-secondary">{t('emulatorConfig.libretroFJP.hint')}</div>
     </>
   );
 }

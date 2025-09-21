@@ -1,4 +1,5 @@
 # I18N 貢獻指南（新增語言）
+
 # I18N Contribution Guide (Add a New Language)
 
 本指南說明如何為 J2ME Launcher 新增一個介面語言，適用於 PR 提交者。
@@ -6,6 +7,7 @@
 This guide explains how to add a new UI language for J2ME Launcher, intended for PR contributors.
 
 ## 檔名與規範
+
 ## File naming and conventions
 
 - 採用 IETF BCP 47 語言代碼，如：`en-US`、`zh-TW`、`ja-JP`、`fr-FR`。
@@ -17,6 +19,7 @@ This guide explains how to add a new UI language for J2ME Launcher, intended for
 - Encoding and style: UTF-8, JSON, 2-space indentation.
 
 ## 步驟一：建立對應的 JSON 檔
+
 ## Step 1: Create the locale JSON
 
 1. 複製一份現有語言檔作為模板（建議以 `en-US.json` 為基準）。
@@ -26,14 +29,15 @@ This guide explains how to add a new UI language for J2ME Launcher, intended for
    - 勿移除或新增插值變數，如 `{{count}}`、`{{date}}`。
    - 文字內可使用換行 `\n`；請保留必要的標點符號與引號逃逸。
 
-1. Copy an existing locale as a template (recommend `en-US.json`).
-2. Rename it to your language code, e.g. `src/locales/ja-JP.json`.
-3. Translate values while keeping the exact key structure.
+4. Copy an existing locale as a template (recommend `en-US.json`).
+5. Rename it to your language code, e.g. `src/locales/ja-JP.json`.
+6. Translate values while keeping the exact key structure.
    - Do not change key names or hierarchy.
    - Do not remove/add interpolation tokens like `{{count}}`, `{{date}}`.
    - You may use `\n` for line breaks; keep punctuation and escaped quotes intact.
 
 ## 步驟二：在程式中註冊語言
+
 ## Step 2: Register the language in code
 
 - 編輯 `src/contexts/I18nContext.jsx` 中的 `SUPPORTED_LANGUAGES`：
@@ -56,6 +60,7 @@ export const SUPPORTED_LANGUAGES = {
 > Note: `SUPPORTED_LANGUAGES` controls the language menu and allowed switches.
 
 ## 步驟三：本地測試與驗證
+
 ## Step 3: Local testing and verification
 
 1. 開發模式啟動：
@@ -64,24 +69,27 @@ export const SUPPORTED_LANGUAGES = {
 2. 切換語言：
    - 透過應用內設定（若有語言選單），或在 DevTools 中執行：
      ```js
-     localStorage.setItem('language', '<lang>'); location.reload();
+     localStorage.setItem('language', '<lang>');
+     location.reload();
      ```
 3. 檢查主控台警告：
    - `t('...')` 找不到對應 key 時，會在 Console 警告“Translation missing for key”。
    - 請補齊所有缺漏鍵值；建議使用差異工具對照 `en-US.json`。
 
-1. Start dev mode: `npm run dev`.
+4. Start dev mode: `npm run dev`.
    - In dev, locale JSON supports hot reload (changes apply within ~1s).
-2. Switch language:
+5. Switch language:
    - Via in-app settings (if available), or in DevTools:
      ```js
-     localStorage.setItem('language', '<lang>'); location.reload();
+     localStorage.setItem('language', '<lang>');
+     location.reload();
      ```
-3. Check console warnings:
+6. Check console warnings:
    - When `t('...')` misses a key, you’ll see “Translation missing for key”.
    - Fill missing keys; diff against `en-US.json` as reference.
 
 ## 翻譯品質建議
+
 ## Translation quality tips
 
 - 風格一致：術語在整個應用中保持一致（如：設定/配置、資料夾/文件夾）。
@@ -97,6 +105,7 @@ export const SUPPORTED_LANGUAGES = {
 - Interpolation: don’t translate/remove `{{var}}`; ensure surrounding text reads naturally.
 
 ## PR 檢查清單（必填）
+
 ## PR checklist (required)
 
 - [ ] 新增 `src/locales/<lang>.json`，鍵值結構與 `en-US.json` 對齊。
@@ -118,21 +127,23 @@ export const SUPPORTED_LANGUAGES = {
 - [ ] Text lengths don’t break layouts at common window widths.
 
 ## 進階：系統語言偵測與預設
+
 ## Advanced: system language detection and defaults
 
 - `src/contexts/I18nContext.jsx` 會依下列順序決定語言：
-  1) `localStorage.language`
-  2) 系統語言 `navigator.language`
-  3) `DEFAULT_LANGUAGE`（目前為 `zh-TW`）
+  1. `localStorage.language`
+  2. 系統語言 `navigator.language`
+  3. `DEFAULT_LANGUAGE`（目前為 `zh-TW`）
 - 若系統語言返回不受支援的代碼，會嘗試載入對應檔案；失敗則回退至預設語言。
 
 - Language resolution order in `src/contexts/I18nContext.jsx`:
-  1) `localStorage.language`
-  2) System language `navigator.language`
-  3) `DEFAULT_LANGUAGE` (currently `zh-TW`)
+  1. `localStorage.language`
+  2. System language `navigator.language`
+  3. `DEFAULT_LANGUAGE` (currently `zh-TW`)
 - If the system language is unsupported, we try to load it; on failure, we fall back to the default.
 
 ## 常見問題
+
 ## FAQ
 
 - Q：可以只翻譯部分鍵值嗎？

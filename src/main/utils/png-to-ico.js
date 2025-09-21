@@ -49,7 +49,8 @@ async function writeIcoFromPng(pngPath, outIcoPath) {
   // Compute fit size to preserve aspect within 64x64
   const { width: srcW, height: srcH } = img.getSize();
   const MAX = 64;
-  let fitW = MAX, fitH = MAX;
+  let fitW = MAX,
+    fitH = MAX;
   if (srcW && srcH) {
     const scale = Math.min(MAX / srcW, MAX / srcH);
     fitW = Math.max(1, Math.round(srcW * scale));
@@ -61,7 +62,8 @@ async function writeIcoFromPng(pngPath, outIcoPath) {
 
   // Letterbox: composite onto a transparent 64x64 BGRA buffer, centered
   const srcBmp = resized.toBitmap(); // BGRA for fitW x fitH
-  const canvasW = MAX, canvasH = MAX;
+  const canvasW = MAX,
+    canvasH = MAX;
   const dstBmp = Buffer.alloc(canvasW * canvasH * 4, 0); // fully transparent
   const offsetX = Math.floor((canvasW - fitW) / 2);
   const offsetY = Math.floor((canvasH - fitH) / 2);

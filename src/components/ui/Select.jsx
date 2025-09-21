@@ -44,13 +44,16 @@ export default function Select({
   // getScrollParent 已抽象至 '@/utils/dom/scroll'
 
   // 在開啟期間鎖定滾輪/觸摸滾動到下拉列表內部，避免頁面滾動
-  useWheelTouchLock({ enabled: (open || isClosing), insideRef: listRef });
+  useWheelTouchLock({ enabled: open || isClosing, insideRef: listRef });
 
   // 以時間函數執行平滑滾動
   const animateScrollBy = (el, delta, duration = 200) => {
     if (!el || !Number.isFinite(delta) || Math.abs(delta) < 0.5) return Promise.resolve();
     return new Promise((resolve) => {
-      const start = (el === document.scrollingElement || el === document.documentElement) ? (window.pageYOffset || el.scrollTop) : el.scrollTop;
+      const start =
+        el === document.scrollingElement || el === document.documentElement
+          ? window.pageYOffset || el.scrollTop
+          : el.scrollTop;
       const target = start + delta;
       const t0 = performance.now();
       smoothingRef.current = true;
@@ -92,7 +95,7 @@ export default function Select({
     const rect = btn.getBoundingClientRect();
     const margin = 6;
     const desired = 240; // 與 .select-list max-height 對齊
-    const spaceBelow = (window.innerHeight - rect.bottom) - margin;
+    const spaceBelow = window.innerHeight - rect.bottom - margin;
     const spaceAbove = rect.top - margin;
     const dropUp = spaceBelow < Math.min(180, desired) && spaceAbove > spaceBelow; // 偏好向上
     const maxHeight = Math.max(120, Math.min(desired, dropUp ? spaceAbove : spaceBelow));
@@ -102,7 +105,7 @@ export default function Select({
       maxHeight,
       dropUp,
     };
-    if (dropUp) pos.bottom = Math.round((window.innerHeight - rect.top) + margin);
+    if (dropUp) pos.bottom = Math.round(window.innerHeight - rect.top + margin);
     else pos.top = Math.round(rect.bottom + margin);
     return pos;
   };
@@ -124,7 +127,10 @@ export default function Select({
     }, 120);
   };
 
-  const selected = useMemo(() => options.find(o => String(o.value) === String(value)) || null, [options, value]);
+  const selected = useMemo(
+    () => options.find((o) => String(o.value) === String(value)) || null,
+    [options, value]
+  );
 
   // Listen for other Selects opening; if another opens, close this one gracefully
   useEffect(() => {
@@ -156,9 +162,20 @@ export default function Select({
     const onResize = () => closeWithAnimation();
     const onKeyDown = (e) => {
       if (!(open || isClosing)) return;
-      if (e.key === 'Escape') { closeWithAnimation(); return; }
-      if (e.key === 'ArrowDown') { e.preventDefault(); setHighlightIndex(i => Math.min(options.length - 1, (i < 0 ? 0 : i + 1))); return; }
-      if (e.key === 'ArrowUp') { e.preventDefault(); setHighlightIndex(i => Math.max(0, (i < 0 ? options.length - 1 : i - 1))); return; }
+      if (e.key === 'Escape') {
+        closeWithAnimation();
+        return;
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setHighlightIndex((i) => Math.min(options.length - 1, i < 0 ? 0 : i + 1));
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setHighlightIndex((i) => Math.max(0, i < 0 ? options.length - 1 : i - 1));
+        return;
+      }
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         if (highlightIndex >= 0 && options[highlightIndex]) {
@@ -186,13 +203,19 @@ export default function Select({
   useEffect(() => {
     if (open) {
       // 初次開啟時將高亮設置為當前選中
-      const idx = options.findIndex(o => String(o.value) === String(value));
+      const idx = options.findIndex((o) => String(o.value) === String(value));
       setHighlightIndex(idx >= 0 ? idx : -1);
       // 計算 portal 定位並聚焦列表（不再平滑滾動父容器）
       setPortalPos(computePortalPosition());
       // 標記是否位於對話框內（影響 popover 主題代幣）
-      try { setInDialog(!!(rootRef.current && rootRef.current.closest('.modal-body'))); } catch (_) { setInDialog(false); }
-      const t = window.setTimeout(() => { listRef.current && listRef.current.focus(); }, 0);
+      try {
+        setInDialog(!!(rootRef.current && rootRef.current.closest('.modal-body')));
+      } catch (_) {
+        setInDialog(false);
+      }
+      const t = window.setTimeout(() => {
+        listRef.current && listRef.current.focus();
+      }, 0);
       return () => window.clearTimeout(t);
     } else {
       // 關閉後把焦點還給按鈕
@@ -220,7 +243,9 @@ export default function Select({
       }
     } catch {}
     if (disabled) return;
-    try { onChange && onChange(opt.value); } catch {}
+    try {
+      onChange && onChange(opt.value);
+    } catch {}
     closeWithAnimation();
   };
 
@@ -228,7 +253,10 @@ export default function Select({
   const sizeClass = size === 'sm' ? 'select-sm' : size === 'lg' ? 'select-lg' : 'select-md';
 
   return (
-    <div className={`select-root ${sizeClass} ${disabled ? 'is-disabled' : ''} ${className}`} ref={rootRef}>
+    <div
+      className={`select-root ${sizeClass} ${disabled ? 'is-disabled' : ''} ${className}`}
+      ref={rootRef}
+    >
       <button
         type="button"
         className={`select-button ${selected ? 'has-value' : 'placeholder'}`}
@@ -239,7 +267,9 @@ export default function Select({
           } else {
             // Notify others to close
             try {
-              const ev = new CustomEvent(SELECT_OPEN_EVENT, { detail: { openingId: idRef.current } });
+              const ev = new CustomEvent(SELECT_OPEN_EVENT, {
+                detail: { openingId: idRef.current },
+              });
               document.dispatchEvent(ev);
             } catch (_) {}
             // 立即開啟（使用 portal 固定定位，不再滾動父容器）
@@ -251,45 +281,53 @@ export default function Select({
         ref={buttonRef}
         disabled={disabled}
       >
-        <span className="select-label" title={selected ? selected.label : ''}>{displayLabel}</span>
+        <span className="select-label" title={selected ? selected.label : ''}>
+          {displayLabel}
+        </span>
         <span className={`select-caret ${open ? 'up' : 'down'}`}>▾</span>
       </button>
 
-      {(open || isClosing) && portalPos && createPortal(
-        <div
-          className={`select-popover ${portalPos.dropUp ? 'drop-up' : ''} ${isClosing ? 'closing' : ''} ${inDialog ? 'in-dialog' : ''}`}
-          style={{
-            position: 'fixed',
-            left: portalPos.left,
-            top: portalPos.top ?? undefined,
-            bottom: portalPos.bottom ?? undefined,
-            minWidth: portalPos.width,
-            zIndex: 11000,
-          }}
-        >
-          <ul className="select-list" role="listbox" tabIndex={-1} ref={listRef} style={{ maxHeight: portalPos.maxHeight }}>
-            {options.map((opt, idx) => (
-              <li
-                key={String(opt.value)}
-                role="option"
-                aria-selected={String(opt.value) === String(value)}
-                className={`select-option ${highlightIndex === idx ? 'is-highlight' : ''} ${String(opt.value) === String(value) ? 'is-selected' : ''}`}
-                onMouseEnter={() => setHighlightIndex(idx)}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => handleSelect(opt)}
-                title={opt.label}
-              >
-                <span className="option-label">{opt.label}</span>
-                {String(opt.value) === String(value) && <span className="option-check">✓</span>}
-              </li>
-            ))}
-            {options.length === 0 && (
-              <li className="select-empty">無可用選項</li>
-            )}
-          </ul>
-        </div>,
-        document.body
-      )}
+      {(open || isClosing) &&
+        portalPos &&
+        createPortal(
+          <div
+            className={`select-popover ${portalPos.dropUp ? 'drop-up' : ''} ${isClosing ? 'closing' : ''} ${inDialog ? 'in-dialog' : ''}`}
+            style={{
+              position: 'fixed',
+              left: portalPos.left,
+              top: portalPos.top ?? undefined,
+              bottom: portalPos.bottom ?? undefined,
+              minWidth: portalPos.width,
+              zIndex: 11000,
+            }}
+          >
+            <ul
+              className="select-list"
+              role="listbox"
+              tabIndex={-1}
+              ref={listRef}
+              style={{ maxHeight: portalPos.maxHeight }}
+            >
+              {options.map((opt, idx) => (
+                <li
+                  key={String(opt.value)}
+                  role="option"
+                  aria-selected={String(opt.value) === String(value)}
+                  className={`select-option ${highlightIndex === idx ? 'is-highlight' : ''} ${String(opt.value) === String(value) ? 'is-selected' : ''}`}
+                  onMouseEnter={() => setHighlightIndex(idx)}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => handleSelect(opt)}
+                  title={opt.label}
+                >
+                  <span className="option-label">{opt.label}</span>
+                  {String(opt.value) === String(value) && <span className="option-check">✓</span>}
+                </li>
+              ))}
+              {options.length === 0 && <li className="select-empty">無可用選項</li>}
+            </ul>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

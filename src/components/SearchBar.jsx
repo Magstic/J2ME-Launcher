@@ -1,7 +1,15 @@
 import React from 'react';
 import { useTranslation } from '@hooks/useTranslation';
 
-function SearchBar({ searchTerm, onSearchChange, onSearch, gameCount, filteredCount, totalCount, directory }) {
+function SearchBar({
+  searchTerm,
+  onSearchChange,
+  onSearch,
+  gameCount,
+  filteredCount,
+  totalCount,
+  directory,
+}) {
   const { t } = useTranslation();
   const handleChange = (e) => {
     const val = e.target.value;

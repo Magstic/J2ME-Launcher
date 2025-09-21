@@ -9,7 +9,7 @@ function rowToGame(row) {
   const base = {
     filePath: row.filePath,
     gameName: row.customName || row.gameName, // 優先使用自訂名稱
-    vendor: row.customVendor || row.vendor,   // 優先使用自訂開發商
+    vendor: row.customVendor || row.vendor, // 優先使用自訂開發商
     version: row.version,
     md5: row.md5,
     iconPath: row.iconPath,
@@ -19,21 +19,25 @@ function rowToGame(row) {
     originalName: row.gameName,
     originalVendor: row.vendor,
     customName: row.customName,
-    customVendor: row.customVendor
+    customVendor: row.customVendor,
   };
   return manifest ? { ...base, ...manifest } : base;
 }
 
 function getAllGamesFromSql() {
   const db = getDB();
-  const rows = db.prepare(`
+  const rows = db
+    .prepare(
+      `
     SELECT * FROM games g
     WHERE EXISTS (
       SELECT 1 FROM directories d
       WHERE d.enabled = 1 AND g.filePath GLOB (d.path || '*')
     )
     ORDER BY gameName
-  `).all();
+  `
+    )
+    .all();
   return rows.map(rowToGame);
 }
 

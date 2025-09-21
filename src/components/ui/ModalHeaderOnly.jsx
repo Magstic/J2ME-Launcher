@@ -36,7 +36,9 @@ export default function ModalHeaderOnly({
   const contentRef = useRef(null);
 
   // 重置關閉狀態
-  useEffect(() => { if (isOpen) setIsClosing(false); }, [isOpen]);
+  useEffect(() => {
+    if (isOpen) setIsClosing(false);
+  }, [isOpen]);
 
   // ESC 關閉
   useEffect(() => {
@@ -53,7 +55,9 @@ export default function ModalHeaderOnly({
     if (!isOpen) return;
     const t = setTimeout(() => {
       if (initialFocusRef && initialFocusRef.current && initialFocusRef.current.focus) {
-        try { initialFocusRef.current.focus(); } catch {}
+        try {
+          initialFocusRef.current.focus();
+        } catch {}
       }
     }, 0);
     return () => clearTimeout(t);
@@ -63,10 +67,12 @@ export default function ModalHeaderOnly({
   useEffect(() => {
     const active = !!(isOpen || isClosing);
     if (active) {
-      try { window.__modalOverlayCount = (window.__modalOverlayCount || 0) + 1; } catch {}
+      try {
+        window.__modalOverlayCount = (window.__modalOverlayCount || 0) + 1;
+      } catch {}
     }
     const updateBodyClass = () => {
-      const cnt = (window.__modalOverlayCount || 0);
+      const cnt = window.__modalOverlayCount || 0;
       if (cnt > 0) document.body.classList.add('any-modal-open');
       else document.body.classList.remove('any-modal-open');
     };
@@ -81,14 +87,14 @@ export default function ModalHeaderOnly({
 
   // 若正在關閉且這是最後一個彈窗，提前觸發 FAB 的漸出效果
   useEffect(() => {
-    const count = (window.__modalOverlayCount || 0);
+    const count = window.__modalOverlayCount || 0;
     if (isClosing && count === 1) {
       document.body.classList.add('modal-fading-out');
     } else if (!isClosing && count > 0) {
       document.body.classList.remove('modal-fading-out');
     }
     return () => {
-      const remaining = (window.__modalOverlayCount || 0);
+      const remaining = window.__modalOverlayCount || 0;
       if (remaining === 0) document.body.classList.remove('modal-fading-out');
     };
   }, [isClosing]);
@@ -104,7 +110,11 @@ export default function ModalHeaderOnly({
   const sizeClass = size === 'sm' ? 'modal-sm' : size === 'lg' ? 'modal-lg' : 'modal-md';
 
   return (
-    <div className={`modal-overlay ${isClosing ? 'closing' : ''}`} onClick={closeOnOverlay ? startClose : undefined} style={{ zIndex }}>
+    <div
+      className={`modal-overlay ${isClosing ? 'closing' : ''}`}
+      onClick={closeOnOverlay ? startClose : undefined}
+      style={{ zIndex }}
+    >
       <div
         className={`modal-content directory-manager ${sizeClass} ${className}`}
         onClick={(e) => e.stopPropagation()}
@@ -115,13 +125,13 @@ export default function ModalHeaderOnly({
         <div className="modal-header">
           <h2>{title}</h2>
           {allowCloseButton && (
-            <button className="modal-close-btn" onClick={startClose} aria-label="關閉">×</button>
+            <button className="modal-close-btn" onClick={startClose} aria-label="關閉">
+              ×
+            </button>
           )}
           {headerExtra}
         </div>
-        <div className={`modal-body ${bodyClassName}`}>
-          {children}
-        </div>
+        <div className={`modal-body ${bodyClassName}`}>{children}</div>
       </div>
     </div>
   );

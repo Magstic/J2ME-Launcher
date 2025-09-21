@@ -12,13 +12,13 @@ function EmulatorNotConfiguredDialog({ isOpen, onClose, onGoToConfig }) {
       title={t('app.warning')}
       size="sm"
       actions={[
-        { 
-          key: 'goToConfig', 
-          label: t('app.goToConfig'), 
-          variant: 'primary', 
+        {
+          key: 'goToConfig',
+          label: t('app.goToConfig'),
+          variant: 'primary',
           onClick: onGoToConfig,
-          allowFocusRing: true
-        }
+          allowFocusRing: true,
+        },
       ]}
     >
       <div className="text-center">

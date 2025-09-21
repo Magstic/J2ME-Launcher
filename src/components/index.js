@@ -10,7 +10,6 @@ export { default as GameInfoDialog } from './Desktop/GameInfoDialog';
 export { default as EmulatorConfigDialog } from './EmulatorConfigDialog';
 export { default as FolderWindowApp } from './FolderWindowApp';
 
-
 // UI Dialogs (sub-namespace style)
 export * as ui from './ui/index.js';
 

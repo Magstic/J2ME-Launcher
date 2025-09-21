@@ -9,7 +9,7 @@ export const useDesktopDialogs = () => {
   const [createFolderDialog, setCreateFolderDialog] = useState({
     isOpen: false,
     mode: 'create',
-    initialData: null
+    initialData: null,
   });
 
   // 資料夾選擇對話框
@@ -23,20 +23,20 @@ export const useDesktopDialogs = () => {
   // 遊戲信息對話框
   const [gameInfoDialog, setGameInfoDialog] = useState({
     isOpen: false,
-    game: null
+    game: null,
   });
 
   // 刪除資料夾確認對話框狀態
   const [confirmDelete, setConfirmDelete] = useState({
     isOpen: false,
-    folder: null
+    folder: null,
   });
 
   // 單一確認/關閉的訊息對話框（取代內建 alert）
-  const [infoDialog, setInfoDialog] = useState({ 
-    isOpen: false, 
-    title: '', 
-    message: '' 
+  const [infoDialog, setInfoDialog] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
   });
 
   // 無資料夾引導對話框
@@ -50,7 +50,7 @@ export const useDesktopDialogs = () => {
     setCreateFolderDialog({
       isOpen: true,
       mode: 'create',
-      initialData: null
+      initialData: null,
     });
   }, []);
 
@@ -59,7 +59,7 @@ export const useDesktopDialogs = () => {
     setCreateFolderDialog({
       isOpen: true,
       mode: 'edit',
-      initialData: folder
+      initialData: folder,
     });
   }, []);
 
@@ -68,7 +68,7 @@ export const useDesktopDialogs = () => {
     setCreateFolderDialog({
       isOpen: false,
       mode: 'create',
-      initialData: null
+      initialData: null,
     });
   }, []);
 
@@ -83,23 +83,25 @@ export const useDesktopDialogs = () => {
 
   // 處理遊戲加入資料夾
   const handleAddToFolder = useCallback((target, folders) => {
-    const availableFolders = folders.filter(folder => folder.id);
+    const availableFolders = folders.filter((folder) => folder.id);
     if (availableFolders.length === 0) {
       // 顯示引導：提示使用者新建資料夾
       setNoFolderGuideOpen(true);
       return;
     }
-    
+
     // 打開資料夾選擇對話框
     setFolderSelectDialog({
       isOpen: true,
       game: target,
-      selectedFilePaths: (target && Array.isArray(target.selectedFilePaths) && target.selectedFilePaths.length > 0)
-        ? Array.from(new Set(target.selectedFilePaths))
-        : null,
-      selectedClusterIds: (target && Array.isArray(target.selectedClusterIds) && target.selectedClusterIds.length > 0)
-        ? Array.from(new Set(target.selectedClusterIds.map(String)))
-        : null,
+      selectedFilePaths:
+        target && Array.isArray(target.selectedFilePaths) && target.selectedFilePaths.length > 0
+          ? Array.from(new Set(target.selectedFilePaths))
+          : null,
+      selectedClusterIds:
+        target && Array.isArray(target.selectedClusterIds) && target.selectedClusterIds.length > 0
+          ? Array.from(new Set(target.selectedClusterIds.map(String)))
+          : null,
     });
   }, []);
 
@@ -127,7 +129,7 @@ export const useDesktopDialogs = () => {
   const handleGameInfo = useCallback((game) => {
     setGameInfoDialog({
       isOpen: true,
-      game: game
+      game: game,
     });
   }, []);
 
@@ -135,7 +137,7 @@ export const useDesktopDialogs = () => {
   const handleCloseGameInfoDialog = useCallback(() => {
     setGameInfoDialog({
       isOpen: false,
-      game: null
+      game: null,
     });
   }, []);
 

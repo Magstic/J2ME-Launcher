@@ -132,7 +132,7 @@
     text-align: center;
     gap: 12px;
   }
-  
+
   .detail-grid {
     grid-template-columns: 1fr;
   }

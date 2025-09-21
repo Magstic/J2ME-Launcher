@@ -8,7 +8,7 @@ export function getScrollParent(node) {
     try {
       const style = window.getComputedStyle(el);
       const overflowY = style.overflowY;
-      const canScroll = (overflowY === 'auto' || overflowY === 'scroll');
+      const canScroll = overflowY === 'auto' || overflowY === 'scroll';
       if (canScroll && el.scrollHeight > el.clientHeight) return el;
     } catch (_) {}
     el = el.parentElement;

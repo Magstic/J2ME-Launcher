@@ -5,14 +5,20 @@
  * 依賴：使用全域設計代幣（theme.css）之色彩、陰影、圓角、動效時序。
  * 注意：與 `FolderWindowApp.css` 保持選中/框選/載入動效一致，避免視覺漂移。
  */
-.desktop-view.mounting { opacity: 1; }
+.desktop-view.mounting {
+  opacity: 1;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .desktop-view { transition: none; }
+  .desktop-view {
+    transition: none;
+  }
 }
 
 /* 全局重置：移除瀏覽器預設邊距，避免左側“貼邊”被擠開（例如 body 預設 8px margin） */
-html, body, #root {
+html,
+body,
+#root {
   margin: 0;
   padding: 0;
   height: 100%;
@@ -43,7 +49,6 @@ html, body, #root {
   transition: none;
 }
 
-
 /* 桌面網格 - React-window 虛擬化容器 */
 .desktop-view .desktop-grid {
   width: 100%; /* 填滿父容器寬度 */
@@ -62,10 +67,13 @@ html, body, #root {
   border: none;
   box-shadow: none;
   position: relative; /* 用於放置選擇覆蓋層 */
-  overflow: hidden;   /* 防止覆蓋層外溢 */
+  overflow: hidden; /* 防止覆蓋層外溢 */
 
   /* 桌面視圖進場略快於網格（提升“跟手感”）；保留 hover 的背景色漸變 */
-  transition: opacity 120ms ease-out, transform 120ms ease-out, background-color 200ms ease;
+  transition:
+    opacity 120ms ease-out,
+    transform 120ms ease-out,
+    background-color 200ms ease;
 }
 
 /* folder-card desktop styles removed (drawer has its own styles in FolderDrawer.css) */
@@ -89,7 +97,9 @@ html, body, #root {
   box-shadow: 0 0 0 2px var(--accent-color-alpha);
   opacity: 0;
   transform: scale(0.965);
-  transition: opacity 160ms ease-out, transform 180ms ease-out;
+  transition:
+    opacity 160ms ease-out,
+    transform 180ms ease-out;
   pointer-events: none;
 }
 
@@ -183,7 +193,6 @@ html, body, #root {
   line-height: 1.5;
 }
 
-
 /* 拖拽覆蓋層 */
 
 /* 拖拽預覽元素已移至全域 theme.css；以下針對桌面視圖仍保留媒體查詢微調 */
@@ -202,7 +211,9 @@ html, body, #root {
   opacity: 0;
   transform: scale(0.98);
   transform-origin: top left;
-  transition: opacity 120ms ease-out, transform 120ms ease-out;
+  transition:
+    opacity 120ms ease-out,
+    transform 120ms ease-out;
   will-change: opacity, transform;
 }
 
@@ -290,11 +301,11 @@ html, body, #root {
     gap: 16px;
     padding: 16px;
   }
-  
+
   .context-menu {
     min-width: 160px;
   }
-  
+
   .drag-preview-game {
     padding: 6px 10px;
   }

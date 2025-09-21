@@ -16,7 +16,7 @@ function parseManifest(content) {
 function resolveIconPath(manifest) {
   const midlet1 = manifest['MIDlet-1'] || '';
   // 優先使用 MIDlet-Icon，否則從 MIDlet-1 取第二段
-  const raw = manifest['MIDlet-Icon'] || (midlet1.split(',')[1] || '');
+  const raw = manifest['MIDlet-Icon'] || midlet1.split(',')[1] || '';
   const iconPath = (raw || '').trim();
   return iconPath || null;
 }

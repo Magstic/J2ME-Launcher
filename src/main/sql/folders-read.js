@@ -7,7 +7,9 @@ const { rowToGame } = require('./read');
 function getFolders() {
   const db = getDB();
   // 計算每個資料夾內有效遊戲數（僅計入啟用目錄中的遊戲）
-  const rows = db.prepare(`
+  const rows = db
+    .prepare(
+      `
     SELECT 
       f.id,
       f.name,
@@ -46,8 +48,10 @@ function getFolders() {
       GROUP BY x.folderId
     ) AS cnt ON cnt.id = f.id
     ORDER BY (f.sortOrder IS NULL), f.sortOrder ASC, f.name ASC
-  `).all();
-  return rows.map(r => ({
+  `
+    )
+    .all();
+  return rows.map((r) => ({
     id: r.id,
     name: r.name,
     description: r.description,
@@ -63,7 +67,9 @@ function getFolders() {
 
 function getFolderGameCount(folderId) {
   const db = getDB();
-  const row = db.prepare(`
+  const row = db
+    .prepare(
+      `
     /* 將直接在資料夾的遊戲與該資料夾簇的成員合併後做去重計數 */
     SELECT COUNT(DISTINCT x.filePath) AS c
     FROM (
@@ -86,7 +92,9 @@ function getFolderGameCount(folderId) {
           WHERE d.enabled = 1 AND g2.filePath GLOB (d.path || '*')
         )
     ) AS x
-  `).get(folderId, folderId);
+  `
+    )
+    .get(folderId, folderId);
   return row ? row.c : 0;
 }
 
@@ -112,7 +120,9 @@ function getFolderById(folderId) {
 
 function getGamesByFolder(folderId) {
   const db = getDB();
-  const rows = db.prepare(`
+  const rows = db
+    .prepare(
+      `
     SELECT g.* FROM folder_games fg
     JOIN games g ON g.filePath = fg.filePath COLLATE NOCASE
     WHERE fg.folderId = ?
@@ -121,13 +131,17 @@ function getGamesByFolder(folderId) {
         WHERE d.enabled = 1 AND g.filePath GLOB (d.path || '*')
       )
     ORDER BY g.gameName
-  `).all(folderId);
+  `
+    )
+    .all(folderId);
   return rows.map(rowToGame);
 }
 
 function getUncategorizedGames() {
   const db = getDB();
-  const rows = db.prepare(`
+  const rows = db
+    .prepare(
+      `
     SELECT g.* FROM games g
     WHERE EXISTS (
       SELECT 1 FROM directories d
@@ -137,14 +151,18 @@ function getUncategorizedGames() {
         SELECT 1 FROM folder_games fg WHERE fg.filePath = g.filePath COLLATE NOCASE
       )
     ORDER BY g.gameName
-  `).all();
+  `
+    )
+    .all();
   return rows.map(rowToGame);
 }
 
 // 用於桌面視圖：顯示「非簇成員」且「未在任何資料夾」的遊戲
 function getDesktopGames() {
   const db = getDB();
-  const rows = db.prepare(`
+  const rows = db
+    .prepare(
+      `
     SELECT g.* FROM games g
     WHERE EXISTS (
       SELECT 1 FROM directories d
@@ -157,7 +175,9 @@ function getDesktopGames() {
         SELECT 1 FROM cluster_games cg WHERE cg.filePath = g.filePath COLLATE NOCASE
       )
     ORDER BY g.gameName
-  `).all();
+  `
+    )
+    .all();
   return rows.map(rowToGame);
 }
 
@@ -165,9 +185,11 @@ function getFolderStats() {
   const db = getDB();
   const folderRows = db.prepare(`SELECT id, name FROM folders`).all();
   const totalGames = db.prepare(`SELECT COUNT(1) as c FROM games`).get().c;
-  const categorizedGames = db.prepare(`SELECT COUNT(DISTINCT filePath) as c FROM folder_games`).get().c;
+  const categorizedGames = db
+    .prepare(`SELECT COUNT(DISTINCT filePath) as c FROM folder_games`)
+    .get().c;
   const uncategorizedGames = totalGames - categorizedGames;
-  const folders = folderRows.map(fr => {
+  const folders = folderRows.map((fr) => {
     const c = db.prepare(`SELECT COUNT(1) as c FROM folder_games WHERE folderId=?`).get(fr.id).c;
     return { id: fr.id, name: fr.name, gameCount: c };
   });
@@ -176,19 +198,23 @@ function getFolderStats() {
     totalGames,
     categorizedGames,
     uncategorizedGames,
-    folders
+    folders,
   };
 }
 
 function getGameFolders(filePath) {
   const db = getDB();
-  const rows = db.prepare(`
+  const rows = db
+    .prepare(
+      `
     SELECT f.* FROM folder_games fg
     JOIN folders f ON f.id = fg.folderId
     WHERE fg.filePath = ? COLLATE NOCASE
     ORDER BY f.name
-  `).all(filePath);
-  return rows.map(r => ({
+  `
+    )
+    .all(filePath);
+  return rows.map((r) => ({
     id: r.id,
     name: r.name,
     description: r.description,
@@ -205,7 +231,9 @@ function getGameFolders(filePath) {
 // 取得屬於任一資料夾的所有遊戲 filePath（去重）
 function getGamesInAnyFolder() {
   const db = getDB();
-  const rows = db.prepare(`
+  const rows = db
+    .prepare(
+      `
     SELECT DISTINCT fg.filePath AS filePath
     FROM folder_games fg
     JOIN games g ON g.filePath = fg.filePath COLLATE NOCASE
@@ -213,8 +241,10 @@ function getGamesInAnyFolder() {
       SELECT 1 FROM directories d
       WHERE d.enabled = 1 AND g.filePath GLOB (d.path || '*')
     )
-  `).all();
-  return rows.map(r => r.filePath);
+  `
+    )
+    .all();
+  return rows.map((r) => r.filePath);
 }
 
 module.exports = {
@@ -226,5 +256,5 @@ module.exports = {
   getDesktopGames,
   getFolderStats,
   getGameFolders,
-  getGamesInAnyFolder
+  getGamesInAnyFolder,
 };

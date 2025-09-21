@@ -3,7 +3,13 @@ import React from 'react';
 /**
  * ToggleSwitch 通用開關
  */
-export default function ToggleSwitch({ checked = false, onChange, disabled = false, label, className = '' }) {
+export default function ToggleSwitch({
+  checked = false,
+  onChange,
+  disabled = false,
+  label,
+  className = '',
+}) {
   const trackStyle = {
     width: 42,
     height: 24,
@@ -40,10 +46,15 @@ export default function ToggleSwitch({ checked = false, onChange, disabled = fal
     }
   };
   return (
-    <div className={`flex ${className}`} style={{ alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+    <div
+      className={`flex ${className}`}
+      style={{ alignItems: 'center', justifyContent: 'space-between', gap: 12 }}
+    >
       {label && (
         <div>
-          <div className="form-label" style={{ marginBottom: 4, fontWeight: 'bold' }}>{label}</div>
+          <div className="form-label" style={{ marginBottom: 4, fontWeight: 'bold' }}>
+            {label}
+          </div>
         </div>
       )}
       <div

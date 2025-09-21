@@ -243,7 +243,7 @@
 > **重要提醒**：該附註說明會定期更新以反映當前專案狀態，但仍可能存在滯後，請以實際程式碼為準。  
 > **最後更新**：2025-09-09（Hook 化整合至 App.jsx、統一虛擬化網格、UI barrel 更新）
 
-- __根目錄（src/）__
+- **根目錄（src/）**
   - `App.jsx`：Renderer 主頁（桌面視圖）入口，掛載應用、註冊全域樣式並整合狀態 hooks。
   - `folder-main.jsx`：資料夾窗口頁面的入口（對應 Electron 獨立 BrowserWindow）。
   - `main.jsx`：一般入口（桌面頁面）啟動點，載入 React DOM Client。
@@ -253,7 +253,7 @@
     - `folder: folder.html`（資料夾窗口頁面）
     - 相關別名：`resolve.alias` 包含 `@`、`@components`、`@ui`、`@shared`、`@hooks`、`@config`。
 
-- __`components/`（Renderer UI 組件）__
+- **`components/`（Renderer UI 組件）**
   - `App.jsx` 中的 `DesktopManagerHooks` 與 `DesktopViewDirect`：整合 `useDesktopManager` 等 hooks，協調桌面/資料夾對話框與全域操作，並使用 `@shared/VirtualizedUnifiedGrid` 進行渲染。
   - `DirectoryManager.jsx` / `DirectoryManager.css`：資料夾來源管理 UI 與樣式。
   - `EmulatorConfigDialog.jsx`：模擬器設定對話框，使用 `@ui/Collapsible`，讀取 schema/IPC。
@@ -269,8 +269,6 @@
   - `Desktop/ContextMenu.jsx`：桌面專用右鍵選單。
   - `Desktop/Desktop.css`：桌面視圖樣式。
   - `Desktop/GameInfoDialog.jsx` / `.css`：遊戲資訊對話框。
-
-  
 
   - `Folder/CreateFolderDialog.jsx`：建立資料夾對話框（使用共享 modal 樣式）。
   - `Folder/FolderCard.jsx` / `Folder.css`：資料夾卡片與其樣式。
@@ -312,15 +310,13 @@
     - `ui/dialogs/SettingsDialog.jsx` / `SettingsDialog.css`：軟體配置對話框（主題切換等設定選項）。
     - `ui/dialogs/WelcomeGuideDialog.jsx`：歡迎引導對話框（首次使用設定向導，支援多語言與主題預覽）。
 
-  
-
-- __`config/`__
+- **`config/`**
   - `perf.js`：效能相關常數/參數。
 
-- __`contexts/`__
+- **`contexts/`**
   - `I18nContext.jsx`：國際化上下文提供者（支援繁中、簡中、英文，含熱重載與自動語言檢測）。
 
-- __`hooks/`（React Hooks 系統）__
+- **`hooks/`（React Hooks 系統）**
   - `index.js`：hooks 彙總出口（barrel exports）。
   - `useAppDialogs.js`：應用級對話框狀態管理。
   - `useAppEventListeners.js`：應用級事件監聽器。
@@ -339,13 +335,13 @@
   - `useTranslation.js`：翻譯 Hook（提供 `t()` 函數與語言切換功能）。
   - `useWelcomeGuide.js`：歡迎引導邏輯。
 
-- __`locales/`（國際化資源）__
+- **`locales/`（國際化資源）**
   - `en-US.json`：英文翻譯資源。
   - `zh-CN.json`：簡體中文翻譯資源。
   - `zh-TW.json`：繁體中文翻譯資源。
   - 支援嵌套鍵值結構與參數替換（`{{param}}` 語法）。
 
-- __`assets/`__
+- **`assets/`**
   - `avatars/`：貢獻者頭像資產
     - `index.js`：集中式頭像載入器（`import.meta.glob`），提供 `getAvatar(name)` 與 `listAvatars()`。
     - `lavinia.png` / `magstic.png` / `marisa.png`：各貢獻者頭像檔案。
@@ -355,7 +351,7 @@
     - `License_MIT.svg`：MIT 授權圖示。
     - `index.js`：icons 彙總出口（barrel）。用法：`import { AppIconSvg, MitLicenseSvg } from '@/assets/icons';`
 
-- __`main/`（Electron 主進程）__
+- **`main/`（Electron 主進程）**
   - `main.js`：主進程入口，建立窗口、註冊 IPC。
   - `preload.js`：Preload 腳本，暴露 IPC API 給 Renderer（包含完整的資料夾管理、自訂名稱、雲端備份等 API）。
   - `data-store.js`：資料存取門面（SQL-first，委派至 `sql/` 與 `db.js`）。
@@ -401,24 +397,24 @@
     - `sql-cache.js`：SQL 查詢結果快取。
     - `unified-cache.js`：統一快取系統（支援 10k+ 遊戲）。
 
- - __備份子系統__
-  - `main/backup/core.js`：備份/還原核心流程（規劃、分組與進度回報）。
-  - `main/backup/providers/`：實際雲端提供者：
-    - `webdav.js`：WebDAV（含目錄存在檢查、MKCOL、重試退避）。
-    - `s3.js`：S3 相容（需 accessKey/secretKey 等）。
-    - `dropbox.js`：Dropbox API（與 `ipc/backup.js` 之 OAuth 整合）。
-  - `main/ipc/backup.js`：提供 `backup:*` 與 `dropbox:*` IPC。
-  - `shared/backup/spec.js`：與渲染端共享之備份規格（群組、預設路徑）；`shared/backup/indexTSV.js`：索引序列化工具。
+- **備份子系統**
+- `main/backup/core.js`：備份/還原核心流程（規劃、分組與進度回報）。
+- `main/backup/providers/`：實際雲端提供者：
+  - `webdav.js`：WebDAV（含目錄存在檢查、MKCOL、重試退避）。
+  - `s3.js`：S3 相容（需 accessKey/secretKey 等）。
+  - `dropbox.js`：Dropbox API（與 `ipc/backup.js` 之 OAuth 整合）。
+- `main/ipc/backup.js`：提供 `backup:*` 與 `dropbox:*` IPC。
+- `shared/backup/spec.js`：與渲染端共享之備份規格（群組、預設路徑）；`shared/backup/indexTSV.js`：索引序列化工具。
 
-- __`shared/`（跨進程共享模組）__
+- **`shared/`（跨進程共享模組）**
   - `backup/`：備份子系統共享模組：
     - `spec.js`：備份規格定義（群組、預設路徑等）。
     - `indexTSV.js`：索引序列化工具（TSV 格式）。
 
-- __`store/`（統一狀態管理）__
+- **`store/`（統一狀態管理）**
   - `GameStore.js`：Linus-style 統一狀態管理（簡單、可預測、高效能）。
 
-- __`styles/`（全域樣式系統）__
+- **`styles/`（全域樣式系統）**
   - `theme.css`：主題變數與設計代幣定義。
   - `tokens.css`：設計系統代幣（顏色、間距、字體等）。
   - `utility.css`：工具類樣式（margin、padding、flex 等）。
@@ -427,7 +423,7 @@
   - `focus-ring.css`：焦點環與無障礙樣式。
   - 所有樣式檔案於 `App.jsx` 等處引入，提供全域樣式基礎。
 
-- __`utils/`（渲染進程工具）__
+- **`utils/`（渲染進程工具）**
   - `i18n.js`：國際化工具函數。
   - `logger.js` / `logger.cjs`：日誌工具。
   - `dom/scroll.js`：滾動相關工具（`getScrollParent()` 等）。
@@ -435,22 +431,26 @@
 ## 架構特色與設計理念
 
 ### 性能優化策略
+
 - **虛擬化渲染**：`shared/VirtualizedUnifiedGrid.jsx` 支援 10k+ 遊戲的流暢渲染
 - **增量更新**：`incremental-updates.js` 實現 Linus-style 最小化更新
 - **統一快取**：`unified-cache.js` 提供單一真實來源的快取系統
 - **批次操作**：`batch-folder-operations.js` 優化大量資料夾操作
 
 ### 國際化系統
+
 - **完整 i18n 支援**：繁中、簡中、英文三語言
 - **熱重載**：開發時支援翻譯資源熱重載
 - **自動檢測**：根據系統語言自動選擇預設語言
 
 ### 狀態管理
+
 - **統一狀態**：`GameStore.js` 提供 Redux-like 但更簡潔的狀態管理
 - **增量同步**：主進程與渲染進程間的高效狀態同步
 - **快取一致性**：多層快取確保資料一致性
 
 ### 模組化架構
+
 - **IPC 分離**：各功能域獨立的 IPC 處理器
 - **SQL 分層**：讀寫分離的 SQL 操作層
 - **組件復用**：高度模組化的 UI 組件系統

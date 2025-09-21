@@ -11,26 +11,26 @@ const BACKUP_SPEC = Object.freeze({
     {
       key: 'config',
       label: 'config.yml',
-      items: ['j2me-launcher/config.yml']
+      items: ['j2me-launcher/config.yml'],
     },
     {
       key: 'database',
       label: 'data.db',
-      items: ['j2me-launcher/data.db']
+      items: ['j2me-launcher/data.db'],
     },
     {
       key: 'rms',
       label: 'RMS',
-      items: [] // 由主進程根據 config.yml 動態解析
+      items: [], // 由主進程根據 config.yml 動態解析
     },
     {
       key: 'emuConfig',
       label: 'Emulator Config',
-      items: [] // 由主進程根據 config.yml 動態解析
-    }
-  ]
+      items: [], // 由主進程根據 config.yml 動態解析
+    },
+  ],
 });
 
 module.exports = {
-  BACKUP_SPEC
+  BACKUP_SPEC,
 };

@@ -9,7 +9,14 @@ import { getScrollParent } from '@/utils/dom/scroll';
 // - onToggle: () => void (required when controlled)
 // - className: string
 // - children: ReactNode
-export default function Collapsible({ title, open, defaultOpen = false, onToggle, className = '', children }) {
+export default function Collapsible({
+  title,
+  open,
+  defaultOpen = false,
+  onToggle,
+  className = '',
+  children,
+}) {
   const isControlled = typeof open === 'boolean';
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
   const bodyRef = useRef(null);
@@ -50,7 +57,7 @@ export default function Collapsible({ title, open, defaultOpen = false, onToggle
     if (isControlled) {
       onToggle && onToggle();
     } else {
-      setInternalOpen(v => !v);
+      setInternalOpen((v) => !v);
     }
   };
 
@@ -142,7 +149,11 @@ export default function Collapsible({ title, open, defaultOpen = false, onToggle
   }, [isOpen]);
 
   return (
-    <div className={`section ${className}`.trim()} onClick={toggle} style={{ overflowAnchor: 'none' }}>
+    <div
+      className={`section ${className}`.trim()}
+      onClick={toggle}
+      style={{ overflowAnchor: 'none' }}
+    >
       <div
         className="section-header"
         tabIndex={0}
@@ -159,7 +170,7 @@ export default function Collapsible({ title, open, defaultOpen = false, onToggle
           // Avoid double-toggle when mousedown already toggled
           e.stopPropagation();
         }}
-        onKeyDown={e => {
+        onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             toggle();

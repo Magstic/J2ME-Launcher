@@ -26,11 +26,11 @@ class ShardedQueries {
 
     const params = cursor ? [cursor, limit] : [limit];
     const games = stmt.all(...params);
-    
+
     return {
       games,
       nextCursor: games.length === limit ? games[games.length - 1].filePath : null,
-      hasMore: games.length === limit
+      hasMore: games.length === limit,
     };
   }
 
@@ -49,11 +49,11 @@ class ShardedQueries {
 
     const params = cursor ? [folderId, cursor, limit] : [folderId, limit];
     const games = stmt.all(...params);
-    
+
     return {
       games,
       nextCursor: games.length === limit ? games[games.length - 1].filePath : null,
-      hasMore: games.length === limit
+      hasMore: games.length === limit,
     };
   }
 
@@ -71,17 +71,17 @@ class ShardedQueries {
     `);
 
     const counts = new Map();
-    stmt.all().forEach(row => {
+    stmt.all().forEach((row) => {
       counts.set(row.folderId, row.count);
     });
-    
+
     return counts;
   }
 
   // Search with pagination and ranking
   async searchGamesPaginated(searchTerm, cursor = null, limit = this.pageSize) {
     const term = `*${searchTerm.toLowerCase()}*`;
-    
+
     const stmt = this.db.prepare(`
       SELECT g.filePath, g.gameName, g.vendor, g.version, g.md5, g.iconPath, g.mtimeMs, g.size, g.manifest,
         CASE 
@@ -98,16 +98,16 @@ class ShardedQueries {
       LIMIT ?
     `);
 
-    const params = cursor 
+    const params = cursor
       ? [term, term, term, term, cursor, limit]
       : [term, term, term, term, limit];
-    
+
     const games = stmt.all(...params);
-    
+
     return {
       games,
       nextCursor: games.length === limit ? games[games.length - 1].filePath : null,
-      hasMore: games.length === limit
+      hasMore: games.length === limit,
     };
   }
 
@@ -123,10 +123,14 @@ class ShardedQueries {
       const transaction = this.db.transaction(() => {
         for (const op of chunk) {
           if (op.type === 'add') {
-            this.db.prepare('INSERT OR REPLACE INTO folder_games (folderId, filePath, addedTime) VALUES (?, ?, ?)')
+            this.db
+              .prepare(
+                'INSERT OR REPLACE INTO folder_games (folderId, filePath, addedTime) VALUES (?, ?, ?)'
+              )
               .run(op.folderId, op.filePath, op.addedTime || Date.now());
           } else if (op.type === 'remove') {
-            this.db.prepare('DELETE FROM folder_games WHERE folderId = ? AND filePath = ?')
+            this.db
+              .prepare('DELETE FROM folder_games WHERE folderId = ? AND filePath = ?')
               .run(op.folderId, op.filePath);
           }
         }
@@ -180,17 +184,17 @@ class ShardedQueries {
   // Bulk game existence check
   checkGamesExist(filePaths) {
     if (filePaths.length === 0) return new Map();
-    
+
     const placeholders = filePaths.map(() => '?').join(',');
     const stmt = this.db.prepare(`SELECT filePath FROM games WHERE filePath IN (${placeholders})`);
-    
-    const existing = new Set(stmt.all(...filePaths).map(row => row.filePath));
+
+    const existing = new Set(stmt.all(...filePaths).map((row) => row.filePath));
     const result = new Map();
-    
-    filePaths.forEach(path => {
+
+    filePaths.forEach((path) => {
       result.set(path, existing.has(path));
     });
-    
+
     return result;
   }
 }

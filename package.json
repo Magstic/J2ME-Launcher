@@ -12,9 +12,11 @@
     "build:prod": "set NODE_ENV=production&& vite build",
     "start": "electron .",
     "electron": "electron .",
-"electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron . --no-sandbox\"",
+    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron . --no-sandbox\"",
     "lint": "eslint . --ext .js,.jsx",
     "lint:fix": "eslint . --ext .js,.jsx --fix",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
     "stylelint": "stylelint \"src/**/*.{css,scss}\"",
     "stylelint:fix": "stylelint \"src/**/*.{css,scss}\" --fix",
     "verify:dist": "node scripts/verify-dist.js",
@@ -115,7 +117,11 @@
   },
   "license": "MIT",
   "lint-staged": {
-    "**/*.{js,jsx}": "eslint --fix"
+    "**/*.{js,jsx,cjs}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "**/*.{css,scss,json,md}": "prettier --write"
   },
   "devDependencies": {
     "@babel/eslint-parser": "^7.28.0",
@@ -126,12 +132,14 @@
     "electron-builder": "^24.9.1",
     "electron-rebuild": "^3.2.9",
     "eslint": "^9.33.0",
+    "eslint-config-prettier": "^9.1.0",
     "eslint-import-resolver-alias": "^1.1.2",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.5",
+    "prettier": "^3.6.2",
     "stylelint": "^16.23.1",
     "stylelint-config-standard": "^36.0.1",
     "vite": "^7.0.6",

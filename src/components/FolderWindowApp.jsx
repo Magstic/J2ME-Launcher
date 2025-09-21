@@ -4,7 +4,12 @@ import GameInfoDialog from './Desktop/GameInfoDialog';
 import VirtualizedUnifiedGrid from '@shared/VirtualizedUnifiedGrid';
 import useUnifiedContextMenu from '@shared/hooks/useUnifiedContextMenu';
 import useCreateShortcut from '@shared/hooks/useCreateShortcut';
-import { useGamesByFolder, useSelectedGames, useDragState, useGameActions } from '@hooks/useGameStore';
+import {
+  useGamesByFolder,
+  useSelectedGames,
+  useDragState,
+  useGameActions,
+} from '@hooks/useGameStore';
 import './FolderWindowApp.css';
 import './Desktop/Desktop.css';
 import { AppIconSvg } from '@/assets/icons';
@@ -28,7 +33,11 @@ const FolderWindowApp = () => {
   }, [isLoading]);
   const hasLoadedRef = useRef(false);
   const [folderId, setFolderId] = useState(null);
-  const [gameLaunchDialog, setGameLaunchDialog] = useState({ isOpen: false, game: null, configureOnly: false });
+  const [gameLaunchDialog, setGameLaunchDialog] = useState({
+    isOpen: false,
+    game: null,
+    configureOnly: false,
+  });
   const [externalDragActive, setExternalDragActive] = useState(false);
   const [clusters, setClusters] = useState([]);
   const [addToClusterState, setAddToClusterState] = useState({ open: false, filePaths: [] });
@@ -73,12 +82,16 @@ const FolderWindowApp = () => {
     },
     onConsolidateClusters: async (payload) => {
       try {
-        const ids = Array.isArray(payload?.selectedClusterIds) ? payload.selectedClusterIds.filter(Boolean) : [];
+        const ids = Array.isArray(payload?.selectedClusterIds)
+          ? payload.selectedClusterIds.filter(Boolean)
+          : [];
         if (ids.length < 2) return;
         const toId = ids[0];
         const chosenId = ids[Math.floor(Math.random() * ids.length)];
         let chosen = null;
-        try { chosen = await window.electronAPI?.getCluster?.(chosenId); } catch (_) {}
+        try {
+          chosen = await window.electronAPI?.getCluster?.(chosenId);
+        } catch (_) {}
         for (let i = 1; i < ids.length; i++) {
           const fromId = ids[i];
           if (!fromId || fromId === toId) continue;
@@ -107,15 +120,22 @@ const FolderWindowApp = () => {
         }
         await loadFolderContents();
         // 重設簇選中：僅保留合併後的目標簇
-        try { window.dispatchEvent(new CustomEvent('clusters-selection-reset', { detail: { ids: [toId] } })); } catch (_) {}
+        try {
+          window.dispatchEvent(
+            new CustomEvent('clusters-selection-reset', { detail: { ids: [toId] } })
+          );
+        } catch (_) {}
       } catch (err) {
         console.error('[FolderWindow] 合簇流程錯誤:', err);
       }
     },
     onAddToCluster: (target) => {
-      const list = (Array.isArray(target?.selectedFilePaths) && target.selectedFilePaths.length > 0)
-        ? target.selectedFilePaths
-        : (target?.filePath ? [target.filePath] : []);
+      const list =
+        Array.isArray(target?.selectedFilePaths) && target.selectedFilePaths.length > 0
+          ? target.selectedFilePaths
+          : target?.filePath
+            ? [target.filePath]
+            : [];
       if (!list || list.length === 0) return;
       setAddToClusterState({ open: true, filePaths: list });
     },
@@ -123,19 +143,24 @@ const FolderWindowApp = () => {
       if (creatingClusterRef.current) return; // 簡單防抖，避免重入導致重複建立
       creatingClusterRef.current = true;
       try {
-        const list = (Array.isArray(target?.selectedFilePaths) && target.selectedFilePaths.length > 0)
-          ? target.selectedFilePaths
-          : (target?.filePath ? [target.filePath] : []);
+        const list =
+          Array.isArray(target?.selectedFilePaths) && target.selectedFilePaths.length > 0
+            ? target.selectedFilePaths
+            : target?.filePath
+              ? [target.filePath]
+              : [];
         if (!list || list.length === 0) return;
         const res = await window.electronAPI?.createCluster?.({ filePaths: list });
         if (res?.success && res?.clusterId && folderId) {
-          try { await window.electronAPI?.addClusterToFolder?.(res.clusterId, folderId); } catch (_) {}
+          try {
+            await window.electronAPI?.addClusterToFolder?.(res.clusterId, folderId);
+          } catch (_) {}
           // 僅移除“實際被納入新簇”的成員，避免誤移除未加入者
           try {
             const memRes = await window.electronAPI?.getClusterMembers?.(res.clusterId);
             const members = Array.isArray(memRes?.members) ? memRes.members : [];
-            const memberPaths = members.map(m => m.filePath);
-            const removePaths = memberPaths.filter(fp => list.includes(fp));
+            const memberPaths = members.map((m) => m.filePath);
+            const removePaths = memberPaths.filter((fp) => list.includes(fp));
             if (removePaths.length > 0) {
               await window.electronAPI?.batchRemoveGamesFromFolder?.(removePaths, folderId);
             }
@@ -149,21 +174,27 @@ const FolderWindowApp = () => {
         console.error('[FolderWindow] 建立簇調用異常:', e);
       } finally {
         // 釋放鎖，稍作延遲避免連續點擊
-        setTimeout(() => { creatingClusterRef.current = false; }, 250);
+        setTimeout(() => {
+          creatingClusterRef.current = false;
+        }, 250);
       }
     },
     onRemoveFromFolder: async (game) => {
       if (!folderId || !game) return;
       try {
         // 遊戲多選（若有）
-        const gameList = Array.isArray(game.selectedFilePaths) && game.selectedFilePaths.length > 0
-          ? Array.from(new Set(game.selectedFilePaths))
-          : (game.filePath ? [game.filePath] : []);
+        const gameList =
+          Array.isArray(game.selectedFilePaths) && game.selectedFilePaths.length > 0
+            ? Array.from(new Set(game.selectedFilePaths))
+            : game.filePath
+              ? [game.filePath]
+              : [];
 
         // 簇多選（若有；允許在遊戲右鍵時也一起移除簇）
-        const clusterIds = Array.isArray(game.selectedClusterIds) && game.selectedClusterIds.length > 0
-          ? Array.from(new Set(game.selectedClusterIds.map(String)))
-          : [];
+        const clusterIds =
+          Array.isArray(game.selectedClusterIds) && game.selectedClusterIds.length > 0
+            ? Array.from(new Set(game.selectedClusterIds.map(String)))
+            : [];
 
         // 先移除遊戲
         if (gameList.length > 0 && window.electronAPI?.batchRemoveGamesFromFolder) {
@@ -173,14 +204,18 @@ const FolderWindowApp = () => {
           }
         } else if (gameList.length > 0 && window.electronAPI?.removeGameFromFolder) {
           for (const fp of gameList) {
-            try { await window.electronAPI.removeGameFromFolder(fp, folderId); } catch (_) {}
+            try {
+              await window.electronAPI.removeGameFromFolder(fp, folderId);
+            } catch (_) {}
           }
         }
 
         // 再移除簇
         if (clusterIds.length > 0 && window.electronAPI?.removeClusterFromFolder) {
           for (const cid of clusterIds) {
-            try { await window.electronAPI.removeClusterFromFolder(cid, folderId); } catch (_) {}
+            try {
+              await window.electronAPI.removeClusterFromFolder(cid, folderId);
+            } catch (_) {}
           }
         }
 
@@ -193,8 +228,12 @@ const FolderWindowApp = () => {
     onCreateShortcut: createShortcut,
     // Cluster callbacks (folder-window)
     onClusterInfo: (cluster) => {
-      try { console.log('[FolderWindow] cluster info requested:', cluster); } catch (_) {}
-      try { window.dispatchEvent(new CustomEvent('open-cluster-dialog', { detail: cluster?.id })); } catch (_) {}
+      try {
+        console.log('[FolderWindow] cluster info requested:', cluster);
+      } catch (_) {}
+      try {
+        window.dispatchEvent(new CustomEvent('open-cluster-dialog', { detail: cluster?.id }));
+      } catch (_) {}
     },
     onDeleteCluster: async (cluster) => {
       try {
@@ -208,14 +247,18 @@ const FolderWindowApp = () => {
       if (!folderId || !cluster) return;
       try {
         // 簇多選（若有）
-        const clusterIds = Array.isArray(cluster.selectedClusterIds) && cluster.selectedClusterIds.length > 0
-          ? Array.from(new Set(cluster.selectedClusterIds.map(String)))
-          : (cluster.id != null ? [String(cluster.id)] : []);
+        const clusterIds =
+          Array.isArray(cluster.selectedClusterIds) && cluster.selectedClusterIds.length > 0
+            ? Array.from(new Set(cluster.selectedClusterIds.map(String)))
+            : cluster.id != null
+              ? [String(cluster.id)]
+              : [];
 
         // 混合選取時也一併處理被選中的遊戲
-        const gameList = Array.isArray(cluster.selectedFilePaths) && cluster.selectedFilePaths.length > 0
-          ? Array.from(new Set(cluster.selectedFilePaths))
-          : [];
+        const gameList =
+          Array.isArray(cluster.selectedFilePaths) && cluster.selectedFilePaths.length > 0
+            ? Array.from(new Set(cluster.selectedFilePaths))
+            : [];
 
         // 先移除遊戲
         if (gameList.length > 0 && window.electronAPI?.batchRemoveGamesFromFolder) {
@@ -225,14 +268,18 @@ const FolderWindowApp = () => {
           }
         } else if (gameList.length > 0 && window.electronAPI?.removeGameFromFolder) {
           for (const fp of gameList) {
-            try { await window.electronAPI.removeGameFromFolder(fp, folderId); } catch (_) {}
+            try {
+              await window.electronAPI.removeGameFromFolder(fp, folderId);
+            } catch (_) {}
           }
         }
 
         // 再移除簇
         if (clusterIds.length > 0 && window.electronAPI?.removeClusterFromFolder) {
           for (const cid of clusterIds) {
-            try { await window.electronAPI.removeClusterFromFolder(cid, folderId); } catch (_) {}
+            try {
+              await window.electronAPI.removeClusterFromFolder(cid, folderId);
+            } catch (_) {}
           }
         }
 
@@ -276,12 +323,12 @@ const FolderWindowApp = () => {
       // Load games and clusters
       const games = result.games || [];
       const cs = Array.isArray(result.clusters) ? result.clusters : [];
-      setClusters(cs.map(c => ({ ...c, type: 'cluster' })));
+      setClusters(cs.map((c) => ({ ...c, type: 'cluster' })));
       gameActions.loadGames(games);
 
       // Sync folder membership for all games in this folder
       if (games.length > 0) {
-        const filePaths = games.map(game => game.filePath);
+        const filePaths = games.map((game) => game.filePath);
         gameActions.folderMembershipChanged(filePaths, folderId, 'add');
       }
     } catch (error) {
@@ -336,9 +383,28 @@ const FolderWindowApp = () => {
   useEffect(() => {
     const api = window.electronAPI;
     if (!api) return;
-    const off1 = api.onClusterChanged ? api.onClusterChanged(() => { try { loadFolderContents(); } catch (_) {} }) : null;
-    const off2 = api.onClusterDeleted ? api.onClusterDeleted(() => { try { loadFolderContents(); } catch (_) {} }) : null;
-    return () => { try { off1 && off1(); } catch (_) {} try { off2 && off2(); } catch (_) {} };
+    const off1 = api.onClusterChanged
+      ? api.onClusterChanged(() => {
+          try {
+            loadFolderContents();
+          } catch (_) {}
+        })
+      : null;
+    const off2 = api.onClusterDeleted
+      ? api.onClusterDeleted(() => {
+          try {
+            loadFolderContents();
+          } catch (_) {}
+        })
+      : null;
+    return () => {
+      try {
+        off1 && off1();
+      } catch (_) {}
+      try {
+        off2 && off2();
+      } catch (_) {}
+    };
   }, [loadFolderContents]);
 
   // 監聽資料夾更新事件
@@ -382,29 +448,42 @@ const FolderWindowApp = () => {
   }, []);
 
   // 處理放置到當前資料夾
-  const handleExternalDragOver = useCallback((e) => {
-    if (externalDragActive) {
+  const handleExternalDragOver = useCallback(
+    (e) => {
+      if (externalDragActive) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+      }
+    },
+    [externalDragActive]
+  );
+
+  const handleExternalDrop = useCallback(
+    async (e) => {
       e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-    }
-  }, [externalDragActive]);
-
-  const handleExternalDrop = useCallback(async (e) => {
-    e.preventDefault();
-    if (!externalDragActive || !folderId) return;
-    try {
-      let types = [];
-      let filesLen = 0;
-      try { types = Array.from((e.dataTransfer && e.dataTransfer.types) ? e.dataTransfer.types : []); filesLen = e.dataTransfer?.files ? e.dataTransfer.files.length : 0; } catch {}
-      const hasInternalMIME = types.includes('application/x-j2me-internal') || types.includes('application/x-j2me-filepath');
-      const internalHint = !!(hasInternalMIME || (types.length === 0 && filesLen === 0));
-      await window.electronAPI?.dropDragSession?.({ type: 'folder', id: folderId, internal: internalHint });
-    } catch (err) {
-      console.error('外部拖拽放置失敗:', err);
-    }
-  }, [externalDragActive, folderId]);
-
-
+      if (!externalDragActive || !folderId) return;
+      try {
+        let types = [];
+        let filesLen = 0;
+        try {
+          types = Array.from(e.dataTransfer && e.dataTransfer.types ? e.dataTransfer.types : []);
+          filesLen = e.dataTransfer?.files ? e.dataTransfer.files.length : 0;
+        } catch {}
+        const hasInternalMIME =
+          types.includes('application/x-j2me-internal') ||
+          types.includes('application/x-j2me-filepath');
+        const internalHint = !!(hasInternalMIME || (types.length === 0 && filesLen === 0));
+        await window.electronAPI?.dropDragSession?.({
+          type: 'folder',
+          id: folderId,
+          internal: internalHint,
+        });
+      } catch (err) {
+        console.error('外部拖拽放置失敗:', err);
+      }
+    },
+    [externalDragActive, folderId]
+  );
 
   // 窗口控制
   const handleMinimize = () => {
@@ -486,8 +565,12 @@ const FolderWindowApp = () => {
         </div>
       </div>
 
-      <div className="folder-window-content" onDragOver={handleExternalDragOver} onDrop={handleExternalDrop}>
-        {(games.length === 0 && clusters.length === 0) ? (
+      <div
+        className="folder-window-content"
+        onDragOver={handleExternalDragOver}
+        onDrop={handleExternalDrop}
+      >
+        {games.length === 0 && clusters.length === 0 ? (
           <div className="empty-folder">
             <div className="empty-icon">
               <img
@@ -496,7 +579,7 @@ const FolderWindowApp = () => {
                 style={{
                   width: '128px',
                   height: '128px',
-                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
+                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))',
                 }}
               />
             </div>
@@ -505,19 +588,56 @@ const FolderWindowApp = () => {
           <>
             <VirtualizedUnifiedGrid
               games={games}
-              items={[...clusters, ...games.map(g => ({ ...g, type: 'game' }))]}
+              items={[...clusters, ...games.map((g) => ({ ...g, type: 'game' }))]}
               onGameClick={(game) => handleGameLaunch(game)}
-              onGameContextMenu={(e, game, selectedList, selectedClusterIds) => openMenu(e, game, { view: 'folder-window', kind: 'game', selectedFilePaths: selectedList, selectedClusterIds, extra: { folderId } })}
-              onClusterClick={(cluster) => { try { window.dispatchEvent(new CustomEvent('open-cluster-dialog', { detail: cluster?.id })); } catch (_) {} }}
-              onClusterContextMenu={(e, cluster) => openMenu(e, cluster, { view: 'folder-window', kind: 'cluster', extra: { folderId } })}
+              onGameContextMenu={(e, game, selectedList, selectedClusterIds) =>
+                openMenu(e, game, {
+                  view: 'folder-window',
+                  kind: 'game',
+                  selectedFilePaths: selectedList,
+                  selectedClusterIds,
+                  extra: { folderId },
+                })
+              }
+              onClusterClick={(cluster) => {
+                try {
+                  window.dispatchEvent(
+                    new CustomEvent('open-cluster-dialog', { detail: cluster?.id })
+                  );
+                } catch (_) {}
+              }}
+              onClusterContextMenu={(e, cluster) =>
+                openMenu(e, cluster, {
+                  view: 'folder-window',
+                  kind: 'cluster',
+                  extra: { folderId },
+                })
+              }
               onDragStart={() => setDragState({ isDragging: true, draggedItems: [] })}
               onDragEnd={() => {
                 setDragState({ isDragging: false, draggedItems: [] });
                 try {
                   const ms = 2500;
                   const ts = Date.now();
-                  try { console.log('[DRAG_UI] (FolderWindow) scheduled endDragSession in', ms, 'ms at', ts); } catch {}
-                  setTimeout(() => { try { console.log('[DRAG_UI] (FolderWindow) endDragSession now at', Date.now(), 'scheduledAt=', ts); window.electronAPI?.endDragSession?.(); } catch (_) {} }, ms);
+                  try {
+                    console.log(
+                      '[DRAG_UI] (FolderWindow) scheduled endDragSession in',
+                      ms,
+                      'ms at',
+                      ts
+                    );
+                  } catch {}
+                  setTimeout(() => {
+                    try {
+                      console.log(
+                        '[DRAG_UI] (FolderWindow) endDragSession now at',
+                        Date.now(),
+                        'scheduledAt=',
+                        ts
+                      );
+                      window.electronAPI?.endDragSession?.();
+                    } catch (_) {}
+                  }, ms);
                 } catch (_) {}
               }}
               dragState={dragState}
@@ -535,14 +655,24 @@ const FolderWindowApp = () => {
               folderId={folderId}
               onSelect={async (cluster) => {
                 try {
-                  const res = await window.electronAPI?.addGamesToCluster?.(cluster.id, addToClusterState.filePaths);
+                  const res = await window.electronAPI?.addGamesToCluster?.(
+                    cluster.id,
+                    addToClusterState.filePaths
+                  );
                   if (!res?.success) {
                     console.error('[FolderWindow] 加入到簇失敗:', res?.error || res);
                   } else {
                     if (folderId) {
-                      try { await window.electronAPI?.addClusterToFolder?.(cluster.id, folderId); } catch (_) {}
+                      try {
+                        await window.electronAPI?.addClusterToFolder?.(cluster.id, folderId);
+                      } catch (_) {}
                       // 只有在成功加入簇後，才從資料夾移除這批遊戲
-                      try { await window.electronAPI?.batchRemoveGamesFromFolder?.(addToClusterState.filePaths, folderId); } catch (_) {}
+                      try {
+                        await window.electronAPI?.batchRemoveGamesFromFolder?.(
+                          addToClusterState.filePaths,
+                          folderId
+                        );
+                      } catch (_) {}
                     }
                     await loadFolderContents();
                   }
@@ -560,7 +690,10 @@ const FolderWindowApp = () => {
               excludeIds={mergeState.from ? [mergeState.from.id] : []}
               onSelect={async (toCluster) => {
                 try {
-                  const res = await window.electronAPI?.mergeClusters?.(mergeState.from.id, toCluster.id);
+                  const res = await window.electronAPI?.mergeClusters?.(
+                    mergeState.from.id,
+                    toCluster.id
+                  );
                   if (!res?.success) {
                     console.error('[FolderWindow] 合併簇失敗:', res?.error || res);
                   }
@@ -603,7 +736,10 @@ const FolderWindowApp = () => {
         onConfirm={async (newName) => {
           try {
             if (!renameState.cluster?.id) return;
-            const res = await window.electronAPI?.updateCluster?.({ id: renameState.cluster.id, name: newName });
+            const res = await window.electronAPI?.updateCluster?.({
+              id: renameState.cluster.id,
+              name: newName,
+            });
             if (!res?.success) {
               console.warn('[FolderWindow] 重命名簇失敗:', res?.error || res);
             }

@@ -10,21 +10,57 @@ import { useTranslation } from '@hooks/useTranslation';
 // - values: object -> current values (width, height, scale, framerate, keyLayout, backlightcolor, fontoffset, rotate, fpshack, and various compat flags)
 // - onChange: (partial: object) => void -> merge updater
 // - disabled: boolean -> disable inputs (e.g., when useGlobal is true in game dialog)
-export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, values = {}, onChange, disabled = false, romCache, onRomCacheChange, romCacheDisabled = false }) {
+export default function FreeJ2MEPlusConfig({
+  context = 'emulator',
+  caps = {},
+  values = {},
+  onChange,
+  disabled = false,
+  romCache,
+  onRomCacheChange,
+  romCacheDisabled = false,
+}) {
   const supportsAssets = Array.isArray(caps?.supportsAssets) ? caps.supportsAssets : [];
   const isEmu = context === 'emulator';
 
   const { t } = useTranslation();
 
   const RES_OPTIONS = [
-    '96x65','101x64','101x80','128x128','130x130','120x160','128x160','132x176','176x208','176x220','220x176','208x208','180x320','320x180','208x320','240x320','320x240','240x400','400x240','240x432','240x480','360x360','352x416','360x640','640x360','640x480','480x800','800x480'
+    '96x65',
+    '101x64',
+    '101x80',
+    '128x128',
+    '130x130',
+    '120x160',
+    '128x160',
+    '132x176',
+    '176x208',
+    '176x220',
+    '220x176',
+    '208x208',
+    '180x320',
+    '320x180',
+    '208x320',
+    '240x320',
+    '320x240',
+    '240x400',
+    '400x240',
+    '240x432',
+    '240x480',
+    '360x360',
+    '352x416',
+    '360x640',
+    '640x360',
+    '640x480',
+    '480x800',
+    '800x480',
   ];
   const SCALE_OPTIONS = [1, 2, 3, 4, 5];
   const FPS_OPTIONS = [60, 55, 50, 45, 40, 35, 30, 25, 20, 15, 10];
 
   const getResValue = () => `${values.width ?? 240}x${values.height ?? 320}`;
   const setResValue = (val) => {
-    const [w, h] = (val || '240x320').split('x').map(s => parseInt(s, 10));
+    const [w, h] = (val || '240x320').split('x').map((s) => parseInt(s, 10));
     if (Number.isFinite(w) && Number.isFinite(h)) onChange?.({ width: w, height: h });
   };
 
@@ -42,7 +78,7 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
               value={getResValue()}
               onChange={setResValue}
               disabled={disabled}
-              options={RES_OPTIONS.map(v => ({ value: v, label: v }))}
+              options={RES_OPTIONS.map((v) => ({ value: v, label: v }))}
               placeholder="選擇解析度"
             />
           </div>
@@ -53,7 +89,7 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
               value={values.scale ?? 2}
               onChange={(v) => setVal('scale', parseInt(v, 10))}
               disabled={disabled}
-              options={SCALE_OPTIONS.map(v => ({ value: v, label: String(v) }))}
+              options={SCALE_OPTIONS.map((v) => ({ value: v, label: String(v) }))}
               placeholder="選擇縮放"
             />
           </div>
@@ -64,7 +100,7 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
               value={values.framerate ?? 60}
               onChange={(v) => setVal('framerate', parseInt(v, 10))}
               disabled={disabled}
-              options={FPS_OPTIONS.map(v => ({ value: v, label: `${v} FPS` }))}
+              options={FPS_OPTIONS.map((v) => ({ value: v, label: `${v} FPS` }))}
               placeholder="選擇幀率"
             />
           </div>
@@ -116,7 +152,10 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
               value={values.fontoffset ?? '-2'}
               onChange={(v) => setVal('fontoffset', v)}
               disabled={disabled}
-              options={['-4','-3','-2','-1','0','1','2','3','4'].map(v => ({ value: v, label: `${v} pt` }))}
+              options={['-4', '-3', '-2', '-1', '0', '1', '2', '3', '4'].map((v) => ({
+                value: v,
+                label: `${v} pt`,
+              }))}
               placeholder="選擇字體尺寸"
             />
           </div>
@@ -157,83 +196,89 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
 
       {/* Assets container: emulator shows controls if supported; game shows note only */}
       {isEmu && supportsAssets.length > 0 ? (
-          <Card className="assets p-12 mb-12" variant="muted">
-            <div className="grid-2">
-              {supportsAssets.includes('soundfont') && (
-                <div className="form-row">
-                  <label className="form-label">{t('emulatorConfig.freej2mePlus.sf2')}</label>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flex: '1 1 auto' }}>
-                    <ToggleSwitch
-                      checked={(values.soundfont ?? 'Default') === 'Custom'}
-                      onChange={(checked) => setVal('soundfont', checked ? 'Custom' : 'Default')}
-                      disabled={disabled}
-                    />
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      disabled={disabled || (values.soundfont ?? 'Default') !== 'Custom'}
-                      onClick={async () => {
-                        try {
-                          const src = await window.electronAPI.pickFreej2meAsset('soundfont');
-                          if (!src) return;
-                          const res = await window.electronAPI.importFreej2meAsset('soundfont', src);
-                          if (!res?.success) console.warn('匯入音色庫失敗:', res?.error);
-                        } catch (e) {
-                          console.warn('選擇/匯入音色庫發生錯誤:', e);
-                        }
-                      }}
-                    >{t('app.load')}</button>
-                  </div>
+        <Card className="assets p-12 mb-12" variant="muted">
+          <div className="grid-2">
+            {supportsAssets.includes('soundfont') && (
+              <div className="form-row">
+                <label className="form-label">{t('emulatorConfig.freej2mePlus.sf2')}</label>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flex: '1 1 auto' }}>
+                  <ToggleSwitch
+                    checked={(values.soundfont ?? 'Default') === 'Custom'}
+                    onChange={(checked) => setVal('soundfont', checked ? 'Custom' : 'Default')}
+                    disabled={disabled}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={disabled || (values.soundfont ?? 'Default') !== 'Custom'}
+                    onClick={async () => {
+                      try {
+                        const src = await window.electronAPI.pickFreej2meAsset('soundfont');
+                        if (!src) return;
+                        const res = await window.electronAPI.importFreej2meAsset('soundfont', src);
+                        if (!res?.success) console.warn('匯入音色庫失敗:', res?.error);
+                      } catch (e) {
+                        console.warn('選擇/匯入音色庫發生錯誤:', e);
+                      }
+                    }}
+                  >
+                    {t('app.load')}
+                  </button>
                 </div>
-              )}
-              {supportsAssets.includes('textfont') && (
-                <div className="form-row">
-                  <label className="form-label">{t('emulatorConfig.freej2mePlus.font')}</label>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flex: '1 1 auto' }}>
-                    <ToggleSwitch
-                      checked={(values.textfont ?? 'Default') === 'Custom'}
-                      onChange={(checked) => setVal('textfont', checked ? 'Custom' : 'Default')}
-                      disabled={disabled}
-                    />
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      disabled={disabled || (values.textfont ?? 'Default') !== 'Custom'}
-                      onClick={async () => {
-                        try {
-                          console.log('[DEBUG] 開始選擇文字字體檔案...');
-                          const src = await window.electronAPI.pickFreej2meAsset('textfont');
-                          console.log('[DEBUG] 選擇結果:', src);
-                          if (!src) return;
-                          console.log('[DEBUG] 開始匯入文字字體:', src);
-                          const res = await window.electronAPI.importFreej2meAsset('textfont', src);
-                          console.log('[DEBUG] 匯入結果:', res);
-                          if (!res?.success) console.warn('匯入文字字體失敗:', res?.error);
-                          else console.log('[DEBUG] 文字字體匯入成功');
-                        } catch (e) {
-                          console.error('[DEBUG] 選擇/匯入文字字體發生錯誤:', e);
-                        }
-                      }}
-                    >{t('app.load')}</button>
-                  </div>
+              </div>
+            )}
+            {supportsAssets.includes('textfont') && (
+              <div className="form-row">
+                <label className="form-label">{t('emulatorConfig.freej2mePlus.font')}</label>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flex: '1 1 auto' }}>
+                  <ToggleSwitch
+                    checked={(values.textfont ?? 'Default') === 'Custom'}
+                    onChange={(checked) => setVal('textfont', checked ? 'Custom' : 'Default')}
+                    disabled={disabled}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={disabled || (values.textfont ?? 'Default') !== 'Custom'}
+                    onClick={async () => {
+                      try {
+                        console.log('[DEBUG] 開始選擇文字字體檔案...');
+                        const src = await window.electronAPI.pickFreej2meAsset('textfont');
+                        console.log('[DEBUG] 選擇結果:', src);
+                        if (!src) return;
+                        console.log('[DEBUG] 開始匯入文字字體:', src);
+                        const res = await window.electronAPI.importFreej2meAsset('textfont', src);
+                        console.log('[DEBUG] 匯入結果:', res);
+                        if (!res?.success) console.warn('匯入文字字體失敗:', res?.error);
+                        else console.log('[DEBUG] 文字字體匯入成功');
+                      } catch (e) {
+                        console.error('[DEBUG] 選擇/匯入文字字體發生錯誤:', e);
+                      }
+                    }}
+                  >
+                    {t('app.load')}
+                  </button>
                 </div>
-              )}
-            </div>
-          </Card>
-        ) : (
-          <Card className="assets p-12 mb-12" variant="muted">
-            <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
-              {t('emulatorConfig.freej2mePlus.hint2')}
-            </p>
-          </Card>
-        )}
+              </div>
+            )}
+          </div>
+        </Card>
+      ) : (
+        <Card className="assets p-12 mb-12" variant="muted">
+          <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
+            {t('emulatorConfig.freej2mePlus.hint2')}
+          </p>
+        </Card>
+      )}
 
       {/* Toggles container */}
       <Card className="toggles p-12 mb-12" variant="muted">
         <div className="grid-2">
           {/* 相容性選項 */}
           <div className="form-row">
-            <label className="form-label">{t('emulatorConfig.freej2mePlus.compatfantasyzonefix')}</label>
+            <label className="form-label">
+              {t('emulatorConfig.freej2mePlus.compatfantasyzonefix')}
+            </label>
             <ToggleSwitch
               checked={(values.compatfantasyzonefix ?? 'off') === 'on'}
               onChange={(checked) => setVal('compatfantasyzonefix', checked ? 'on' : 'off')}
@@ -241,7 +286,9 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
             />
           </div>
           <div className="form-row">
-            <label className="form-label">{t('emulatorConfig.freej2mePlus.compatimmediaterepaints')}</label>
+            <label className="form-label">
+              {t('emulatorConfig.freej2mePlus.compatimmediaterepaints')}
+            </label>
             <ToggleSwitch
               checked={(values.compatimmediaterepaints ?? 'off') === 'on'}
               onChange={(checked) => setVal('compatimmediaterepaints', checked ? 'on' : 'off')}
@@ -249,7 +296,9 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
             />
           </div>
           <div className="form-row">
-            <label className="form-label">{t('emulatorConfig.freej2mePlus.compatoverrideplatchecks')}</label>
+            <label className="form-label">
+              {t('emulatorConfig.freej2mePlus.compatoverrideplatchecks')}
+            </label>
             <ToggleSwitch
               checked={(values.compatoverrideplatchecks ?? 'on') === 'on'}
               onChange={(checked) => setVal('compatoverrideplatchecks', checked ? 'on' : 'off')}
@@ -257,7 +306,9 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
             />
           </div>
           <div className="form-row">
-            <label className="form-label">{t('emulatorConfig.freej2mePlus.compatsiemensfriendlydrawing')}</label>
+            <label className="form-label">
+              {t('emulatorConfig.freej2mePlus.compatsiemensfriendlydrawing')}
+            </label>
             <ToggleSwitch
               checked={(values.compatsiemensfriendlydrawing ?? 'off') === 'on'}
               onChange={(checked) => setVal('compatsiemensfriendlydrawing', checked ? 'on' : 'off')}
@@ -265,7 +316,9 @@ export default function FreeJ2MEPlusConfig({ context = 'emulator', caps = {}, va
             />
           </div>
           <div className="form-row">
-            <label className="form-label">{t('emulatorConfig.freej2mePlus.compattranstooriginonreset')}</label>
+            <label className="form-label">
+              {t('emulatorConfig.freej2mePlus.compattranstooriginonreset')}
+            </label>
             <ToggleSwitch
               checked={(values.compattranstooriginonreset ?? 'off') === 'on'}
               onChange={(checked) => setVal('compattranstooriginonreset', checked ? 'on' : 'off')}

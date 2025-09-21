@@ -25,7 +25,7 @@
     "noClusters": "啊哦，现在还没有簇？",
     "emulost": "啊哦，您尚未配置模拟器？"
   },
-  "searchClusters": "搜索簇名稱……",
+  "searchClusters": "搜索簇名称……",
   "searchPlaceholder": "搜索游戏名称、开发商……",
   "welcome": {
     "title": "欢迎使用 J2ME Launcher",
@@ -145,7 +145,7 @@
       "description": "配置模拟器启动所需的 Java 可执行文件路径",
       "currentPath": "自动检测",
       "customPath": "手动配置",
-      "customPathPlaceholder": "若留空，则自動检测。",
+      "customPathPlaceholder": "若留空，则自动检测。",
       "browse": "载入",
       "reset": "重置",
       "browseFailed": "载入 Java 可执行文件失败",
@@ -406,10 +406,10 @@
     }
   },
   "about": {
-    "description": "現代化 Java ME 游戏前端",
+    "description": "现代化 Java ME 游戏前端",
     "notice": "如果没有模拟器，那么 J2ME Launcher 将是一具空壳。\n本软件为 MIT 许可证，因此，它并不会包含许可冲突的模拟器，您需要自行下载。",
     "maintainer": "主维护：",
-    "freej2mePlusDescription": "J2ME EMU 的后起之秀。不仅与多种 J2ME 规范相容，而且同时提供了 AWT 前端和 Libretro 核心。",
+    "freej2mePlusDescription": "J2ME EMU 的后起之秀。不仅与多种 J2ME 规范兼容，而且同时提供了 AWT 前端和 Libretro 核心。",
     "kemulatorDescription": "老牌模拟器 KEmulator 的逆向工程，在进行诸多优化的同时，也提供了多桌面平台的支持。"
   },
   "gameInfo": {

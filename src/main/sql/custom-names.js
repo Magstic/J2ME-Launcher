@@ -87,5 +87,5 @@ module.exports = {
   updateCustomData,
   getDisplayName,
   getDisplayVendor,
-  resetCustomNames
+  resetCustomNames,
 };

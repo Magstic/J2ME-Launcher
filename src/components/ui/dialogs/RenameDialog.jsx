@@ -16,6 +16,9 @@ import { useTranslation } from '@hooks/useTranslation';
  */
 export default function RenameDialog({
   isOpen,
+  // 新接口（推薦）
+  title,
+  label,
   onTitle,
   onLabel,
   defaultValue = '',
@@ -27,8 +30,8 @@ export default function RenameDialog({
   const { t } = useTranslation();
   const confirmLabel = confirmText ?? t('app.save');
   const cancelLabel = cancelText ?? t('app.cancel');
-  const title = onTitle ?? t('app.rename');
-  const label = onLabel ?? t('app.name');
+  const effectiveTitle = title ?? onTitle ?? t('app.rename');
+  const effectiveLabel = label ?? onLabel ?? t('app.name');
   const inputRef = useRef(null);
   const [value, setValue] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -39,7 +42,9 @@ export default function RenameDialog({
       setIsSaving(false);
       // Autofocus slightly delayed to ensure mount
       setTimeout(() => {
-        try { inputRef.current && inputRef.current.focus(); } catch (_) {}
+        try {
+          inputRef.current && inputRef.current.focus();
+        } catch (_) {}
       }, 10);
     }
   }, [isOpen, defaultValue]);
@@ -72,15 +77,24 @@ export default function RenameDialog({
     <ModalWithFooter
       isOpen={isOpen}
       onClose={onClose}
-      title={title}
+      title={effectiveTitle}
       size="sm"
       actions={[
         { key: 'cancel', label: cancelLabel, variant: 'secondary', onClick: onClose },
-        { key: 'confirm', label: confirmLabel, variant: 'primary', onClick: handleSave, autoFocus: false, disabled: !value.trim() || isSaving },
+        {
+          key: 'confirm',
+          label: confirmLabel,
+          variant: 'primary',
+          onClick: handleSave,
+          autoFocus: false,
+          disabled: !value.trim() || isSaving,
+        },
       ]}
     >
       <div className="form-group" onKeyDown={handleKeyDown}>
-        <label style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>{label}</label>
+        <label style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>
+          {effectiveLabel}
+        </label>
         <input
           ref={inputRef}
           type="text"

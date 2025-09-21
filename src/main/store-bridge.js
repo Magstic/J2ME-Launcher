@@ -12,10 +12,10 @@ class StoreBridge {
   // Register renderer window for store updates
   registerWindow(window) {
     this.rendererWindows.add(window);
-    
+
     // Send initial state
     this.syncToRenderer(window);
-    
+
     // Cleanup on window close
     window.on('closed', () => {
       this.rendererWindows.delete(window);
@@ -25,17 +25,17 @@ class StoreBridge {
   // Sync cache state to specific renderer
   syncToRenderer(window) {
     if (window.isDestroyed()) return;
-    
+
     try {
       const games = this.cache.getAllGames();
       const folderMembership = this.buildFolderMembershipArray();
-      
+
       window.webContents.send('store-sync', {
         type: 'FULL_SYNC',
         payload: {
           games,
-          folderMembership
-        }
+          folderMembership,
+        },
       });
     } catch (e) {
       console.warn('[StoreBridge] Sync failed:', e.message);
@@ -44,9 +44,9 @@ class StoreBridge {
 
   // Broadcast to all renderer windows
   broadcastToRenderers(action) {
-    this.rendererWindows.forEach(window => {
+    this.rendererWindows.forEach((window) => {
       if (window.isDestroyed()) return;
-      
+
       try {
         window.webContents.send('store-action', action);
       } catch (e) {
@@ -58,37 +58,37 @@ class StoreBridge {
   // Handle cache updates and broadcast changes
   onCacheUpdate(changeType, data) {
     let action;
-    
+
     switch (changeType) {
       case 'games-loaded':
         action = {
           type: 'GAMES_LOADED',
-          payload: data.games
+          payload: data.games,
         };
         break;
-        
+
       case 'folder-membership-changed':
         action = {
           type: 'FOLDER_MEMBERSHIP_CHANGED',
           payload: {
             filePaths: data.filePaths,
             folderId: data.folderId,
-            operation: data.operation
-          }
+            operation: data.operation,
+          },
         };
         break;
-        
+
       case 'games-incremental-update':
         action = {
           type: 'GAMES_INCREMENTAL_UPDATE',
-          payload: data
+          payload: data,
         };
         break;
-        
+
       default:
         return;
     }
-    
+
     this.broadcastToRenderers(action);
   }
 
@@ -107,12 +107,12 @@ class StoreBridge {
   async initialize() {
     try {
       await this.cache.initialize();
-      
+
       // Sync to all registered windows
-      this.rendererWindows.forEach(window => {
+      this.rendererWindows.forEach((window) => {
         this.syncToRenderer(window);
       });
-      
+
       return true;
     } catch (e) {
       console.error('[StoreBridge] Initialize failed:', e);
@@ -124,15 +124,15 @@ class StoreBridge {
   handleRendererAction(action) {
     switch (action.type) {
       case 'REQUEST_FULL_SYNC':
-        this.rendererWindows.forEach(window => {
+        this.rendererWindows.forEach((window) => {
           this.syncToRenderer(window);
         });
         break;
-        
+
       case 'CACHE_INVALIDATE':
         this.cache.markDirty();
         break;
-        
+
       default:
         console.warn('[StoreBridge] Unknown renderer action:', action.type);
     }

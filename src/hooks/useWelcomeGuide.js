@@ -41,6 +41,6 @@ export const useWelcomeGuide = () => {
     isWelcomeGuideOpen,
     openWelcomeGuide,
     closeWelcomeGuide,
-    handleWelcomeGuideComplete
+    handleWelcomeGuideComplete,
   };
 };

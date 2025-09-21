@@ -12,10 +12,10 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
     freej2mePlus: {
       jarPath: '',
       romCache: true,
-      defaults: { fullscreen: 0, width: 240, height: 320, scale: 2, keyLayout: 0, framerate: 60 }
+      defaults: { fullscreen: 0, width: 240, height: 320, scale: 2, keyLayout: 0, framerate: 60 },
     },
     ke: { jarPath: '', romCache: true },
-    libretro: { retroarchPath: '', corePath: '', romCache: false }
+    libretro: { retroarchPath: '', corePath: '', romCache: false },
   });
   const [dirty, setDirty] = useState(false);
   const [freeOpen, setFreeOpen] = useState(false);
@@ -25,32 +25,38 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
   const warnFlagsRef = useRef({ rmsOn: false, emuCfgOn: false });
   const originalPathsRef = useRef({ freeJar: '', keJar: '', retroarch: '' });
   const freeDefaults = useMemo(() => emulators.freej2mePlus?.defaults || {}, [emulators]);
-  const freeAdapter = useMemo(() => (emulatorList || []).find(e => e?.id === 'freej2mePlus') || null, [emulatorList]);
+  const freeAdapter = useMemo(
+    () => (emulatorList || []).find((e) => e?.id === 'freej2mePlus') || null,
+    [emulatorList]
+  );
   const freeCaps = freeAdapter?.capabilities || {};
   //（已改用 FreeJ2MEPlusConfig 統一渲染選項，移除本地常數）
 
   // 內建基線（與 GameLaunchDialog 的 params 初始值一致）
-  const BASE_DEFAULTS = useMemo(() => ({
-    fullscreen: 0,
-    width: 240,
-    height: 320,
-    scale: 2,
-    keyLayout: 0,
-    framerate: 60,
-    soundfont: 'Default',
-    textfont: 'Default',
-    compatfantasyzonefix: 'off',
-    compatimmediaterepaints: 'off',
-    compatoverrideplatchecks: 'on',
-    compatsiemensfriendlydrawing: 'off',
-    compattranstooriginonreset: 'off',
-    backlightcolor: 'Disabled',
-    fontoffset: '-2',
-    rotate: '0',
-    fpshack: '0',
-    sound: 'on',
-    spdhacknoalpha: 'off'
-  }), []);
+  const BASE_DEFAULTS = useMemo(
+    () => ({
+      fullscreen: 0,
+      width: 240,
+      height: 320,
+      scale: 2,
+      keyLayout: 0,
+      framerate: 60,
+      soundfont: 'Default',
+      textfont: 'Default',
+      compatfantasyzonefix: 'off',
+      compatimmediaterepaints: 'off',
+      compatoverrideplatchecks: 'on',
+      compatsiemensfriendlydrawing: 'off',
+      compattranstooriginonreset: 'off',
+      backlightcolor: 'Disabled',
+      fontoffset: '-2',
+      rotate: '0',
+      fpshack: '0',
+      sound: 'on',
+      spdhacknoalpha: 'off',
+    }),
+    []
+  );
 
   // 開啟時載入保存的配置並與基線合併，確保所有新欄位有一致預設
   useEffect(() => {
@@ -65,24 +71,46 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
         originalPathsRef.current = {
           freeJar: (emu && emu.freej2mePlus && emu.freej2mePlus.jarPath) || '',
           keJar: (emu && emu.ke && emu.ke.jarPath) || '',
-          retroarch: (emu && emu.libretro && emu.libretro.retroarchPath) || ''
+          retroarch: (emu && emu.libretro && emu.libretro.retroarchPath) || '',
         };
-        setEmulators(prev => ({
+        setEmulators((prev) => ({
           ...prev,
           freej2mePlus: {
-            jarPath: (emu && emu.freej2mePlus && emu.freej2mePlus.jarPath) || prev.freej2mePlus?.jarPath || '',
-            romCache: (emu && emu.freej2mePlus && typeof emu.freej2mePlus.romCache === 'boolean') ? emu.freej2mePlus.romCache : (typeof prev.freej2mePlus?.romCache === 'boolean' ? prev.freej2mePlus.romCache : true),
+            jarPath:
+              (emu && emu.freej2mePlus && emu.freej2mePlus.jarPath) ||
+              prev.freej2mePlus?.jarPath ||
+              '',
+            romCache:
+              emu && emu.freej2mePlus && typeof emu.freej2mePlus.romCache === 'boolean'
+                ? emu.freej2mePlus.romCache
+                : typeof prev.freej2mePlus?.romCache === 'boolean'
+                  ? prev.freej2mePlus.romCache
+                  : true,
             defaults: prev.freej2mePlus?.defaults || BASE_DEFAULTS,
           },
           ke: {
             jarPath: (emu && emu.ke && emu.ke.jarPath) || prev.ke?.jarPath || '',
-            romCache: (emu && emu.ke && typeof emu.ke.romCache === 'boolean') ? emu.ke.romCache : (typeof prev.ke?.romCache === 'boolean' ? prev.ke.romCache : true)
+            romCache:
+              emu && emu.ke && typeof emu.ke.romCache === 'boolean'
+                ? emu.ke.romCache
+                : typeof prev.ke?.romCache === 'boolean'
+                  ? prev.ke.romCache
+                  : true,
           },
           libretro: {
-            retroarchPath: (emu && emu.libretro && emu.libretro.retroarchPath) || prev.libretro?.retroarchPath || '',
-            corePath: (emu && emu.libretro && emu.libretro.corePath) || prev.libretro?.corePath || '',
-            romCache: (emu && emu.libretro && typeof emu.libretro.romCache === 'boolean') ? emu.libretro.romCache : (typeof prev.libretro?.romCache === 'boolean' ? prev.libretro.romCache : false)
-          }
+            retroarchPath:
+              (emu && emu.libretro && emu.libretro.retroarchPath) ||
+              prev.libretro?.retroarchPath ||
+              '',
+            corePath:
+              (emu && emu.libretro && emu.libretro.corePath) || prev.libretro?.corePath || '',
+            romCache:
+              emu && emu.libretro && typeof emu.libretro.romCache === 'boolean'
+                ? emu.libretro.romCache
+                : typeof prev.libretro?.romCache === 'boolean'
+                  ? prev.libretro.romCache
+                  : false,
+          },
         }));
         setDirty(false);
       } catch (_) {
@@ -109,7 +137,7 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
           originalPathsRef.current = {
             freeJar: (cfg && cfg.freej2mePlus && cfg.freej2mePlus.jarPath) || '',
             keJar: (cfg && cfg.ke && cfg.ke.jarPath) || '',
-            retroarch: (cfg && cfg.libretro && cfg.libretro.retroarchPath) || ''
+            retroarch: (cfg && cfg.libretro && cfg.libretro.retroarchPath) || '',
           };
           setEmulators(cfg);
         }
@@ -125,26 +153,26 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   const updateFreeField = (field, value) => {
-    setEmulators(prev => ({
+    setEmulators((prev) => ({
       ...prev,
       freej2mePlus: {
         ...(prev.freej2mePlus || {}),
-        [field]: value
-      }
+        [field]: value,
+      },
     }));
     setDirty(true);
   };
 
   const updateFreeDefault = (field, value) => {
-    setEmulators(prev => ({
+    setEmulators((prev) => ({
       ...prev,
       freej2mePlus: {
         ...(prev.freej2mePlus || {}),
         defaults: {
           ...((prev.freej2mePlus && prev.freej2mePlus.defaults) || {}),
-          [field]: value
-        }
-      }
+          [field]: value,
+        },
+      },
     }));
     setDirty(true);
   };
@@ -155,20 +183,24 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
       const currentConfig = {
         freej2mePlus: {
           jarPath: emulators.freej2mePlus?.jarPath || '',
-          romCache: (typeof emulators.freej2mePlus?.romCache === 'boolean') ? emulators.freej2mePlus.romCache : true,
-          defaults: freeDefaults
+          romCache:
+            typeof emulators.freej2mePlus?.romCache === 'boolean'
+              ? emulators.freej2mePlus.romCache
+              : true,
+          defaults: freeDefaults,
         },
-        ke: { 
-          jarPath: emulators.ke?.jarPath || '', 
-          romCache: (typeof emulators.ke?.romCache === 'boolean') ? emulators.ke.romCache : true 
+        ke: {
+          jarPath: emulators.ke?.jarPath || '',
+          romCache: typeof emulators.ke?.romCache === 'boolean' ? emulators.ke.romCache : true,
         },
         libretro: {
           retroarchPath: emulators.libretro?.retroarchPath || '',
           corePath: emulators.libretro?.corePath || '',
-          romCache: (typeof emulators.libretro?.romCache === 'boolean') ? emulators.libretro.romCache : false
-        }
+          romCache:
+            typeof emulators.libretro?.romCache === 'boolean' ? emulators.libretro.romCache : false,
+        },
       };
-      
+
       // 更新指定的配置項
       if (emulatorType === 'freej2mePlus') {
         currentConfig.freej2mePlus[field] = value;
@@ -177,7 +209,7 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
       } else if (emulatorType === 'libretro') {
         currentConfig.libretro[field] = value;
       }
-      
+
       await window.electronAPI.setEmulatorConfig(currentConfig);
       console.log(`[DEBUG] ${emulatorType} ${field} 已自動保存:`, value);
     } catch (e) {
@@ -199,21 +231,28 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
       await window.electronAPI.setEmulatorConfig({
         freej2mePlus: {
           jarPath: emulators.freej2mePlus?.jarPath || '',
-          romCache: (typeof emulators.freej2mePlus?.romCache === 'boolean') ? emulators.freej2mePlus.romCache : true,
-          defaults: freeDefaults
+          romCache:
+            typeof emulators.freej2mePlus?.romCache === 'boolean'
+              ? emulators.freej2mePlus.romCache
+              : true,
+          defaults: freeDefaults,
         },
-        ke: { jarPath: emulators.ke?.jarPath || '', romCache: (typeof emulators.ke?.romCache === 'boolean') ? emulators.ke.romCache : true },
+        ke: {
+          jarPath: emulators.ke?.jarPath || '',
+          romCache: typeof emulators.ke?.romCache === 'boolean' ? emulators.ke.romCache : true,
+        },
         libretro: {
           retroarchPath: emulators.libretro?.retroarchPath || '',
           corePath: emulators.libretro?.corePath || '',
-          romCache: (typeof emulators.libretro?.romCache === 'boolean') ? emulators.libretro.romCache : false
-        }
+          romCache:
+            typeof emulators.libretro?.romCache === 'boolean' ? emulators.libretro.romCache : false,
+        },
       });
       // 保存成功後，同步原始路徑基準
       originalPathsRef.current = {
         freeJar: emulators.freej2mePlus?.jarPath || '',
         keJar: emulators.ke?.jarPath || '',
-        retroarch: emulators.libretro?.retroarchPath || ''
+        retroarch: emulators.libretro?.retroarchPath || '',
       };
       setDirty(false);
       // 關閉動效交由容器處理（在調用端透過 requestCloseRef）
@@ -228,7 +267,8 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
   const handleSave = async () => {
     try {
       // 若備份選擇中啟用了 rms 或 emuConfig，且此次修改動到模擬器路徑，改用自訂 Modal 提示風險
-      let rmsOn = false, emuCfgOn = false;
+      let rmsOn = false,
+        emuCfgOn = false;
       try {
         const raw = localStorage.getItem('backup.selectedGroups');
         if (raw) {
@@ -238,9 +278,11 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
         }
       } catch (_) {}
 
-      const freeChanged = (emulators.freej2mePlus?.jarPath || '') !== (originalPathsRef.current.freeJar || '');
+      const freeChanged =
+        (emulators.freej2mePlus?.jarPath || '') !== (originalPathsRef.current.freeJar || '');
       const keChanged = (emulators.ke?.jarPath || '') !== (originalPathsRef.current.keJar || '');
-      const retroChanged = (emulators.libretro?.retroarchPath || '') !== (originalPathsRef.current.retroarch || '');
+      const retroChanged =
+        (emulators.libretro?.retroarchPath || '') !== (originalPathsRef.current.retroarch || '');
       const pathsChanged = freeChanged || keChanged || retroChanged;
 
       if (pathsChanged && (rmsOn || emuCfgOn)) {
@@ -260,7 +302,7 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
         className="form-input"
         type="number"
         value={value}
-        onChange={e => onChange(parseInt(e.target.value || '0', 10))}
+        onChange={(e) => onChange(parseInt(e.target.value || '0', 10))}
         {...props}
       />
     </div>
@@ -268,174 +310,261 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
 
   const requestCloseRef = React.useRef(null);
 
-  return (<>
-    <ModalWithFooter
-      isOpen={isOpen}
-      onClose={onClose}
-      title={t('emulatorConfig.title')}
-      size="md"
-      requestCloseRef={requestCloseRef}
-      actions={[
-        { key: 'cancel', label: t('app.cancel'), variant: 'secondary', onClick: () => requestCloseRef.current && requestCloseRef.current() },
-        { key: 'save', label: t('app.save'), variant: 'primary', onClick: handleSave, disabled: loading || !dirty, allowFocusRing: true },
-      ]}
-    >
-      <>
+  return (
+    <>
+      <ModalWithFooter
+        isOpen={isOpen}
+        onClose={onClose}
+        title={t('emulatorConfig.title')}
+        size="md"
+        requestCloseRef={requestCloseRef}
+        actions={[
+          {
+            key: 'cancel',
+            label: t('app.cancel'),
+            variant: 'secondary',
+            onClick: () => requestCloseRef.current && requestCloseRef.current(),
+          },
+          {
+            key: 'save',
+            label: t('app.save'),
+            variant: 'primary',
+            onClick: handleSave,
+            disabled: loading || !dirty,
+            allowFocusRing: true,
+          },
+        ]}
+      >
+        <>
           {/* FreeJ2ME-Plus 區塊（可折疊） */}
-          {emulatorList.some(e => e?.id === 'freej2mePlus') && (
+          {emulatorList.some((e) => e?.id === 'freej2mePlus') && (
             <Collapsible
               className="mb-12"
-              title={(emulatorList.find(e => e?.id === 'freej2mePlus')?.name) || 'FreeJ2ME-Plus'}
+              title={emulatorList.find((e) => e?.id === 'freej2mePlus')?.name || 'FreeJ2ME-Plus'}
               open={freeOpen}
-              onToggle={() => setFreeOpen(o => !o)}
+              onToggle={() => setFreeOpen((o) => !o)}
             >
-                {freeCaps?.requiresGameConf && (
-                  <div className="hint text-12 text-secondary mb-8">
-                    {t('emulatorConfig.freej2mePlus.hint')}
-                  </div>
-                )}
-                <div className="form-row">
-                  <label className="form-label">{t('emulatorConfig.freej2mePlus.jarPath')}</label>
-                  <div className="flex gap-8 items-center" style={{ width: '100%' }}>
-                    <input className="form-input" type="text" readOnly value={emulators.freej2mePlus?.jarPath || ''} placeholder={t('emulatorConfig.freej2mePlus.placeholder')} />
-                    <button className="btn btn-secondary" onClick={handlePickJar}>{t('app.select')}</button>
-                  </div>
+              {freeCaps?.requiresGameConf && (
+                <div className="hint text-12 text-secondary mb-8">
+                  {t('emulatorConfig.freej2mePlus.hint')}
                 </div>
+              )}
+              <div className="form-row">
+                <label className="form-label">{t('emulatorConfig.freej2mePlus.jarPath')}</label>
+                <div className="flex gap-8 items-center" style={{ width: '100%' }}>
+                  <input
+                    className="form-input"
+                    type="text"
+                    readOnly
+                    value={emulators.freej2mePlus?.jarPath || ''}
+                    placeholder={t('emulatorConfig.freej2mePlus.placeholder')}
+                  />
+                  <button className="btn btn-secondary" onClick={handlePickJar}>
+                    {t('app.select')}
+                  </button>
+                </div>
+              </div>
 
-                <FreeJ2MEPlusConfig
-                  context="emulator"
-                  caps={freeCaps || {}}
-                  values={freeDefaults}
-                  onChange={(partial) => {
-                    if (partial && typeof partial === 'object') {
-                      for (const [k, v] of Object.entries(partial)) updateFreeDefault(k, v);
-                    }
-                  }}
-                  disabled={false}
-                />
-                <RomCacheSwitch
-                  checked={emulators.freej2mePlus?.romCache ?? true}
-                  onChange={(v) => { setEmulators(prev => ({ ...prev, freej2mePlus: { ...(prev.freej2mePlus || {}), romCache: v } })); setDirty(true); }}
-                />
+              <FreeJ2MEPlusConfig
+                context="emulator"
+                caps={freeCaps || {}}
+                values={freeDefaults}
+                onChange={(partial) => {
+                  if (partial && typeof partial === 'object') {
+                    for (const [k, v] of Object.entries(partial)) updateFreeDefault(k, v);
+                  }
+                }}
+                disabled={false}
+              />
+              <RomCacheSwitch
+                checked={emulators.freej2mePlus?.romCache ?? true}
+                onChange={(v) => {
+                  setEmulators((prev) => ({
+                    ...prev,
+                    freej2mePlus: { ...(prev.freej2mePlus || {}), romCache: v },
+                  }));
+                  setDirty(true);
+                }}
+              />
             </Collapsible>
           )}
 
           {/* KEmulator 區塊（可折疊） */}
-          {emulatorList.some(e => e?.id === 'ke') && (
+          {emulatorList.some((e) => e?.id === 'ke') && (
             <Collapsible
               className="mb-12"
-              title={(emulatorList.find(e => e?.id === 'ke')?.name) || 'KEmulator'}
+              title={emulatorList.find((e) => e?.id === 'ke')?.name || 'KEmulator'}
               open={keOpen}
-              onToggle={() => setKeOpen(o => !o)}
+              onToggle={() => setKeOpen((o) => !o)}
             >
-                <div className="form-row">
-                  <label className="form-label">{t('emulatorConfig.kemulator.jarPath')}</label>
-                  <div className="flex gap-8 items-center" style={{ width: '100%' }}>
-                    <input className="form-input" type="text" readOnly value={emulators.ke?.jarPath || ''} placeholder={t('emulatorConfig.kemulator.placeholder')} />
-                    <button
-                      className="btn btn-secondary"
-                      onClick={async () => {
-                        const p = await window.electronAPI.pickEmulatorBinary('ke');
-                        if (p) {
-                          setEmulators(prev => ({ ...prev, ke: { ...(prev.ke || {}), jarPath: p } }));
-                          setDirty(true);
-                          await autoSaveConfig('ke', 'jarPath', p);
-                        }
-                      }}
-                    >{t('app.select')}</button>
-                  </div>
+              <div className="form-row">
+                <label className="form-label">{t('emulatorConfig.kemulator.jarPath')}</label>
+                <div className="flex gap-8 items-center" style={{ width: '100%' }}>
+                  <input
+                    className="form-input"
+                    type="text"
+                    readOnly
+                    value={emulators.ke?.jarPath || ''}
+                    placeholder={t('emulatorConfig.kemulator.placeholder')}
+                  />
+                  <button
+                    className="btn btn-secondary"
+                    onClick={async () => {
+                      const p = await window.electronAPI.pickEmulatorBinary('ke');
+                      if (p) {
+                        setEmulators((prev) => ({
+                          ...prev,
+                          ke: { ...(prev.ke || {}), jarPath: p },
+                        }));
+                        setDirty(true);
+                        await autoSaveConfig('ke', 'jarPath', p);
+                      }
+                    }}
+                  >
+                    {t('app.select')}
+                  </button>
                 </div>
-                <RomCacheSwitch
-                  checked={emulators.ke?.romCache ?? true}
-                  onChange={(v) => { setEmulators(prev => ({ ...prev, ke: { ...(prev.ke || {}), romCache: v } })); setDirty(true); }}
-                />
-                <div className="hint text-12 text-secondary">
-                  {t('emulatorConfig.kemulator.hint')}
-                </div>
+              </div>
+              <RomCacheSwitch
+                checked={emulators.ke?.romCache ?? true}
+                onChange={(v) => {
+                  setEmulators((prev) => ({ ...prev, ke: { ...(prev.ke || {}), romCache: v } }));
+                  setDirty(true);
+                }}
+              />
+              <div className="hint text-12 text-secondary">
+                {t('emulatorConfig.kemulator.hint')}
+              </div>
             </Collapsible>
           )}
           {/* Libretro 區塊（可折疊） */}
-          {(emulatorList.some(e => e?.id === 'libretro') || !emulatorList.length) && (
+          {(emulatorList.some((e) => e?.id === 'libretro') || !emulatorList.length) && (
             <Collapsible
               className="mb-12"
-              title={(emulatorList.find(e => e?.id === 'libretro')?.name) || 'Libretro'}
+              title={emulatorList.find((e) => e?.id === 'libretro')?.name || 'Libretro'}
               open={libretroOpen}
-              onToggle={() => setLibretroOpen(o => !o)}
+              onToggle={() => setLibretroOpen((o) => !o)}
             >
-                <div className="form-row">
-                  <label className="form-label">{t('emulatorConfig.libretroFJP.retroarchPath')}</label>
-                  <div className="flex gap-8 items-center" style={{ width: '100%' }}>
-                    <input className="form-input" type="text" readOnly value={emulators.libretro?.retroarchPath || ''} placeholder={t('emulatorConfig.libretroFJP.retroarchPlaceholder')} />
-                    <button
-                      className="btn btn-secondary"
-                      onClick={async () => {
-                        const p = await window.electronAPI.pickEmulatorBinary('libretro-exe');
-                        if (p) {
-                          setEmulators(prev => ({ ...prev, libretro: { ...(prev.libretro || {}), retroarchPath: p } }));
-                          setDirty(true);
-                          await autoSaveConfig('libretro', 'retroarchPath', p);
-                        }
-                      }}
-                    >{t('app.select')}</button>
-                  </div>
+              <div className="form-row">
+                <label className="form-label">
+                  {t('emulatorConfig.libretroFJP.retroarchPath')}
+                </label>
+                <div className="flex gap-8 items-center" style={{ width: '100%' }}>
+                  <input
+                    className="form-input"
+                    type="text"
+                    readOnly
+                    value={emulators.libretro?.retroarchPath || ''}
+                    placeholder={t('emulatorConfig.libretroFJP.retroarchPlaceholder')}
+                  />
+                  <button
+                    className="btn btn-secondary"
+                    onClick={async () => {
+                      const p = await window.electronAPI.pickEmulatorBinary('libretro-exe');
+                      if (p) {
+                        setEmulators((prev) => ({
+                          ...prev,
+                          libretro: { ...(prev.libretro || {}), retroarchPath: p },
+                        }));
+                        setDirty(true);
+                        await autoSaveConfig('libretro', 'retroarchPath', p);
+                      }
+                    }}
+                  >
+                    {t('app.select')}
+                  </button>
                 </div>
-                <div className="form-row">
-                  <label className="form-label">{t('emulatorConfig.libretroFJP.corePath')}</label>
-                  <div className="flex gap-8 items-center" style={{ width: '100%' }}>
-                    <input className="form-input" type="text" readOnly value={emulators.libretro?.corePath || ''} placeholder={t('emulatorConfig.libretroFJP.corePlaceholder')} />
-                    <button
-                      className="btn btn-secondary"
-                      onClick={async () => {
-                        const p = await window.electronAPI.pickEmulatorBinary('libretro-core');
-                        if (p) {
-                          setEmulators(prev => ({ ...prev, libretro: { ...(prev.libretro || {}), corePath: p } }));
-                          setDirty(true);
-                          await autoSaveConfig('libretro', 'corePath', p);
-                        }
-                      }}
-                    >{t('app.select')}</button>
-                  </div>
+              </div>
+              <div className="form-row">
+                <label className="form-label">{t('emulatorConfig.libretroFJP.corePath')}</label>
+                <div className="flex gap-8 items-center" style={{ width: '100%' }}>
+                  <input
+                    className="form-input"
+                    type="text"
+                    readOnly
+                    value={emulators.libretro?.corePath || ''}
+                    placeholder={t('emulatorConfig.libretroFJP.corePlaceholder')}
+                  />
+                  <button
+                    className="btn btn-secondary"
+                    onClick={async () => {
+                      const p = await window.electronAPI.pickEmulatorBinary('libretro-core');
+                      if (p) {
+                        setEmulators((prev) => ({
+                          ...prev,
+                          libretro: { ...(prev.libretro || {}), corePath: p },
+                        }));
+                        setDirty(true);
+                        await autoSaveConfig('libretro', 'corePath', p);
+                      }
+                    }}
+                  >
+                    {t('app.select')}
+                  </button>
                 </div>
-                <RomCacheSwitch
-                  checked={emulators.libretro?.romCache ?? false}
-                  onChange={(v) => { setEmulators(prev => ({ ...prev, libretro: { ...(prev.libretro || {}), romCache: v } })); setDirty(true); }}
-                />
-                <div className="hint text-12 text-secondary">
+              </div>
+              <RomCacheSwitch
+                checked={emulators.libretro?.romCache ?? false}
+                onChange={(v) => {
+                  setEmulators((prev) => ({
+                    ...prev,
+                    libretro: { ...(prev.libretro || {}), romCache: v },
+                  }));
+                  setDirty(true);
+                }}
+              />
+              <div className="hint text-12 text-secondary">
                 {t('emulatorConfig.libretroFJP.hint')}
-                </div>
+              </div>
             </Collapsible>
           )}
           <div className="section" style={{ opacity: 0.6, marginTop: 12 }}>
             <h3 style={{ margin: '0 0 8px 0', fontSize: 16 }}>？？？</h3>
-            <div className="hint" style={{ fontSize: 12 }}>？？？？？？</div>
+            <div className="hint" style={{ fontSize: 12 }}>
+              ？？？？？？
+            </div>
           </div>
-      </>
-    </ModalWithFooter>
+        </>
+      </ModalWithFooter>
 
-    {/* 二級確認 Modal：變更模擬器路徑且影響備份時的警告 */}
-    <ModalWithFooter
-      isOpen={showPathChangeWarn}
-      onClose={() => setShowPathChangeWarn(false)}
-      title={t('app.warning')}
-      size="sm"
-      actions={[
-        { key: 'cancel', label: t('app.cancel'), variant: 'secondary', onClick: () => setShowPathChangeWarn(false) },
-        { key: 'proceed', label: t('app.save'), variant: 'primary', onClick: async () => { setShowPathChangeWarn(false); await doSave(); } }
-      ]}
-    >
-      <>
-        <div className="mb-8">{t('emulatorConfig.warn.pathChange1')}</div>
-        <br/>
-        <ul className="mb-8" style={{ paddingLeft: 18 }}>
-          {warnFlagsRef.current.rmsOn ? (<li>{t('emulatorConfig.warn.rmsOn')}</li>) : null}
-          {warnFlagsRef.current.emuCfgOn ? (<li>{t('emulatorConfig.warn.emuCfgOn')}</li>) : null}
-        </ul>
-        <br/>
-        <div className="mb-8">{t('emulatorConfig.warn.pathChange2')}</div>
-        <div>{t('emulatorConfig.warn.pathChange3')}</div>
-      </>
-    </ModalWithFooter>
-  </>);
+      {/* 二級確認 Modal：變更模擬器路徑且影響備份時的警告 */}
+      <ModalWithFooter
+        isOpen={showPathChangeWarn}
+        onClose={() => setShowPathChangeWarn(false)}
+        title={t('app.warning')}
+        size="sm"
+        actions={[
+          {
+            key: 'cancel',
+            label: t('app.cancel'),
+            variant: 'secondary',
+            onClick: () => setShowPathChangeWarn(false),
+          },
+          {
+            key: 'proceed',
+            label: t('app.save'),
+            variant: 'primary',
+            onClick: async () => {
+              setShowPathChangeWarn(false);
+              await doSave();
+            },
+          },
+        ]}
+      >
+        <>
+          <div className="mb-8">{t('emulatorConfig.warn.pathChange1')}</div>
+          <br />
+          <ul className="mb-8" style={{ paddingLeft: 18 }}>
+            {warnFlagsRef.current.rmsOn ? <li>{t('emulatorConfig.warn.rmsOn')}</li> : null}
+            {warnFlagsRef.current.emuCfgOn ? <li>{t('emulatorConfig.warn.emuCfgOn')}</li> : null}
+          </ul>
+          <br />
+          <div className="mb-8">{t('emulatorConfig.warn.pathChange2')}</div>
+          <div>{t('emulatorConfig.warn.pathChange3')}</div>
+        </>
+      </ModalWithFooter>
+    </>
+  );
 }
 
 export default EmulatorConfigDialog;

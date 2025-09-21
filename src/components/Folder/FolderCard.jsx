@@ -71,7 +71,7 @@ const FolderCard = ({
       onDragOver={handleDragOver}
       onDrop={handleDrop}
       style={{
-        '--folder-color': getFolderColor()
+        '--folder-color': getFolderColor(),
       }}
       title={folder.description || folder.name}
       {...rest}
@@ -85,9 +85,7 @@ const FolderCard = ({
       </div>
 
       {/* 資料夾名稱 */}
-      <div className="folder-name">
-        {folder.name}
-      </div>
+      <div className="folder-name">{folder.name}</div>
     </div>
   );
 };

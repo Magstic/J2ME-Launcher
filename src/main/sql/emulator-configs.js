@@ -10,19 +10,27 @@ const EMULATOR_KEY = 'default';
 function getGameEmulatorConfig(filePath) {
   const db = getDB();
   const p = normalizePathInput(filePath);
-  const row = db.prepare(`SELECT config FROM emulator_configs WHERE filePath=? AND emulator=?`).get(p, EMULATOR_KEY);
+  const row = db
+    .prepare(`SELECT config FROM emulator_configs WHERE filePath=? AND emulator=?`)
+    .get(p, EMULATOR_KEY);
   if (!row) return null;
-  try { return JSON.parse(row.config); } catch { return null; }
+  try {
+    return JSON.parse(row.config);
+  } catch {
+    return null;
+  }
 }
 
 function setGameEmulatorConfig(filePath, configObj) {
   const db = getDB();
   const config = JSON.stringify(configObj || null);
-  db.prepare(`
+  db.prepare(
+    `
     INSERT INTO emulator_configs (filePath, emulator, config)
     VALUES (?, ?, ?)
     ON CONFLICT(filePath, emulator) DO UPDATE SET config=excluded.config
-  `).run(normalizePathInput(filePath), EMULATOR_KEY, config);
+  `
+  ).run(normalizePathInput(filePath), EMULATOR_KEY, config);
   return configObj || null;
 }
 

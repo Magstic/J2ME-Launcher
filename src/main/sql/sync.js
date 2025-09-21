@@ -11,8 +11,15 @@ function normalizePath(p) {
 }
 
 const FIXED_GAME_KEYS = new Set([
-  'filePath', 'gameName', 'vendor', 'version', 'md5', 'iconPath', 'mtimeMs', 'size',
-  'emulatorConfig' // not stored in games; per-emulator configs go to emulator_configs
+  'filePath',
+  'gameName',
+  'vendor',
+  'version',
+  'md5',
+  'iconPath',
+  'mtimeMs',
+  'size',
+  'emulatorConfig', // not stored in games; per-emulator configs go to emulator_configs
 ]);
 
 function extractManifest(game) {
@@ -52,7 +59,7 @@ function upsertGames(gamesArray) {
         iconPath: normalizePath(g.iconPath) ?? null,
         mtimeMs: g.mtimeMs ?? null,
         size: g.size ?? null,
-        manifest: manifest ? JSON.stringify(manifest) : null
+        manifest: manifest ? JSON.stringify(manifest) : null,
       });
     }
   });

@@ -53,16 +53,19 @@ function buildOrderedOut(lines) {
     const v = ln.slice(idx + 1).trim();
     presentMap.set(k, v);
   }
-  const others = lines.filter(ln => !isTarget(ln));
+  const others = lines.filter((ln) => !isTarget(ln));
   return [
     ...others,
-    ...orderedKeys.filter(k => presentMap.has(k)).map(k => `${k}:${presentMap.get(k)}`),
+    ...orderedKeys.filter((k) => presentMap.has(k)).map((k) => `${k}:${presentMap.get(k)}`),
   ];
 }
 
 async function updateGameConf({ jarPath, gameFilePath, params, DataStore, getConfigGameName }) {
   const dsGame = DataStore.getGame(gameFilePath);
-  const fallback = (dsGame && dsGame.gameName) ? dsGame.gameName : path.basename(gameFilePath, path.extname(gameFilePath));
+  const fallback =
+    dsGame && dsGame.gameName
+      ? dsGame.gameName
+      : path.basename(gameFilePath, path.extname(gameFilePath));
   const gameName = await getConfigGameName(gameFilePath, fallback);
 
   const confDir = path.join(path.dirname(jarPath), 'config', gameName);
@@ -84,7 +87,7 @@ async function updateGameConf({ jarPath, gameFilePath, params, DataStore, getCon
     'compatimmediaterepaints',
     'compatoverrideplatchecks',
     'compatsiemensfriendlydrawing',
-    'compattranstooriginonreset'
+    'compattranstooriginonreset',
   ];
   const extraKeys = [
     'backlightcolor',
@@ -92,52 +95,92 @@ async function updateGameConf({ jarPath, gameFilePath, params, DataStore, getCon
     'rotate',
     'fpshack',
     'sound',
-    'spdhacknoalpha'
+    'spdhacknoalpha',
   ];
 
   const mapFpshack = (v) => {
     const s = String(v).trim();
     // pass-through if already textual
-    if (['Disabled','Safe','Extended','Aggressive'].includes(s)) return s;
+    if (['Disabled', 'Safe', 'Extended', 'Aggressive'].includes(s)) return s;
     // support numeric or numeric-string
     const m = {
-      '0': 'Disabled',
-      '1': 'Safe',
-      '2': 'Extended',
-      '3': 'Aggressive'
+      0: 'Disabled',
+      1: 'Safe',
+      2: 'Extended',
+      3: 'Aggressive',
     };
     return m[s] ?? s;
   };
 
-  const compatValues = Object.fromEntries(compatKeys.map(k => {
-    const v = (params && params[k]) || '';
-    const norm = String(v).toLowerCase() === 'on' ? 'on' : (String(v).toLowerCase() === 'off' ? 'off' : undefined);
-    return [k, norm];
-  }));
+  const compatValues = Object.fromEntries(
+    compatKeys.map((k) => {
+      const v = (params && params[k]) || '';
+      const norm =
+        String(v).toLowerCase() === 'on'
+          ? 'on'
+          : String(v).toLowerCase() === 'off'
+            ? 'off'
+            : undefined;
+      return [k, norm];
+    })
+  );
 
   // phone mapping (keyLayout -> phone name)
   const phoneMap = [
-    'Standard','LG','Motorola/SoftBank','Motorola Triplets','Motorola V8','Nokia Full Keyboard','Sagem','Siemens','Sharp','SKT','KDDI'
+    'Standard',
+    'LG',
+    'Motorola/SoftBank',
+    'Motorola Triplets',
+    'Motorola V8',
+    'Nokia Full Keyboard',
+    'Sagem',
+    'Siemens',
+    'Sharp',
+    'SKT',
+    'KDDI',
   ];
   const phoneIdx = ensureInt(params?.keyLayout, 0);
   const phoneName = phoneMap[phoneIdx] || 'Standard';
 
-  let hasW = false, hasH = false, hasPhone = false, hasTextfont = false, hasSoundfont = false, hasFps = false;
+  let hasW = false,
+    hasH = false,
+    hasPhone = false,
+    hasTextfont = false,
+    hasSoundfont = false,
+    hasFps = false;
 
   const newLines = lines.map((ln) => {
     const idx = ln.indexOf(':');
     if (idx > 0) {
       const key = ln.slice(0, idx).trim();
-      if (key === 'scrwidth') { hasW = true; return `scrwidth:${width}`; }
-      if (key === 'scrheight') { hasH = true; return `scrheight:${height}`; }
-      if (key === 'fps') { hasFps = true; return `fps:${fpsValue}`; }
-      if (key === 'textfont') { hasTextfont = true; return `textfont:${params.textfont || 'Default'}`; }
-      if (key === 'soundfont') { hasSoundfont = true; return `soundfont:${params.soundfont || 'Default'}`; }
+      if (key === 'scrwidth') {
+        hasW = true;
+        return `scrwidth:${width}`;
+      }
+      if (key === 'scrheight') {
+        hasH = true;
+        return `scrheight:${height}`;
+      }
+      if (key === 'fps') {
+        hasFps = true;
+        return `fps:${fpsValue}`;
+      }
+      if (key === 'textfont') {
+        hasTextfont = true;
+        return `textfont:${params.textfont || 'Default'}`;
+      }
+      if (key === 'soundfont') {
+        hasSoundfont = true;
+        return `soundfont:${params.soundfont || 'Default'}`;
+      }
       if (compatKeys.includes(key)) {
         const val = compatValues[key];
         if (val === 'on' || val === 'off') return `${key}:${val}`;
       }
-      if (key === 'phone') { hasPhone = true; return `phone:${phoneName}`; }
+      if (key === 'phone') {
+        hasPhone = true;
+        return `phone:${phoneName}`;
+      }
       if (extraKeys.includes(key)) {
         let val = params?.[key];
         if (val !== undefined && val !== null && String(val).length > 0) {
@@ -159,14 +202,14 @@ async function updateGameConf({ jarPath, gameFilePath, params, DataStore, getCon
   for (const k of compatKeys) {
     const val = compatValues[k];
     if (val === 'on' || val === 'off') {
-      if (!newLines.some(ln => ln.trim().startsWith(`${k}:`))) newLines.push(`${k}:${val}`);
+      if (!newLines.some((ln) => ln.trim().startsWith(`${k}:`))) newLines.push(`${k}:${val}`);
     }
   }
   for (const k of extraKeys) {
     let val = params?.[k];
     if (val !== undefined && val !== null && String(val).length > 0) {
       if (k === 'fpshack') val = mapFpshack(val);
-      if (!newLines.some(ln => ln.trim().startsWith(`${k}:`))) newLines.push(`${k}:${val}`);
+      if (!newLines.some((ln) => ln.trim().startsWith(`${k}:`))) newLines.push(`${k}:${val}`);
     }
   }
 

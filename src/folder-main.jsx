@@ -1,4 +1,4 @@
-import './utils/logger.js'
+import './utils/logger.js';
 import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { FolderWindowApp } from '@components';
@@ -22,7 +22,8 @@ function Root() {
   useEffect(() => {
     try {
       const saved = localStorage.getItem('theme');
-      const theme = (saved === 'light' || saved === 'dark') ? saved : (document.body?.dataset?.theme || 'dark');
+      const theme =
+        saved === 'light' || saved === 'dark' ? saved : document.body?.dataset?.theme || 'dark';
       document.body && document.body.setAttribute('data-theme', theme);
     } catch {}
 
@@ -30,7 +31,9 @@ function Root() {
       if (e.key === 'theme') {
         const v = e.newValue;
         if (v === 'light' || v === 'dark') {
-          try { document.body && document.body.setAttribute('data-theme', v); } catch {}
+          try {
+            document.body && document.body.setAttribute('data-theme', v);
+          } catch {}
         }
       }
     };

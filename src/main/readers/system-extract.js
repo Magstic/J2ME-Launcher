@@ -10,19 +10,19 @@ const { cacheIconBuffer } = require('../parsers/icon-cache.js');
 async function trySystemExtraction(jarPath) {
   const fileName = path.basename(jarPath);
   console.log(`🔧 嘗試使用系統工具解壓: ${fileName}`);
-  
+
   const tempDir = path.join(path.dirname(jarPath), '.temp_' + Date.now());
-  
+
   try {
     await fs.ensureDir(tempDir);
-    
+
     // 嘗試多種解壓工具
     const extractCommands = [
       `7z x "${jarPath}" -o"${tempDir}" -y`,
       `unzip -q "${jarPath}" -d "${tempDir}"`,
-      `jar xf "${jarPath}" -C "${tempDir}"`
+      `jar xf "${jarPath}" -C "${tempDir}"`,
     ];
-    
+
     let extracted = false;
     for (const cmd of extractCommands) {
       try {
@@ -34,18 +34,18 @@ async function trySystemExtraction(jarPath) {
         continue; // 嘗試下一個命令
       }
     }
-    
+
     if (!extracted) {
       console.log(`❌ 所有系統解壓工具都失敗`);
       return null;
     }
-    
+
     // 檢查並解析 MANIFEST.MF
     const manifestPath = path.join(tempDir, 'META-INF', 'MANIFEST.MF');
     if (await fs.pathExists(manifestPath)) {
       const manifestContent = await fs.readFile(manifestPath, 'utf8');
       const manifest = parseManifest(manifestContent);
-      
+
       // 嘗試找到圖標文件（集中解析 + 集中快取）
       let iconData = null;
       let rawIconPath = resolveIconPath(manifest);
@@ -59,16 +59,16 @@ async function trySystemExtraction(jarPath) {
           manifest.cachedIconPath = cachedIconPath;
         }
       }
-      
+
       return {
         filePath: jarPath,
         fileName: path.basename(jarPath),
         'MIDlet-Name': manifest['MIDlet-Name'] || path.basename(jarPath, '.jar'),
         ...manifest,
-        iconData
+        iconData,
       };
     }
-    
+
     return null;
   } catch (error) {
     console.error(`系統解壓失敗:`, error.message);

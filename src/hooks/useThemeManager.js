@@ -11,13 +11,17 @@ export const useThemeManager = () => {
       const saved = localStorage.getItem('theme');
       if (saved === 'light' || saved === 'dark') return saved;
     } catch {}
-    return typeof document !== 'undefined' ? (document.body?.dataset?.theme || 'dark') : 'dark';
+    return typeof document !== 'undefined' ? document.body?.dataset?.theme || 'dark' : 'dark';
   });
 
   // 同步主題到全局 body 並持久化，確保 Portal/覆蓋層與其他視窗一致
   useEffect(() => {
-    try { document.body && document.body.setAttribute('data-theme', theme); } catch {}
-    try { localStorage.setItem('theme', theme); } catch {}
+    try {
+      document.body && document.body.setAttribute('data-theme', theme);
+    } catch {}
+    try {
+      localStorage.setItem('theme', theme);
+    } catch {}
   }, [theme]);
 
   // 監聽跨視窗的 storage 事件以同步主題（例如資料夾視窗或主視窗切換時）
@@ -34,6 +38,6 @@ export const useThemeManager = () => {
 
   return {
     theme,
-    setTheme
+    setTheme,
   };
 };

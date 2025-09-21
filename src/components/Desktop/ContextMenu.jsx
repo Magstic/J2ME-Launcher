@@ -45,9 +45,13 @@ const ContextMenu = ({
   const { t } = useI18n();
 
   // Close when clicking outside the menu
-  useOutsideClick(menuRef, () => {
-    onClose && onClose();
-  }, { events: ['pointerdown', 'mousedown', 'click'], capture: true });
+  useOutsideClick(
+    menuRef,
+    () => {
+      onClose && onClose();
+    },
+    { events: ['pointerdown', 'mousedown', 'click'], capture: true }
+  );
 
   // 調整菜單位置，確保不會超出屏幕邊界
   useLayoutEffect(() => {
@@ -86,7 +90,7 @@ const ContextMenu = ({
   // 處理菜單項點擊
   const handleMenuClick = (action, event) => {
     event.stopPropagation();
-    
+
     switch (action) {
       case 'create-folder':
         onCreateFolder && onCreateFolder();
@@ -119,7 +123,10 @@ const ContextMenu = ({
         break;
       case 'add-to-folder':
         try {
-          console.debug('[ContextMenu] add-to-folder clicked, targetItem=', targetItem?.filePath || targetItem);
+          console.debug(
+            '[ContextMenu] add-to-folder clicked, targetItem=',
+            targetItem?.filePath || targetItem
+          );
         } catch (_) {}
         onAddToFolder && onAddToFolder(targetItem);
         break;
@@ -151,36 +158,72 @@ const ContextMenu = ({
 
       // ===== Cluster actions =====
       case 'cluster-open':
-        try { onClusterInfo && onClusterInfo(targetItem); } catch (err) { console.error('[ContextMenu] cluster-open handler error:', err); }
+        try {
+          onClusterInfo && onClusterInfo(targetItem);
+        } catch (err) {
+          console.error('[ContextMenu] cluster-open handler error:', err);
+        }
         break;
       case 'cluster-info':
-        try { onClusterInfo && onClusterInfo(targetItem); } catch (err) { console.error('[ContextMenu] cluster-info handler error:', err); }
+        try {
+          onClusterInfo && onClusterInfo(targetItem);
+        } catch (err) {
+          console.error('[ContextMenu] cluster-info handler error:', err);
+        }
         break;
       case 'cluster-delete':
-        try { onDeleteCluster && onDeleteCluster(targetItem); } catch (err) { console.error('[ContextMenu] cluster-delete handler error:', err); }
+        try {
+          onDeleteCluster && onDeleteCluster(targetItem);
+        } catch (err) {
+          console.error('[ContextMenu] cluster-delete handler error:', err);
+        }
         break;
       case 'cluster-rename':
-        try { onRenameCluster && onRenameCluster(targetItem); } catch (err) { console.error('[ContextMenu] cluster-rename handler error:', err); }
+        try {
+          onRenameCluster && onRenameCluster(targetItem);
+        } catch (err) {
+          console.error('[ContextMenu] cluster-rename handler error:', err);
+        }
         break;
       case 'cluster-consolidate':
-        try { onConsolidateClusters && onConsolidateClusters(targetItem); } catch (err) { console.error('[ContextMenu] cluster-consolidate handler error:', err); }
+        try {
+          onConsolidateClusters && onConsolidateClusters(targetItem);
+        } catch (err) {
+          console.error('[ContextMenu] cluster-consolidate handler error:', err);
+        }
         break;
       case 'cluster-add-to-folder':
-        try { onAddClusterToFolder && onAddClusterToFolder(targetItem); } catch (err) { console.error('[ContextMenu] cluster-add-to-folder handler error:', err); }
+        try {
+          onAddClusterToFolder && onAddClusterToFolder(targetItem);
+        } catch (err) {
+          console.error('[ContextMenu] cluster-add-to-folder handler error:', err);
+        }
         break;
       case 'cluster-remove-from-folder':
-        try { onRemoveClusterFromFolder && onRemoveClusterFromFolder(targetItem); } catch (err) { console.error('[ContextMenu] cluster-remove-from-folder handler error:', err); }
+        try {
+          onRemoveClusterFromFolder && onRemoveClusterFromFolder(targetItem);
+        } catch (err) {
+          console.error('[ContextMenu] cluster-remove-from-folder handler error:', err);
+        }
         break;
       case 'cluster-member-set-primary':
-        try { onClusterMemberSetPrimary && onClusterMemberSetPrimary(targetItem); } catch (err) { console.error('[ContextMenu] cluster-member-set-primary handler error:', err); }
+        try {
+          onClusterMemberSetPrimary && onClusterMemberSetPrimary(targetItem);
+        } catch (err) {
+          console.error('[ContextMenu] cluster-member-set-primary handler error:', err);
+        }
         break;
       case 'cluster-member-remove':
-        try { onClusterMemberRemove && onClusterMemberRemove(targetItem); } catch (err) { console.error('[ContextMenu] cluster-member-remove handler error:', err); }
+        try {
+          onClusterMemberRemove && onClusterMemberRemove(targetItem);
+        } catch (err) {
+          console.error('[ContextMenu] cluster-member-remove handler error:', err);
+        }
         break;
       default:
         break;
     }
-    
+
     onClose && onClose();
   };
 
@@ -237,10 +280,13 @@ const ContextMenu = ({
       case 'cluster': {
         // Desktop cluster menu
         const list = [];
-        const multi = Array.isArray(targetItem?.selectedClusterIds) && targetItem.selectedClusterIds.length >= 2;
+        const multi =
+          Array.isArray(targetItem?.selectedClusterIds) &&
+          targetItem.selectedClusterIds.length >= 2;
         list.push(renderMenuItem(t('contextMenu.open'), 'cluster-open', '🧩'));
         list.push(renderMenuItem(t('contextMenu.rename'), 'cluster-rename', '✏️'));
-        if (multi) list.push(renderMenuItem(t('contextMenu.consolidate'), 'cluster-consolidate', '🔀'));
+        if (multi)
+          list.push(renderMenuItem(t('contextMenu.consolidate'), 'cluster-consolidate', '🔀'));
         // 新增：將簇加入到資料夾（與遊戲相同語意，沿用 like『加入』）
         list.push(renderMenuItem(t('contextMenu.like'), 'cluster-add-to-folder', '📁'));
         list.push(renderMenuItem(t('contextMenu.delete-cluster'), 'cluster-delete', '🗑️'));
@@ -250,10 +296,13 @@ const ContextMenu = ({
       case 'cluster-folder': {
         // Folder view cluster menu
         const list = [];
-        const multi = Array.isArray(targetItem?.selectedClusterIds) && targetItem.selectedClusterIds.length >= 2;
+        const multi =
+          Array.isArray(targetItem?.selectedClusterIds) &&
+          targetItem.selectedClusterIds.length >= 2;
         list.push(renderMenuItem(t('contextMenu.open'), 'cluster-open', '🧩'));
         list.push(renderMenuItem(t('contextMenu.rename'), 'cluster-rename', '✏️'));
-        if (multi) list.push(renderMenuItem(t('contextMenu.consolidate'), 'cluster-consolidate', '🔀'));
+        if (multi)
+          list.push(renderMenuItem(t('contextMenu.consolidate'), 'cluster-consolidate', '🔀'));
         // 清楚標示「刪除簇」與「從資料夾移除簇」，避免誤操作
         list.push(renderMenuItem(t('contextMenu.delete-cluster'), 'cluster-delete', '🗑️'));
         list.push(renderMenuItem(t('contextMenu.delete'), 'cluster-remove-from-folder', '📤'));
@@ -278,23 +327,21 @@ const ContextMenu = ({
   };
 
   return createPortal(
-    (
-      <div
-        ref={menuRef}
-        className="context-menu"
-        style={{
-          position: 'fixed',
-          left: position.x,
-          top: position.y,
-          zIndex: zIndex,
-          visibility: 'hidden',
-          willChange: 'top, left, transform'
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {renderMenuItems()}
-      </div>
-    ),
+    <div
+      ref={menuRef}
+      className="context-menu"
+      style={{
+        position: 'fixed',
+        left: position.x,
+        top: position.y,
+        zIndex: zIndex,
+        visibility: 'hidden',
+        willChange: 'top, left, transform',
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {renderMenuItems()}
+    </div>,
     document.body
   );
 };

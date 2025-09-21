@@ -1,0 +1,16 @@
+# Build output
+node_modules/
+dist/
+release/
+build/
+coverage/
+
+# Assets
+public/
+*.min.*
+*.map
+
+# Package managers
+package-lock.json
+yarn.lock
+pnpm-lock.yaml

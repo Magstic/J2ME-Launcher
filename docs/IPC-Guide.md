@@ -14,10 +14,7 @@ J2ME Launcher 使用 Electron 的 `contextBridge` 安全機制，所有 IPC API 
 
 ```javascript
 // ✅ 安全的 IPC 調用
-const result = await window.electronAPI.addGameToFolder(
-  String(gameFilePath), 
-  String(folderId)
-);
+const result = await window.electronAPI.addGameToFolder(String(gameFilePath), String(folderId));
 
 // ❌ 不安全：傳遞原始物件
 const result = await window.electronAPI.addGameToFolder(gameObject, folderObject);
@@ -25,15 +22,15 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
 
 ## API 分組與功能
 
-- __窗口控制__
+- **窗口控制**
   - `minimizeWindow()`
   - `maximizeWindow()`
   - `closeWindow()`
 
-- __遊戲管理__
+- **遊戲管理**
   - `getInitialGames()`
 
-- __目錄管理__
+- **目錄管理**
   - `getDirectories()`
   - `addDirectories()`
   - `removeDirectory(directoryPath)`
@@ -47,14 +44,14 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
   - 其他：
     - `removeAllListeners(channel)`
 
-- __資料夾管理__
+- **資料夾管理**
   - `getFolders()`
   - `getFolderById(folderId)`
   - `createFolder(folderData)`
   - `updateFolder(folderId, updates)`
   - `deleteFolder(folderId, moveGamesToUncategorized)`
 
-- __遊戲與資料夾關係__
+- **遊戲與資料夾關係**
   - `addGameToFolder(gameId, folderId)`
   - `addGamesToFolderBatch(gameIdsOrPaths, folderId, options)`
   - `batchAddGamesToFolder(filePaths, folderId, options)`
@@ -66,23 +63,23 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
   - `getUncategorizedGames()`
   - `getGamesInAnyFolder()`
 
-- __桌面/資料夾數據__
+- **桌面/資料夾數據**
   - `getDesktopItems()`
   - `getFolderContents(folderId)`
 
-- __統計__
+- **統計**
   - `getFolderStats()`
 
-- __自訂名稱管理__
+- **自訂名稱管理**
   - `updateCustomName(filePath, customName)`
   - `updateCustomVendor(filePath, customVendor)`
   - `updateCustomData(filePath, customData)`
   - `resetCustomNames(filePath)`
 
-- __遊戲啟動__
+- **遊戲啟動**
   - `launchGame(gameFilePath)`
 
-- __模擬器設定__
+- **模擬器設定**
   - `getEmulatorConfig()`
   - `listEmulators()`
   - `getEmulatorCapabilities(emulatorId)`
@@ -97,18 +94,18 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
     - `importFreej2meAsset(type, sourcePath)`
   - `getGameFolders(gameId)`
 
-- __資料夾事件監聽__
+- **資料夾事件監聽**
   - `onFolderUpdated(callback)` → channel: `'folder-updated'`（回傳 unsubscribe）
   - `onFolderDeleted(callback)` → channel: `'folder-deleted'`（回傳 unsubscribe）
   - `onGameFolderChanged(callback)` → channel: `'game-folder-changed'`（回傳 unsubscribe）
   - `onFolderChanged(callback)` → channel: `'folder-changed'`（回傳 unsubscribe）
 
-- __批次操作事件監聽__
+- **批次操作事件監聽**
   - `onBulkOperationStart(callback)` → channel: `'bulk-operation-start'`（回傳 unsubscribe）
   - `onBulkOperationEnd(callback)` → channel: `'bulk-operation-end'`（回傳 unsubscribe）
   - 其他：`offBulkOperationStart(callback)`、`offBulkOperationEnd(callback)`
 
-- __跨窗口拖拽會話__
+- **跨窗口拖拽會話**
   - `startDragSession(items, source)`
   - `updateDragSession(position)`
   - `dropDragSession(target)`
@@ -118,38 +115,38 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
     - `onDragSessionUpdated(callback)` → channel: `'drag-session:updated'`（回傳 unsubscribe）
     - `onDragSessionEnded(callback)` → channel: `'drag-session:ended'`（回傳 unsubscribe）
 
-- __獨立資料夾窗口__
+- **獨立資料夾窗口**
   - `openFolderWindow(folderId)`
   - `closeFolderWindow(folderId)`
   - 視窗控制：`minimizeFolderWindow()`、`maximizeFolderWindow()`、`closeFolderWindowSelf()`
   - `getCurrentFolderId()` → 解析 `process.argv` 中 `--folder-id=`
   - `folderWindowReady()` → 通知主進程準備完成
 
-- __外部連結__
+- **外部連結**
   - `openExternal(url)`
 
-- __SQLite（可選）__
+- **SQLite（可選）**
   - `sqlGetAllGames()`
   - `sqlGetGame(filePath)`
   - `sqlSearchGames(q, limit)`
   - `sqlUpsertGames(items)`
 
-- __雲端備份__
+- **雲端備份**
   - `backupGetSpec()`、`backupGetLast()`
   - `backupGetProviderParams(provider)`、`backupSetProviderParams(provider, params)`
   - `backupRun(payload)`
   - `backupRestorePlan(payload)`、`backupRestoreRun(payload)`
   - `onBackupProgress(callback)` → channel: `'backup:progress'`（回傳 unsubscribe）
 
-- __Dropbox Auth__
+- **Dropbox Auth**
   - `dropboxGetAuth()`、`dropboxGetAccount()`、`dropboxGetAccountPhoto(url)`
   - `dropboxOAuthStart(payload)`、`dropboxUnlink()`
 
-- __Windows 捷徑__
+- **Windows 捷徑**
   - `createShortcut(payload)`
   - `onShortcutLaunch(callback)` → channel: `'shortcut-launch'`（回傳 unsubscribe）
 
-- __Java 設定__
+- **Java 設定**
   - `getJavaPath()`
   - `setJavaPath(javaPath)`
   - `validateJavaPath(javaPath)`
@@ -159,15 +156,15 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
 
 以下對照表以 `src/main/preload.js` 為準，標明每個 API 對應的 IPC 通道與型態（invoke/send）及事件通道。
 
-- __窗口控制__
+- **窗口控制**
   - `minimizeWindow` → `'window-minimize'`（send）
   - `maximizeWindow` → `'window-maximize'`（send）
   - `closeWindow` → `'window-close'`（send）
 
-- __遊戲管理__
+- **遊戲管理**
   - `getInitialGames` → `'get-initial-games'`（invoke）
 
-- __目錄管理與事件__
+- **目錄管理與事件**
   - `getDirectories` → `'get-directories'`（invoke）
   - `addDirectories` → `'add-directories'`（invoke）
   - `removeDirectory` → `'remove-directory'`（invoke）
@@ -179,20 +176,20 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
   - `onAutoScanCompleted` → `'auto-scan-completed'`（event）
   - `removeAllListeners(channel)` →（通用）
 
-- __自訂名稱管理__
+- **自訂名稱管理**
   - `updateCustomName` → `'update-custom-name'`（invoke）
   - `updateCustomVendor` → `'update-custom-vendor'`（invoke）
   - `updateCustomData` → `'update-custom-data'`（invoke）
   - `resetCustomNames` → `'reset-custom-names'`（invoke）
 
-- __資料夾管理__
+- **資料夾管理**
   - `getFolders` → `'get-folders'`（invoke）
   - `getFolderById` → `'get-folder-by-id'`（invoke）
   - `createFolder` → `'create-folder'`（invoke）
   - `updateFolder` → `'update-folder'`（invoke）
   - `deleteFolder` → `'delete-folder'`（invoke）
 
-- __遊戲與資料夾關係__
+- **遊戲與資料夾關係**
   - `addGameToFolder` → `'add-game-to-folder'`（invoke）
   - `addGamesToFolderBatch` → `'add-games-to-folder-batch'`（invoke）
   - `batchAddGamesToFolder` → `'batch-add-games-to-folder'`（invoke）
@@ -207,15 +204,15 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
     - `onBulkOperationStart` → `'bulk-operation-start'`（return unsubscribe）
     - `onBulkOperationEnd` → `'bulk-operation-end'`（return unsubscribe）
 
-- __桌面/資料夾數據與統計__
+- **桌面/資料夾數據與統計**
   - `getDesktopItems` → `'get-desktop-items'`（invoke）
   - `getFolderContents` → `'get-folder-contents'`（invoke）
   - `getFolderStats` → `'get-folder-stats'`（invoke）
 
-- __遊戲啟動__
+- **遊戲啟動**
   - `launchGame` → `'launch-game'`（invoke）
 
-- __模擬器設定與資產__
+- **模擬器設定與資產**
   - `getEmulatorConfig` → `'get-emulator-config'`（invoke）
   - `listEmulators` → `'list-emulators'`（invoke）
   - `getEmulatorCapabilities` → `'get-emulator-capabilities'`（invoke）
@@ -229,13 +226,13 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
   - `importFreej2meAsset` → `'freej2me:import-asset'`（invoke）
   - `getGameFolders` → `'get-game-folders'`（invoke）
 
-- __資料夾事件監聽__
+- **資料夾事件監聽**
   - `onFolderUpdated` → `'folder-updated'`（event，return unsubscribe）
   - `onFolderDeleted` → `'folder-deleted'`（event，return unsubscribe）
   - `onGameFolderChanged` → `'game-folder-changed'`（event，return unsubscribe）
   - `onFolderChanged` → `'folder-changed'`（event，return unsubscribe）
 
-- __跨窗口拖拽會話__
+- **跨窗口拖拽會話**
   - `startDragSession` → `'drag-session:start'`（invoke）
   - `updateDragSession` → `'drag-session:update'`（invoke）
   - `dropDragSession` → `'drag-session:drop'`（invoke）
@@ -245,7 +242,7 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
     - `onDragSessionUpdated` → `'drag-session:updated'`（return unsubscribe）
     - `onDragSessionEnded` → `'drag-session:ended'`（return unsubscribe）
 
-- __獨立資料夾窗口__
+- **獨立資料夾窗口**
   - `openFolderWindow` → `'open-folder-window'`（invoke）
   - `closeFolderWindow` → `'close-folder-window'`（invoke）
   - `minimizeFolderWindow` → `'folder-window-minimize'`（send）
@@ -254,16 +251,16 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
   - `getCurrentFolderId` → 從 `process.argv` 解析（非 IPC）
   - `folderWindowReady` → `'folder-window-ready'`（send）
 
-- __外部連結__
+- **外部連結**
   - `openExternal` → `'open-external'`（invoke）
 
-- __SQLite（可選）__
+- **SQLite（可選）**
   - `sqlGetAllGames` → `'sql:get-all-games'`（invoke）
   - `sqlGetGame` → `'sql:get-game'`（invoke）
   - `sqlSearchGames` → `'sql:games-searchByTitle'`（invoke）
   - `sqlUpsertGames` → `'sql:games-upsertMany'`（invoke）
 
-- __雲端備份__
+- **雲端備份**
   - `backupGetSpec` → `'backup:get-spec'`（invoke）
   - `backupGetLast` → `'backup:get-last'`（invoke）
   - `backupGetProviderParams` → `'backup:get-provider-params'`（invoke）
@@ -273,14 +270,14 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
   - `backupRestoreRun` → `'backup:restore-run'`（invoke）
   - `onBackupProgress` → `'backup:progress'`（event，return unsubscribe）
 
-- __Dropbox Auth__
+- **Dropbox Auth**
   - `dropboxGetAuth` → `'dropbox:get-auth'`（invoke）
   - `dropboxGetAccount` → `'dropbox:get-account'`（invoke）
   - `dropboxGetAccountPhoto` → `'dropbox:get-account-photo'`（invoke）
   - `dropboxOAuthStart` → `'dropbox:oauth-start'`（invoke）
   - `dropboxUnlink` → `'dropbox:unlink'`（invoke）
 
-- __Windows 捷徑__
+- **Windows 捷徑**
   - `createShortcut` → `'create-shortcut'`（invoke）
   - `onShortcutLaunch` → `'shortcut-launch'`（event，return unsubscribe）
 
@@ -307,7 +304,7 @@ const safeIpcCall = async (operation, retries = 3) => {
         throw new Error('資料序列化失敗，請檢查參數格式');
       }
       if (i === retries - 1) throw error;
-      await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, i)));
+      await new Promise((resolve) => setTimeout(resolve, 100 * Math.pow(2, i)));
     }
   }
 };
@@ -315,10 +312,7 @@ const safeIpcCall = async (operation, retries = 3) => {
 // 使用範例
 const addGameSafely = async (gameFilePath, folderId) => {
   return safeIpcCall(async () => {
-    return await window.electronAPI.addGameToFolder(
-      String(gameFilePath),
-      String(folderId)
-    );
+    return await window.electronAPI.addGameToFolder(String(gameFilePath), String(folderId));
   });
 };
 ```
@@ -331,13 +325,13 @@ class EventManager {
   constructor() {
     this.unsubscribers = new Map();
   }
-  
+
   subscribe(eventName, callback) {
     const unsubscribe = window.electronAPI[`on${eventName}`](callback);
     this.unsubscribers.set(eventName, unsubscribe);
     return unsubscribe;
   }
-  
+
   unsubscribe(eventName) {
     const unsubscribe = this.unsubscribers.get(eventName);
     if (unsubscribe) {
@@ -345,9 +339,9 @@ class EventManager {
       this.unsubscribers.delete(eventName);
     }
   }
-  
+
   cleanup() {
-    this.unsubscribers.forEach(unsubscribe => unsubscribe());
+    this.unsubscribers.forEach((unsubscribe) => unsubscribe());
     this.unsubscribers.clear();
   }
 }

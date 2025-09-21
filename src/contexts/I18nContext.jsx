@@ -46,18 +46,24 @@ export const I18nProvider = ({ children }) => {
     } catch (error) {
       console.warn('Failed to read language from localStorage');
     }
-    
-    // 其次檢測系統語言（僅支援 zh / en，其他一律回退預設語言）
-    const systemLang = navigator.language || navigator.userLanguage;
-    if (systemLang.startsWith('zh')) {
+
+    // 其次檢測系統語言（細分 zh-CN / zh-TW；其他語言僅支援 en）
+    const systemLang = (navigator.language || navigator.userLanguage || '').toString();
+    const sys = systemLang.toLowerCase();
+    if (sys.startsWith('zh')) {
+      // 簡體（中國大陸/新加坡/馬來西亞 或含 Hans）→ zh-CN；
+      // 其餘中文（臺灣/香港/澳門 或含 Hant）→ zh-TW；
+      if (sys.includes('cn') || sys.includes('hans') || sys.includes('sg') || sys.includes('my')) {
+        return 'zh-CN';
+      }
       return 'zh-TW';
-    } else if (systemLang.startsWith('en')) {
+    } else if (sys.startsWith('en')) {
       return 'en-US';
     }
-    
+
     return DEFAULT_LANGUAGE;
   });
-  
+
   const [translations, setTranslations] = useState({});
   const [isLoading, setIsLoading] = useState(true);
 
@@ -66,7 +72,7 @@ export const I18nProvider = ({ children }) => {
     const loadLanguage = async () => {
       try {
         setIsLoading(true);
-        
+
         // 在開發環境下使用 fetch 來避免模塊緩存
         if (process.env.NODE_ENV === 'development') {
           const timestamp = Date.now();
@@ -84,7 +90,7 @@ export const I18nProvider = ({ children }) => {
         }
       } catch (error) {
         console.error(`Failed to load language ${currentLanguage}:`, error);
-        
+
         // 如果載入失敗，嘗試載入預設語言
         if (currentLanguage !== DEFAULT_LANGUAGE) {
           try {
@@ -121,40 +127,45 @@ export const I18nProvider = ({ children }) => {
     if (process.env.NODE_ENV === 'development') {
       let intervalId;
       let lastModified = {};
-      
+
       // 檢查文件是否有更新
       const checkForUpdates = async () => {
         try {
           const response = await fetch(`/src/locales/${currentLanguage}.json`, {
-            method: 'HEAD'
+            method: 'HEAD',
           });
-          
+
           if (response.ok) {
             const lastModifiedHeader = response.headers.get('last-modified');
             const currentModified = new Date(lastModifiedHeader).getTime();
-            
-            if (lastModified[currentLanguage] && lastModified[currentLanguage] !== currentModified) {
+
+            if (
+              lastModified[currentLanguage] &&
+              lastModified[currentLanguage] !== currentModified
+            ) {
               console.log('🔄 Translation file updated, reloading...');
-              
+
               // 重新載入翻譯
               const timestamp = Date.now();
-              const dataResponse = await fetch(`/src/locales/${currentLanguage}.json?t=${timestamp}`);
+              const dataResponse = await fetch(
+                `/src/locales/${currentLanguage}.json?t=${timestamp}`
+              );
               if (dataResponse.ok) {
                 const newTranslations = await dataResponse.json();
                 setTranslations(newTranslations);
               }
             }
-            
+
             lastModified[currentLanguage] = currentModified;
           }
         } catch (error) {
           // 靜默處理錯誤，避免控制台噪音
         }
       };
-      
+
       // 每 1 秒檢查一次文件更新
       intervalId = setInterval(checkForUpdates, 1000);
-      
+
       // 手動重載快捷鍵（備用）
       const handleKeyPress = (event) => {
         if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'R') {
@@ -165,7 +176,7 @@ export const I18nProvider = ({ children }) => {
       };
 
       window.addEventListener('keydown', handleKeyPress);
-      
+
       return () => {
         if (intervalId) clearInterval(intervalId);
         window.removeEventListener('keydown', handleKeyPress);
@@ -181,7 +192,7 @@ export const I18nProvider = ({ children }) => {
     }
 
     setCurrentLanguage(language);
-    
+
     // 持久化到 localStorage
     try {
       localStorage.setItem('language', language);
@@ -193,10 +204,10 @@ export const I18nProvider = ({ children }) => {
   // 翻譯函數
   const t = (key, params = {}) => {
     if (!key) return '';
-    
+
     // 獲取翻譯值
     let translation = getNestedValue(translations, key);
-    
+
     // 如果找不到翻譯，返回 key 作為 fallback
     if (translation === null || translation === undefined) {
       // 在載入期間可能會出現暫時性的缺失，避免噪音
@@ -205,20 +216,20 @@ export const I18nProvider = ({ children }) => {
       }
       return key;
     }
-    
+
     // 確保返回字串，避免 React 渲染錯誤
     if (typeof translation === 'object') {
       console.warn(`Translation for key "${key}" is an object, expected string:`, translation);
       return key;
     }
-    
+
     // 處理參數替換
     if (typeof translation === 'string' && Object.keys(params).length > 0) {
       return translation.replace(/\{\{(\w+)\}\}/g, (match, paramKey) => {
         return params[paramKey] !== undefined ? params[paramKey] : match;
       });
     }
-    
+
     return String(translation);
   };
 
@@ -227,14 +238,10 @@ export const I18nProvider = ({ children }) => {
     changeLanguage,
     t,
     isLoading,
-    supportedLanguages: SUPPORTED_LANGUAGES
+    supportedLanguages: SUPPORTED_LANGUAGES,
   };
 
-  return (
-    <I18nContext.Provider value={contextValue}>
-      {children}
-    </I18nContext.Provider>
-  );
+  return <I18nContext.Provider value={contextValue}>{children}</I18nContext.Provider>;
 };
 
 // 自訂 Hook

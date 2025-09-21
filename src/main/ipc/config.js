@@ -8,7 +8,7 @@ function register({ ipcMain, configService }) {
     try {
       return {
         current: configService.getCurrentJavaPath(),
-        custom: configService.get('javaPath')
+        custom: configService.get('javaPath'),
       };
     } catch (error) {
       console.error('Failed to get Java path:', error);
@@ -45,9 +45,9 @@ function register({ ipcMain, configService }) {
         title: 'Select Java Executable',
         filters: [
           { name: 'Java Executable', extensions: process.platform === 'win32' ? ['exe'] : [''] },
-          { name: 'All Files', extensions: ['*'] }
+          { name: 'All Files', extensions: ['*'] },
         ],
-        properties: ['openFile']
+        properties: ['openFile'],
       });
 
       if (result.canceled || !result.filePaths.length) {
@@ -55,11 +55,14 @@ function register({ ipcMain, configService }) {
       }
 
       const selectedPath = result.filePaths[0];
-      
+
       // Validate the selected file is a valid Java executable
       if (!configService.isValidJavaPath(selectedPath)) {
         console.error('[browse-java-executable] Invalid selection:', selectedPath);
-        return { success: false, error: `Selected file is not a valid Java executable: ${selectedPath}` };
+        return {
+          success: false,
+          error: `Selected file is not a valid Java executable: ${selectedPath}`,
+        };
       }
 
       return { success: true, filePath: selectedPath };
@@ -76,12 +79,13 @@ function register({ ipcMain, configService }) {
       // Prefer YAML-backed config (single source of truth)
       const conf = yamlConfig.loadConfig();
       const fromYaml = conf?.ui?.clusterTagOptions || null;
-      const sanitize = (arr) => Array.isArray(arr) ? arr.filter(v => typeof v === 'string' && v.trim().length > 0) : [];
+      const sanitize = (arr) =>
+        Array.isArray(arr) ? arr.filter((v) => typeof v === 'string' && v.trim().length > 0) : [];
       if (fromYaml && typeof fromYaml === 'object') {
         return {
           devices: sanitize(fromYaml.devices),
           resolutions: sanitize(fromYaml.resolutions),
-          versions: sanitize(fromYaml.versions)
+          versions: sanitize(fromYaml.versions),
         };
       }
 
@@ -91,9 +95,11 @@ function register({ ipcMain, configService }) {
         const migrated = {
           devices: sanitize(legacy.devices),
           resolutions: sanitize(legacy.resolutions),
-          versions: sanitize(legacy.versions)
+          versions: sanitize(legacy.versions),
         };
-        try { yamlConfig.saveConfig({ ui: { clusterTagOptions: migrated } }); } catch (_) {}
+        try {
+          yamlConfig.saveConfig({ ui: { clusterTagOptions: migrated } });
+        } catch (_) {}
         return migrated;
       }
       return null;
@@ -105,11 +111,12 @@ function register({ ipcMain, configService }) {
   // Set cluster tag options
   ipcMain.handle('set-cluster-tag-options', (event, options) => {
     try {
-      const sanitize = (arr) => Array.isArray(arr) ? arr.filter(v => typeof v === 'string' && v.trim().length > 0) : [];
+      const sanitize = (arr) =>
+        Array.isArray(arr) ? arr.filter((v) => typeof v === 'string' && v.trim().length > 0) : [];
       const clean = {
         devices: sanitize(options?.devices),
         resolutions: sanitize(options?.resolutions),
-        versions: sanitize(options?.versions)
+        versions: sanitize(options?.versions),
       };
       // Persist to YAML config (authoritative)
       yamlConfig.saveConfig({ ui: { clusterTagOptions: clean } });

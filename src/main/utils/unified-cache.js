@@ -1,7 +1,11 @@
 // src/main/utils/unified-cache.js
 // Linus-style unified cache: single source of truth for 10k+ games
 
-const { getGamesMinimal, getGamesByPaths, getFolderMembershipBatch } = require('../sql/optimized-read');
+const {
+  getGamesMinimal,
+  getGamesByPaths,
+  getFolderMembershipBatch,
+} = require('../sql/optimized-read');
 const { addUrlToGames } = require('./icon-url');
 
 class UnifiedGameCache {
@@ -21,11 +25,11 @@ class UnifiedGameCache {
     try {
       console.log('[UnifiedCache] Initializing cache...');
       const startTime = Date.now();
-      
+
       // Load games with minimal fields
       const sqlGames = getGamesMinimal();
       const gamesWithUrl = addUrlToGames(sqlGames);
-      
+
       this.games.clear();
       for (const game of gamesWithUrl) {
         this.games.set(game.filePath, game);
@@ -34,7 +38,7 @@ class UnifiedGameCache {
       // Load folder membership in batch
       const filePaths = Array.from(this.games.keys());
       const membership = getFolderMembershipBatch(filePaths);
-      
+
       this.folderMembership.clear();
       for (const [filePath, folderIds] of Object.entries(membership)) {
         this.folderMembership.set(filePath, new Set(folderIds));
@@ -42,10 +46,10 @@ class UnifiedGameCache {
 
       this.lastFullSync = Date.now();
       this.isDirty = false;
-      
+
       const duration = Date.now() - startTime;
       console.log(`[UnifiedCache] Initialized ${this.games.size} games in ${duration}ms`);
-      
+
       return Array.from(this.games.values());
     } catch (e) {
       console.warn('[UnifiedCache] Initialize failed:', e.message);
@@ -91,42 +95,42 @@ class UnifiedGameCache {
   // Incremental update: add/update/remove specific games
   updateGames(changes) {
     const { added = [], updated = [], removed = [] } = changes;
-    
+
     // Add new games
     for (const game of added) {
       this.games.set(game.filePath, game);
     }
-    
+
     // Update existing games
     for (const game of updated) {
       this.games.set(game.filePath, game);
     }
-    
+
     // Remove deleted games
     for (const filePath of removed) {
       this.games.delete(filePath);
       this.folderMembership.delete(filePath);
     }
-    
+
     return {
       addedCount: added.length,
       updatedCount: updated.length,
-      removedCount: removed.length
+      removedCount: removed.length,
     };
   }
 
   // Update folder membership (fast, no SQL reload)
   updateFolderMembership(filePaths, folderId, operation) {
     const changes = { affected: [] };
-    
+
     for (const filePath of filePaths) {
       if (!this.folderMembership.has(filePath)) {
         this.folderMembership.set(filePath, new Set());
       }
-      
+
       const folders = this.folderMembership.get(filePath);
       const hadFolder = folders.has(folderId);
-      
+
       if (operation === 'add' && !hadFolder) {
         folders.add(folderId);
         changes.affected.push(filePath);
@@ -135,7 +139,7 @@ class UnifiedGameCache {
         changes.affected.push(filePath);
       }
     }
-    
+
     return changes;
   }
 
@@ -146,7 +150,7 @@ class UnifiedGameCache {
       folderMembershipCount: this.folderMembership.size,
       lastFullSync: this.lastFullSync,
       isDirty: this.isDirty,
-      syncInProgress: this.syncInProgress
+      syncInProgress: this.syncInProgress,
     };
   }
 

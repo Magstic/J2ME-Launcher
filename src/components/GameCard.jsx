@@ -1,6 +1,6 @@
 import React from 'react';
 
-function GameCard({ 
+function GameCard({
   game,
   filePath,
   // 穩定的 id-based handlers，由父層 useCallback 提供
@@ -61,11 +61,21 @@ function GameCard({
   };
 
   return (
-    <div 
+    <div
       className={`game-card ${className} ${isDraggingSelf || isDragging ? 'dragging' : ''} ${isSelected ? 'selected' : ''} ${appearing ? 'appearing' : ''}`}
       onMouseDown={(e) => onMouseDownById && onMouseDownById(filePath || game.filePath, e)}
-      onClick={(e) => { if (onClick) onClick(e, game); }}
-      onContextMenu={(e) => { if (onContextMenu) { try { e.preventDefault(); e.stopPropagation(); } catch (_) {} onContextMenu(e, game); } }}
+      onClick={(e) => {
+        if (onClick) onClick(e, game);
+      }}
+      onContextMenu={(e) => {
+        if (onContextMenu) {
+          try {
+            e.preventDefault();
+            e.stopPropagation();
+          } catch (_) {}
+          onContextMenu(e, game);
+        }
+      }}
       onDoubleClick={handleDoubleClick}
       draggable={draggable}
       onDragStart={handleDragStart}
@@ -74,12 +84,7 @@ function GameCard({
       {...rest}
     >
       <div className="game-icon-container" style={{ position: 'relative' }}>
-        <img 
-          src={iconSrc}
-          alt={game.gameName || '遊戲'}
-          className="game-icon"
-          draggable="false"
-        />
+        <img src={iconSrc} alt={game.gameName || '遊戲'} className="game-icon" draggable="false" />
         {hasFolder ? (
           <div
             className="folder-badge"
@@ -98,18 +103,27 @@ function GameCard({
               justifyContent: 'center',
               transform: 'translateZ(0)',
               willChange: 'opacity, transform',
-              boxShadow: '0 1px 2px var(--scrim-35)'
+              boxShadow: '0 1px 2px var(--scrim-35)',
             }}
           >
             {/* 使用輕量 SVG，避免字型或平台 emoji 差異 */}
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M3 6.5C3 5.12 4.12 4 5.5 4H9l2 2h7.5C19.88 6 21 7.12 21 8.5V17c0 1.66-1.34 3-3 3H6c-1.66 0-3-1.34-3-3V6.5z" fill="#FFC107"/>
-              <path d="M4 8h16v2H4z" fill="#FFB300"/>
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M3 6.5C3 5.12 4.12 4 5.5 4H9l2 2h7.5C19.88 6 21 7.12 21 8.5V17c0 1.66-1.34 3-3 3H6c-1.66 0-3-1.34-3-3V6.5z"
+                fill="#FFC107"
+              />
+              <path d="M4 8h16v2H4z" fill="#FFB300" />
             </svg>
           </div>
         ) : null}
       </div>
-      
+
       <div className="game-info">
         <h3 className="game-name" title={game.gameName}>
           {game.gameName || 'Unknown Game'}

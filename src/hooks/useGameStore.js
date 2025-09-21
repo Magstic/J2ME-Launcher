@@ -17,7 +17,7 @@ function getStore() {
 // Main hook for accessing store state
 export function useGameStore(selector) {
   const store = getStore();
-  const [state, setState] = useState(() => 
+  const [state, setState] = useState(() =>
     selector ? selector(store.getState()) : store.getState()
   );
 
@@ -35,7 +35,7 @@ export function useGameStore(selector) {
         data.payload.folderMembership.forEach(({ filePath, folderId }) => {
           store.dispatch({
             type: 'FOLDER_MEMBERSHIP_CHANGED',
-            payload: { filePaths: [filePath], folderId, operation: 'add' }
+            payload: { filePaths: [filePath], folderId, operation: 'add' },
           });
         });
       }
@@ -60,43 +60,52 @@ export function useGameStore(selector) {
     };
   }, [store, selector]);
 
-  const dispatch = useCallback((action) => {
-    store.dispatch(action);
-  }, [store]);
+  const dispatch = useCallback(
+    (action) => {
+      store.dispatch(action);
+    },
+    [store]
+  );
 
   return [state, dispatch];
 }
 
 // Specialized hooks for common use cases
 export function useGames(searchTerm = '') {
-  const selector = useCallback((state) => {
-    // state.games is already an array, not a Map
-    const games = Array.isArray(state.games) ? state.games : [];
-    // 過濾無效遊戲物件
-    const validGames = games.filter(game => game && game.filePath);
-    
-    if (!searchTerm) return validGames;
-    
-    const term = searchTerm.toLowerCase();
-    return validGames.filter(game => 
-      game.gameName?.toLowerCase().includes(term) ||
-      game.vendor?.toLowerCase().includes(term)
-    );
-  }, [searchTerm]);
+  const selector = useCallback(
+    (state) => {
+      // state.games is already an array, not a Map
+      const games = Array.isArray(state.games) ? state.games : [];
+      // 過濾無效遊戲物件
+      const validGames = games.filter((game) => game && game.filePath);
+
+      if (!searchTerm) return validGames;
+
+      const term = searchTerm.toLowerCase();
+      return validGames.filter(
+        (game) =>
+          game.gameName?.toLowerCase().includes(term) || game.vendor?.toLowerCase().includes(term)
+      );
+    },
+    [searchTerm]
+  );
 
   const [games] = useGameStore(selector);
   return games;
 }
 
 export function useGamesByFolder(folderId) {
-  const selector = useCallback((state) => {
-    const games = Array.isArray(state.games) ? state.games : [];
-    return games.filter(game => {
-      if (!game || !game.filePath) return false;
-      const folders = state.folderMembership[game.filePath];
-      return folders && folders.includes(folderId);
-    });
-  }, [folderId]);
+  const selector = useCallback(
+    (state) => {
+      const games = Array.isArray(state.games) ? state.games : [];
+      return games.filter((game) => {
+        if (!game || !game.filePath) return false;
+        const folders = state.folderMembership[game.filePath];
+        return folders && folders.includes(folderId);
+      });
+    },
+    [folderId]
+  );
 
   const [games] = useGameStore(selector);
   return games;
@@ -105,7 +114,7 @@ export function useGamesByFolder(folderId) {
 export function useUncategorizedGames() {
   const selector = useCallback((state) => {
     const games = Array.isArray(state.games) ? state.games : [];
-    return games.filter(game => {
+    return games.filter((game) => {
       if (!game || !game.filePath) return false;
       const folders = state.folderMembership[game.filePath];
       return !folders || folders.length === 0;
@@ -120,10 +129,13 @@ export function useSelectedGames() {
   const selector = useCallback((state) => state.ui.selectedGames, []);
   const [selectedGames, dispatch] = useGameStore(selector);
 
-  const setSelected = useCallback((filePaths) => {
-    const store = getStore();
-    dispatch(store.constructor.actions.setSelected(filePaths));
-  }, [dispatch]);
+  const setSelected = useCallback(
+    (filePaths) => {
+      const store = getStore();
+      dispatch(store.constructor.actions.setSelected(filePaths));
+    },
+    [dispatch]
+  );
 
   return [selectedGames, setSelected];
 }
@@ -132,10 +144,13 @@ export function useDragState() {
   const selector = useCallback((state) => state.ui.dragState, []);
   const [dragState, dispatch] = useGameStore(selector);
 
-  const setDragState = useCallback((newDragState) => {
-    const store = getStore();
-    dispatch(store.constructor.actions.setDragState(newDragState));
-  }, [dispatch]);
+  const setDragState = useCallback(
+    (newDragState) => {
+      const store = getStore();
+      dispatch(store.constructor.actions.setDragState(newDragState));
+    },
+    [dispatch]
+  );
 
   return [dragState, setDragState];
 }
@@ -144,10 +159,13 @@ export function useSearchTerm() {
   const selector = useCallback((state) => state.ui.searchTerm, []);
   const [searchTerm, dispatch] = useGameStore(selector);
 
-  const setSearchTerm = useCallback((term) => {
-    const store = getStore();
-    dispatch(store.constructor.actions.setSearchTerm(term));
-  }, [dispatch]);
+  const setSearchTerm = useCallback(
+    (term) => {
+      const store = getStore();
+      dispatch(store.constructor.actions.setSearchTerm(term));
+    },
+    [dispatch]
+  );
 
   return [searchTerm, setSearchTerm];
 }
@@ -156,10 +174,13 @@ export function useLoading() {
   const selector = useCallback((state) => state.ui.loading, []);
   const [loading, dispatch] = useGameStore(selector);
 
-  const setLoading = useCallback((isLoading) => {
-    const store = getStore();
-    dispatch(store.constructor.actions.setLoading(isLoading));
-  }, [dispatch]);
+  const setLoading = useCallback(
+    (isLoading) => {
+      const store = getStore();
+      dispatch(store.constructor.actions.setLoading(isLoading));
+    },
+    [dispatch]
+  );
 
   return [loading, setLoading];
 }
@@ -168,15 +189,22 @@ export function useLoading() {
 export function useGameActions() {
   const store = getStore();
 
-  return useMemo(() => ({
-    loadGames: (games) => store.dispatch(store.constructor.actions.loadGames(games)),
-    incrementalUpdate: (changes) => store.dispatch(store.constructor.actions.incrementalUpdate(changes)),
-    folderMembershipChanged: (filePaths, folderId, operation) => 
-      store.dispatch(store.constructor.actions.folderMembershipChanged(filePaths, folderId, operation)),
-    setSelected: (filePaths) => store.dispatch(store.constructor.actions.setSelected(filePaths)),
-    setDragState: (dragState) => store.dispatch(store.constructor.actions.setDragState(dragState)),
-    setSearchTerm: (term) => store.dispatch(store.constructor.actions.setSearchTerm(term)),
-    setLoading: (loading) => store.dispatch(store.constructor.actions.setLoading(loading)),
-    loadFolders: (folders) => store.dispatch(store.constructor.actions.loadFolders(folders))
-  }), [store]);
+  return useMemo(
+    () => ({
+      loadGames: (games) => store.dispatch(store.constructor.actions.loadGames(games)),
+      incrementalUpdate: (changes) =>
+        store.dispatch(store.constructor.actions.incrementalUpdate(changes)),
+      folderMembershipChanged: (filePaths, folderId, operation) =>
+        store.dispatch(
+          store.constructor.actions.folderMembershipChanged(filePaths, folderId, operation)
+        ),
+      setSelected: (filePaths) => store.dispatch(store.constructor.actions.setSelected(filePaths)),
+      setDragState: (dragState) =>
+        store.dispatch(store.constructor.actions.setDragState(dragState)),
+      setSearchTerm: (term) => store.dispatch(store.constructor.actions.setSearchTerm(term)),
+      setLoading: (loading) => store.dispatch(store.constructor.actions.setLoading(loading)),
+      loadFolders: (folders) => store.dispatch(store.constructor.actions.loadFolders(folders)),
+    }),
+    [store]
+  );
 }

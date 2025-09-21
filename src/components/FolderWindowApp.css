@@ -184,9 +184,12 @@
   background-color: transparent;
   border: none;
   box-shadow: none;
-  transition: opacity 0.18s ease-out, transform 0.18s ease-out, background-color 0.2s ease;
+  transition:
+    opacity 0.18s ease-out,
+    transform 0.18s ease-out,
+    background-color 0.2s ease;
   position: relative; /* 使用偽元素作為選中覆蓋層，需要建立定位上下文 */
-  overflow: hidden;   /* 防止覆蓋層外溢，保持圓角一致 */
+  overflow: hidden; /* 防止覆蓋層外溢，保持圓角一致 */
 }
 
 .games-grid .game-card:hover {
@@ -213,7 +216,9 @@
   box-shadow: 0 0 0 2px var(--accent-color-alpha);
   opacity: 0;
   transform: scale(0.965);
-  transition: opacity 160ms ease-out, transform 180ms ease-out;
+  transition:
+    opacity 160ms ease-out,
+    transform 180ms ease-out;
   pointer-events: none;
 }
 
@@ -260,7 +265,6 @@
 
 /* 資料夾視圖的廠商和版本信息由 GameCard props 控制，不需要 CSS 強制隱藏 */
 
-
 /* 響應式設計 - 統一斷點與桌面視圖一致 */
 @media (width <= 768px) {
   .games-grid {
@@ -268,27 +272,27 @@
     gap: 16px;
     padding: 16px;
   }
-  
+
   .games-grid .game-card {
     width: 100px;
     padding: 10px;
   }
-  
+
   .games-grid .game-icon-container {
     width: 56px;
     height: 56px;
     margin: 0 auto 6px;
   }
-  
+
   .games-grid .game-icon {
     width: 40px;
     height: 40px;
   }
-  
+
   .games-grid .game-name {
     font-size: 10px;
   }
-  
+
   .folder-window-title {
     font-size: 12px;
   }

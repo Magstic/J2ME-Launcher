@@ -4,7 +4,10 @@
 .language-card {
   position: relative;
   overflow: hidden;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .theme-card:hover,
@@ -15,8 +18,8 @@
 }
 
 /* Selected state enhancement */
-.theme-card[data-selected="true"],
-.language-card[data-selected="true"],
+.theme-card[data-selected='true'],
+.language-card[data-selected='true'],
 .theme-card.selected,
 .language-card.selected {
   background: linear-gradient(135deg, var(--accent-color-alpha) 0%, transparent 100%);
@@ -24,11 +27,15 @@
   box-shadow: 0 0 0 2px var(--accent-color-alpha) !important;
 }
 
-.theme-card[data-selected="true"]:hover,
-.language-card[data-selected="true"]:hover,
+.theme-card[data-selected='true']:hover,
+.language-card[data-selected='true']:hover,
 .theme-card.selected:hover,
 .language-card.selected:hover {
-  background: linear-gradient(135deg, var(--accent-color-alpha) 0%, var(--accent-color-alpha-light) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--accent-color-alpha) 0%,
+    var(--accent-color-alpha-light) 100%
+  );
 }
 
 /* Checkmark */
@@ -47,15 +54,17 @@
   font-weight: 700;
   color: white;
   background: var(--accent-color);
-  box-shadow: 0 2px 6px rgb(0,0,0/20%);
-  transition: transform 0.25s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.2s ease;
+  box-shadow: 0 2px 6px rgb(0, 0, 0/20%);
+  transition:
+    transform 0.25s cubic-bezier(0.68, -0.55, 0.265, 1.55),
+    opacity 0.2s ease;
   transform: scale(0);
   opacity: 0;
   z-index: 1;
 }
 
-.theme-card[data-selected="true"] .checkmark,
-.language-card[data-selected="true"] .checkmark,
+.theme-card[data-selected='true'] .checkmark,
+.language-card[data-selected='true'] .checkmark,
 .theme-card.selected .checkmark,
 .language-card.selected .checkmark {
   transform: scale(1);
@@ -65,10 +74,10 @@
 /* Tag editor: unify textarea with system form styles inside modal */
 .modal-body textarea.form-input {
   width: 100%;
-  height: auto;            /* override fixed height in generic .form-input */
-  min-height: 160px;       /* respect rows but ensure comfortable default */
-  resize: vertical;        /* allow user to adjust */
-  padding: 10px 12px;      /* match .form-input */
+  height: auto; /* override fixed height in generic .form-input */
+  min-height: 160px; /* respect rows but ensure comfortable default */
+  resize: vertical; /* allow user to adjust */
+  padding: 10px 12px; /* match .form-input */
   border: 1px solid var(--dialog-border);
   border-radius: 8px;
   background: var(--dialog-bg);

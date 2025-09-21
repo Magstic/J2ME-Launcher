@@ -23,10 +23,13 @@ function getDB() {
   // Ensure auto_vacuum is FULL so pages can be reclaimed progressively (requires VACUUM once when turning on)
   try {
     const av = db.pragma('auto_vacuum', { simple: true });
-    if (av !== 2) { // 0=NONE, 1=INCREMENTAL, 2=FULL
+    if (av !== 2) {
+      // 0=NONE, 1=INCREMENTAL, 2=FULL
       db.pragma('auto_vacuum = FULL');
       // Must run VACUUM once for the setting to take effect on existing DB
-      try { db.exec('VACUUM'); } catch (_) {}
+      try {
+        db.exec('VACUUM');
+      } catch (_) {}
     }
   } catch (_) {}
   initSchema();
@@ -43,21 +46,23 @@ function getDB() {
       `);
     }
   } catch (_) {}
-  
+
   // Initialize SQL cache
   try {
     const { getSqlCache } = require('./utils/sql-cache');
     const sqlCache = getSqlCache();
     sqlCache.init(db);
   } catch (_) {}
-  
+
   return db;
 }
 
 function closeDB() {
   try {
     if (db) {
-      try { db.close(); } catch (_) {}
+      try {
+        db.close();
+      } catch (_) {}
     }
   } finally {
     db = null;
@@ -69,12 +74,16 @@ function compact() {
   try {
     const d = getDB();
     // 先嘗試截斷 WAL，避免殘留大型 -wal 檔
-    try { d.pragma('wal_checkpoint(TRUNCATE)'); } catch (_) {}
+    try {
+      d.pragma('wal_checkpoint(TRUNCATE)');
+    } catch (_) {}
     // VACUUM 會重寫資料庫檔案並回收空間
     d.exec('VACUUM');
     return true;
   } catch (e) {
-    try { console.warn('[DB] compact failed:', e.message || e); } catch (_) {}
+    try {
+      console.warn('[DB] compact failed:', e.message || e);
+    } catch (_) {}
     return false;
   }
 }

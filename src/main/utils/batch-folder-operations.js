@@ -15,11 +15,11 @@ class BatchFolderOperations {
   // Queue batch operation
   queueOperation(operation, filePaths, folderId) {
     this.pendingOperations.push({ operation, filePaths, folderId });
-    
+
     if (this.batchTimeout) {
       clearTimeout(this.batchTimeout);
     }
-    
+
     this.batchTimeout = setTimeout(() => {
       this.processBatch();
     }, this.BATCH_DELAY);
@@ -49,7 +49,9 @@ class BatchFolderOperations {
     const transaction = db.transaction(() => {
       // Process additions
       if (addOperations.length > 0) {
-        const addStmt = db.prepare('INSERT OR IGNORE INTO folder_games (folderId, filePath) VALUES (?, ?)');
+        const addStmt = db.prepare(
+          'INSERT OR IGNORE INTO folder_games (folderId, filePath) VALUES (?, ?)'
+        );
         for (const { filePaths, folderId } of addOperations) {
           for (const filePath of filePaths) {
             addStmt.run(folderId, filePath);
@@ -63,7 +65,9 @@ class BatchFolderOperations {
 
       // Process removals
       if (removeOperations.length > 0) {
-        const removeStmt = db.prepare('DELETE FROM folder_games WHERE folderId = ? AND filePath = ?');
+        const removeStmt = db.prepare(
+          'DELETE FROM folder_games WHERE folderId = ? AND filePath = ?'
+        );
         for (const { filePaths, folderId } of removeOperations) {
           for (const filePath of filePaths) {
             removeStmt.run(folderId, filePath);
@@ -78,7 +82,9 @@ class BatchFolderOperations {
 
     try {
       transaction();
-      console.log(`[BatchFolderOps] Processed ${this.pendingOperations.length} operations in batch`);
+      console.log(
+        `[BatchFolderOps] Processed ${this.pendingOperations.length} operations in batch`
+      );
     } catch (e) {
       console.error('[BatchFolderOps] Batch transaction failed:', e.message);
     }
@@ -96,7 +102,9 @@ class BatchFolderOperations {
     const updater = getIncrementalUpdater();
 
     const transaction = db.transaction(() => {
-      const stmt = db.prepare('INSERT OR IGNORE INTO folder_games (folderId, filePath) VALUES (?, ?)');
+      const stmt = db.prepare(
+        'INSERT OR IGNORE INTO folder_games (folderId, filePath) VALUES (?, ?)'
+      );
       for (const filePath of filePaths) {
         stmt.run(folderId, filePath);
       }
@@ -106,7 +114,7 @@ class BatchFolderOperations {
       transaction();
       cache.updateFolderMembership(filePaths, folderId, 'add');
       updater.updateFolderMembership(filePaths, folderId, 'add');
-      
+
       console.log(`[BatchFolderOps] Added ${filePaths.length} games to folder ${folderId}`);
       return { success: true, count: filePaths.length };
     } catch (e) {
@@ -134,7 +142,7 @@ class BatchFolderOperations {
       transaction();
       cache.updateFolderMembership(filePaths, folderId, 'remove');
       updater.updateFolderMembership(filePaths, folderId, 'remove');
-      
+
       console.log(`[BatchFolderOps] Removed ${filePaths.length} games from folder ${folderId}`);
       return { success: true, count: filePaths.length };
     } catch (e) {

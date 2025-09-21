@@ -5,7 +5,7 @@ function parseRow(row) {
   if (!row) return null;
   return {
     ...row,
-    manifest: row.manifest ? JSON.parse(row.manifest) : null
+    manifest: row.manifest ? JSON.parse(row.manifest) : null,
   };
 }
 
@@ -37,7 +37,7 @@ function register({ ipcMain }) {
           iconPath: r.iconPath ?? null,
           mtimeMs: r.mtimeMs ?? null,
           size: r.size ?? null,
-          manifest: r.manifest ? JSON.stringify(r.manifest) : null
+          manifest: r.manifest ? JSON.stringify(r.manifest) : null,
         });
       }
     });

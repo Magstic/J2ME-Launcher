@@ -23,7 +23,10 @@ export default function useWheelTouchLock({ enabled, insideRef }) {
 
     const handleWheel = (e) => {
       const list = insideRef && insideRef.current;
-      if (!list) { e.preventDefault(); return; }
+      if (!list) {
+        e.preventDefault();
+        return;
+      }
       if (!isInside(e.target)) {
         // Wheel outside the popover while open: block page scroll
         e.preventDefault();
@@ -39,15 +42,18 @@ export default function useWheelTouchLock({ enabled, insideRef }) {
     };
 
     const handleTouchStart = (e) => {
-      lastTouchYRef.current = (e.touches && e.touches.length) ? e.touches[0].clientY : 0;
+      lastTouchYRef.current = e.touches && e.touches.length ? e.touches[0].clientY : 0;
     };
 
     const handleTouchMove = (e) => {
       const list = insideRef && insideRef.current;
-      const currentY = (e.touches && e.touches.length) ? e.touches[0].clientY : 0;
+      const currentY = e.touches && e.touches.length ? e.touches[0].clientY : 0;
       const deltaY = lastTouchYRef.current - currentY;
       lastTouchYRef.current = currentY;
-      if (!list) { e.preventDefault(); return; }
+      if (!list) {
+        e.preventDefault();
+        return;
+      }
       if (!isInside(e.target)) {
         e.preventDefault();
         return;

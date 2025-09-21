@@ -50,13 +50,21 @@ const ConfirmDialog = ({
       requestCloseRef={requestCloseRef}
       actions={[
         { key: 'cancel', label: cancelText, variant: 'secondary', onClick: handleCancelClick },
-        { key: 'confirm', label: confirmText, variant: variant === 'danger' ? 'danger' : 'primary', onClick: handleConfirmClick, autoFocus: true, allowFocusRing: true },
+        {
+          key: 'confirm',
+          label: confirmText,
+          variant: variant === 'danger' ? 'danger' : 'primary',
+          onClick: handleConfirmClick,
+          autoFocus: true,
+          allowFocusRing: true,
+        },
       ]}
     >
-      <div className="modal-message" style={{ whiteSpace: 'pre-line' }}>{message}</div>
+      <div className="modal-message" style={{ whiteSpace: 'pre-line' }}>
+        {message}
+      </div>
     </ModalWithFooter>
   );
 };
 
 export default ConfirmDialog;
-

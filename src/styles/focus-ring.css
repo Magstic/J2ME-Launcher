@@ -25,6 +25,6 @@
 
 /* 3) 可選：當禁用/aria-disabled 時減少輪廓 */
 .app-container .allow-focus-ring[disabled],
-.app-container .allow-focus-ring[aria-disabled="true"] {
+.app-container .allow-focus-ring[aria-disabled='true'] {
   pointer-events: none;
 }

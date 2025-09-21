@@ -15,16 +15,16 @@ import { FolderSelectDialog } from '@components';
 import GameInfoDialog from '@components/Desktop/GameInfoDialog';
 import ConfirmDialog from '@components/Common/ConfirmDialog';
 import { ModalWithFooter, ModalHeaderOnly } from '@ui';
-import { 
+import {
   useTranslation,
-  useDesktopManager, 
-  useAppDialogs, 
-  useGameLauncher, 
-  useAppEventListeners, 
-  useFabMenu, 
-  useDesktopView, 
-  useThemeManager, 
-  useWelcomeGuide 
+  useDesktopManager,
+  useAppDialogs,
+  useGameLauncher,
+  useAppEventListeners,
+  useFabMenu,
+  useDesktopView,
+  useThemeManager,
+  useWelcomeGuide,
 } from '@hooks';
 import '@components/Desktop/Desktop.css';
 import NotificationBubble from './components/ui/NotificationBubble';
@@ -37,8 +37,8 @@ import WelcomeGuideDialog from './components/ui/dialogs/WelcomeGuideDialog';
 import { ClusterDialog } from '@ui';
 
 // Direct DesktopView component (DesktopView logic integrated)
-function DesktopViewDirect({ 
-  games = [], 
+function DesktopViewDirect({
+  games = [],
   items = null,
   onGameSelect,
   onAddToFolder,
@@ -47,7 +47,6 @@ function DesktopViewDirect({
   isLoading = false,
   disableFlipExtra = false,
 }) {
-
   // 使用桌面視圖 hook
   const {
     externalDragActive,
@@ -62,18 +61,18 @@ function DesktopViewDirect({
     openMenu,
     ClusterSelectElement,
     ClusterMergeElement,
-    ClusterRenameElement
+    ClusterRenameElement,
   } = useDesktopView({
     games,
     onGameSelect,
     onAddToFolder,
     onRefresh,
-    onGameInfo
+    onGameInfo,
   });
 
   return (
-    <div 
-      className="desktop-view" 
+    <div
+      className="desktop-view"
       onDragOver={handleRootDragOver}
       onDrop={handleRootDrop}
       ref={rootRef}
@@ -82,9 +81,22 @@ function DesktopViewDirect({
         games={games}
         items={items}
         onGameClick={onGameSelect}
-        onGameContextMenu={(e, game, selectedList, selectedClusterIds) => openMenu(e, game, { view: 'desktop', kind: 'game', selectedFilePaths: selectedList, selectedClusterIds })}
-        onClusterClick={(cluster) => { try { window.dispatchEvent(new CustomEvent('open-cluster-dialog', { detail: cluster?.id })); } catch (_) {} }}
-        onClusterContextMenu={(e, cluster) => openMenu(e, cluster, { view: 'desktop', kind: 'cluster' })}
+        onGameContextMenu={(e, game, selectedList, selectedClusterIds) =>
+          openMenu(e, game, {
+            view: 'desktop',
+            kind: 'game',
+            selectedFilePaths: selectedList,
+            selectedClusterIds,
+          })
+        }
+        onClusterClick={(cluster) => {
+          try {
+            window.dispatchEvent(new CustomEvent('open-cluster-dialog', { detail: cluster?.id }));
+          } catch (_) {}
+        }}
+        onClusterContextMenu={(e, cluster) =>
+          openMenu(e, cluster, { view: 'desktop', kind: 'cluster' })
+        }
         onBlankContextMenu={(e) => openMenu(e, null, { view: 'desktop', kind: 'blank' })}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
@@ -109,14 +121,14 @@ function DesktopManagerHooks({ games, searchQuery, isLoading, onGameLaunch }) {
     // State
     folders,
     bulkStatus,
-    
+
     // Actions
     handleFolderOpen,
     getUncategorizedGames,
     getDesktopGridItems,
     getDrawerFolders,
     handleRefresh,
-    
+
     // Dialogs
     createFolderDialog,
     folderSelectDialog,
@@ -135,193 +147,234 @@ function DesktopManagerHooks({ games, searchQuery, isLoading, onGameLaunch }) {
     closeConfirmDelete,
     closeInfoDialog,
     closeNoFolderGuide,
-    
+
     // Drawer positioning
     contentWrapRef,
     drawerTopOffset,
     drawerTopViewport,
     drawerWidth,
-    
+
     // Callback handlers
     handleGameSelect,
     handleEditFolder,
     handleAddToFolder,
-    handleFolderSelect
+    handleFolderSelect,
   } = useDesktopManager({ games, searchQuery, onGameLaunch });
 
   return (
-    <div className={`desktop-manager`} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-        {/* 相對定位的包裹層：抽屜與內容區同級（抽屜固定顯示） */}
-        <div ref={contentWrapRef} className="content-wrap" style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
-          <div className="content-area" style={{ height: '100%' }}>
-            <div className="content-area-inner" style={{ padding: '10px 6px 6px 6px', height: '100%' }}>
-              <DesktopViewDirect
-                games={getUncategorizedGames(games, searchQuery)}
-                items={getDesktopGridItems(games, searchQuery)}
-                onGameSelect={handleGameSelect}
-                onAddToFolder={handleAddToFolder}
-                onGameInfo={handleGameInfo}
-                isLoading={isLoading}
+    <div
+      className={`desktop-manager`}
+      style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+    >
+      {/* 相對定位的包裹層：抽屜與內容區同級（抽屜固定顯示） */}
+      <div
+        ref={contentWrapRef}
+        className="content-wrap"
+        style={{ position: 'relative', flex: 1, overflow: 'hidden' }}
+      >
+        <div className="content-area" style={{ height: '100%' }}>
+          <div
+            className="content-area-inner"
+            style={{ padding: '10px 6px 6px 6px', height: '100%' }}
+          >
+            <DesktopViewDirect
+              games={getUncategorizedGames(games, searchQuery)}
+              items={getDesktopGridItems(games, searchQuery)}
+              onGameSelect={handleGameSelect}
+              onAddToFolder={handleAddToFolder}
+              onGameInfo={handleGameInfo}
+              isLoading={isLoading}
+            />
+          </div>
+        </div>
+        {/* 左側資料夾抽屜 - 與 content-area 同級 */}
+        <FolderDrawer
+          width={drawerWidth}
+          topOffset={drawerTopOffset}
+          topViewport={drawerTopViewport}
+          folders={getDrawerFolders()}
+          onOpenFolder={handleFolderOpen}
+          onCreateFolder={handleOpenCreateFolderDialog}
+          onEditFolder={handleEditFolder}
+          onDeleteFolder={handleDeleteFolder}
+        />
+      </div>
+
+      {/* 創建/編輯資料夾對話框 */}
+      <CreateFolderDialog
+        isOpen={createFolderDialog.isOpen}
+        mode={createFolderDialog.mode}
+        initialData={createFolderDialog.initialData}
+        onClose={handleCloseFolderDialog}
+        onConfirm={handleConfirmFolderDialog}
+      />
+
+      {/* 資料夾選擇對話框 */}
+      <FolderSelectDialog
+        isOpen={folderSelectDialog.isOpen}
+        game={folderSelectDialog.game}
+        selectedFilePaths={folderSelectDialog.selectedFilePaths}
+        folders={folders}
+        onClose={handleCloseFolderSelectDialog}
+        onSelect={handleFolderSelect}
+      />
+
+      {/* 遊戲信息對話框 */}
+      <GameInfoDialog
+        isOpen={gameInfoDialog.isOpen}
+        game={gameInfoDialog.game}
+        onClose={handleCloseGameInfoDialog}
+      />
+
+      {/* 刪除資料夾確認對話框（主題樣式） */}
+      <ConfirmDialog
+        isOpen={confirmDelete.isOpen}
+        title={t('desktopManager.confirmDelete.title')}
+        message={t('desktopManager.confirmDelete.message', {
+          name: confirmDelete.folder?.name || '',
+        })}
+        confirmText={t('desktopManager.confirmDelete.confirm')}
+        cancelText={t('desktopManager.confirmDelete.cancel')}
+        variant="danger"
+        onClose={closeConfirmDelete}
+        onCancel={closeConfirmDelete}
+        onConfirm={async () => {
+          // 立即關閉對話框，避免短暫回彈
+          const folder = confirmDelete.folder;
+          closeConfirmDelete();
+          // 略延後執行刪除與刷新，讓 UI 穩定
+          setTimeout(async () => {
+            try {
+              if (window.electronAPI?.deleteFolder && folder) {
+                const result = await window.electronAPI.deleteFolder(folder.id, true);
+                if (!result.success) {
+                  // 需要通過 hooks 訪問 setInfoDialog
+                  console.error('刪除資料夾失敗');
+                }
+                // 刷新資料
+                handleRefresh();
+              } else {
+                console.error('刪除 API 不可用');
+              }
+            } catch (error) {
+              console.error('刪除資料夾失敗:', error);
+            }
+          }, 30);
+        }}
+      />
+
+      {/* 單按鈕資訊對話框（取代內建 alert） */}
+      <ModalHeaderOnly
+        isOpen={infoDialog.isOpen}
+        onClose={closeInfoDialog}
+        title={infoDialog.title}
+        size="sm"
+      >
+        <div style={{ textAlign: 'center', marginBottom: '20px' }}>{infoDialog.message}</div>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <button className="btn btn-primary" onClick={closeInfoDialog}>
+            確定
+          </button>
+        </div>
+      </ModalHeaderOnly>
+
+      {/* 無資料夾引導對話框 */}
+      <ModalWithFooter
+        isOpen={noFolderGuideOpen}
+        onClose={closeNoFolderGuide}
+        title={t('desktopManager.noFolder.title')}
+        size="sm"
+        requestCloseRef={noFolderGuideCloseRef}
+        footer={
+          <div className="flex gap-8 push-right">
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                // 開啟新建資料夾彈窗，並關閉引導
+                handleOpenCreateFolderDialog();
+                if (noFolderGuideCloseRef.current) noFolderGuideCloseRef.current();
+              }}
+            >
+              {t('desktopManager.noFolder.createButton')}
+            </button>
+          </div>
+        }
+      >
+        <div>
+          <p>{t('desktopManager.noFolder.message')}</p>
+        </div>
+      </ModalWithFooter>
+
+      {/* 批次加入載入卡片（全屏遮罩）*/}
+      {bulkStatus.active ? (
+        <div
+          className="bulk-loading-overlay"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'var(--scrim-35)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+            backdropFilter: 'blur(2px)',
+          }}
+        >
+          <div
+            className="bulk-loading-card"
+            style={{
+              minWidth: 320,
+              maxWidth: 420,
+              padding: '20px 24px',
+              borderRadius: 12,
+              background: 'var(--glass-panel-gradient)',
+              boxShadow: '0 10px 30px var(--scrim-35)',
+              border: '1px solid var(--overlay-on-light-08)',
+              color: 'var(--text-primary)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+              <div
+                style={{
+                  width: 22,
+                  height: 22,
+                  border: '3px solid var(--overlay-on-light-20)',
+                  borderTopColor: '#6aa8ff',
+                  borderRadius: '50%',
+                  animation: 'spin 0.9s linear infinite',
+                }}
+              />
+              <div style={{ fontSize: 16, fontWeight: 600 }}>
+                {bulkStatus.label || t('desktopManager.bulk.processing')}
+              </div>
+            </div>
+            <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 10 }}>
+              {bulkStatus.done} / {bulkStatus.total}
+            </div>
+            <div
+              style={{
+                width: '100%',
+                height: 8,
+                background: 'var(--overlay-on-light-12)',
+                borderRadius: 8,
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  height: '100%',
+                  width: `${Math.min(100, Math.round((bulkStatus.done / Math.max(1, bulkStatus.total)) * 100))}%`,
+                  background: 'linear-gradient(90deg, #6aa8ff, #62e1ff)',
+                  transition: 'width 140ms ease',
+                }}
               />
             </div>
           </div>
-          {/* 左側資料夾抽屜 - 與 content-area 同級 */}
-          <FolderDrawer
-            width={drawerWidth}
-            topOffset={drawerTopOffset}
-            topViewport={drawerTopViewport}
-            folders={getDrawerFolders()}
-            onOpenFolder={handleFolderOpen}
-            onCreateFolder={handleOpenCreateFolderDialog}
-            onEditFolder={handleEditFolder}
-            onDeleteFolder={handleDeleteFolder}
-          />
+          {/* 簡單 keyframes */}
+          <style>{`@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
         </div>
-
-        {/* 創建/編輯資料夾對話框 */}
-        <CreateFolderDialog
-          isOpen={createFolderDialog.isOpen}
-          mode={createFolderDialog.mode}
-          initialData={createFolderDialog.initialData}
-          onClose={handleCloseFolderDialog}
-          onConfirm={handleConfirmFolderDialog}
-        />
-
-        {/* 資料夾選擇對話框 */}
-        <FolderSelectDialog
-          isOpen={folderSelectDialog.isOpen}
-          game={folderSelectDialog.game}
-          selectedFilePaths={folderSelectDialog.selectedFilePaths}
-          folders={folders}
-          onClose={handleCloseFolderSelectDialog}
-          onSelect={handleFolderSelect}
-        />
-
-        {/* 遊戲信息對話框 */}
-        <GameInfoDialog
-          isOpen={gameInfoDialog.isOpen}
-          game={gameInfoDialog.game}
-          onClose={handleCloseGameInfoDialog}
-        />
-
-        {/* 刪除資料夾確認對話框（主題樣式） */}
-        <ConfirmDialog
-          isOpen={confirmDelete.isOpen}
-          title={t('desktopManager.confirmDelete.title')}
-          message={t('desktopManager.confirmDelete.message', { name: confirmDelete.folder?.name || '' })}
-          confirmText={t('desktopManager.confirmDelete.confirm')}
-          cancelText={t('desktopManager.confirmDelete.cancel')}
-          variant="danger"
-          onClose={closeConfirmDelete}
-          onCancel={closeConfirmDelete}
-          onConfirm={async () => {
-            // 立即關閉對話框，避免短暫回彈
-            const folder = confirmDelete.folder;
-            closeConfirmDelete();
-            // 略延後執行刪除與刷新，讓 UI 穩定
-            setTimeout(async () => {
-              try {
-                if (window.electronAPI?.deleteFolder && folder) {
-                  const result = await window.electronAPI.deleteFolder(folder.id, true);
-                  if (!result.success) {
-                    // 需要通過 hooks 訪問 setInfoDialog
-                    console.error('刪除資料夾失敗');
-                  }
-                  // 刷新資料
-                  handleRefresh();
-                } else {
-                  console.error('刪除 API 不可用');
-                }
-              } catch (error) {
-                console.error('刪除資料夾失敗:', error);
-              }
-            }, 30);
-          }}
-        />
-
-        {/* 單按鈕資訊對話框（取代內建 alert） */}
-        <ModalHeaderOnly
-          isOpen={infoDialog.isOpen}
-          onClose={closeInfoDialog}
-          title={infoDialog.title}
-          size="sm"
-        >
-          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-            {infoDialog.message}
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <button className="btn btn-primary" onClick={closeInfoDialog}>
-              確定
-            </button>
-          </div>
-        </ModalHeaderOnly>
-
-        {/* 無資料夾引導對話框 */}
-        <ModalWithFooter
-          isOpen={noFolderGuideOpen}
-          onClose={closeNoFolderGuide}
-          title={t('desktopManager.noFolder.title')}
-          size="sm"
-          requestCloseRef={noFolderGuideCloseRef}
-          footer={
-            <div className="flex gap-8 push-right">
-              <button
-                className="btn btn-primary"
-                onClick={() => {
-                  // 開啟新建資料夾彈窗，並關閉引導
-                  handleOpenCreateFolderDialog();
-                  if (noFolderGuideCloseRef.current) noFolderGuideCloseRef.current();
-                }}
-              >
-                {t('desktopManager.noFolder.createButton')}
-              </button>
-            </div>
-          }
-        >
-          <div>
-            <p>{t('desktopManager.noFolder.message')}</p>
-          </div>
-        </ModalWithFooter>
-
-        {/* 批次加入載入卡片（全屏遮罩）*/}
-        {bulkStatus.active ? (
-          <div
-            className="bulk-loading-overlay"
-            style={{
-              position: 'fixed', inset: 0, background: 'var(--scrim-35)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              zIndex: 10000, backdropFilter: 'blur(2px)'
-            }}
-          >
-            <div
-              className="bulk-loading-card"
-              style={{
-                minWidth: 320, maxWidth: 420, padding: '20px 24px', borderRadius: 12,
-                background: 'var(--glass-panel-gradient)',
-                boxShadow: '0 10px 30px var(--scrim-35)',
-                border: '1px solid var(--overlay-on-light-08)',
-                color: 'var(--text-primary)'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                <div style={{
-                  width: 22, height: 22, border: '3px solid var(--overlay-on-light-20)',
-                  borderTopColor: '#6aa8ff', borderRadius: '50%', animation: 'spin 0.9s linear infinite'
-                }} />
-                <div style={{ fontSize: 16, fontWeight: 600 }}>{bulkStatus.label || t('desktopManager.bulk.processing')}</div>
-              </div>
-              <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 10 }}>
-                {bulkStatus.done} / {bulkStatus.total}
-              </div>
-              <div style={{ width: '100%', height: 8, background: 'var(--overlay-on-light-12)', borderRadius: 8, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${Math.min(100, Math.round((bulkStatus.done / Math.max(1, bulkStatus.total)) * 100))}%`, background: 'linear-gradient(90deg, #6aa8ff, #62e1ff)', transition: 'width 140ms ease' }} />
-              </div>
-            </div>
-            {/* 簡單 keyframes */}
-            <style>{`@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
-          </div>
-        ) : null}
-      </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -346,12 +399,12 @@ function AppContent() {
   const dialogs = useAppDialogs();
   const { fabOpen, openFab, scheduleCloseFab, toggleFab } = useFabMenu();
   const { isWelcomeGuideOpen, closeWelcomeGuide, handleWelcomeGuideComplete } = useWelcomeGuide();
-  
+
   // 遊戲啟動邏輯
   const { handleGameLaunch } = useGameLauncher({
     games,
     openGameLaunchDialog: dialogs.openGameLaunchDialog,
-    openEmulatorNotConfiguredDialog: dialogs.openEmulatorNotConfiguredDialog
+    openEmulatorNotConfiguredDialog: dialogs.openEmulatorNotConfiguredDialog,
   });
   // 搜索防抖動效果
   useEffect(() => {
@@ -361,7 +414,6 @@ function AppContent() {
 
     return () => clearTimeout(timer);
   }, [searchTerm]);
-
 
   // 應用級事件監聽
   useAppEventListeners({
@@ -377,7 +429,7 @@ function AppContent() {
     gameLaunchDialog: dialogs.gameLaunchDialog,
     gameInfoDialog: dialogs.gameInfoDialog,
     isDirectoryManagerOpen: dialogs.isDirectoryManagerOpen,
-    isEmulatorConfigOpen: dialogs.isEmulatorConfigOpen
+    isEmulatorConfigOpen: dialogs.isEmulatorConfigOpen,
   });
 
   // 在应用启动时加载初始游戏
@@ -389,13 +441,16 @@ function AppContent() {
         setGames(initialGames);
         // 尝试从返回的数据中找到一个目录路径来显示
         if (initialGames[0] && initialGames[0].filePath) {
-            const firstGamePath = initialGames[0].filePath;
-            // 注意：这是一个简化的假设，我们只取第一个文件的目录
-            // 在渲染器中，我们不能可靠地使用 'path' 模块，所以我们进行简单的字符串操作
-            const lastSlash = Math.max(firstGamePath.lastIndexOf('/'), firstGamePath.lastIndexOf('\\'));
-            if (lastSlash !== -1) {
-                 setDirectory(firstGamePath.substring(0, lastSlash));
-            }
+          const firstGamePath = initialGames[0].filePath;
+          // 注意：这是一个简化的假设，我们只取第一个文件的目录
+          // 在渲染器中，我们不能可靠地使用 'path' 模块，所以我们进行简单的字符串操作
+          const lastSlash = Math.max(
+            firstGamePath.lastIndexOf('/'),
+            firstGamePath.lastIndexOf('\\')
+          );
+          if (lastSlash !== -1) {
+            setDirectory(firstGamePath.substring(0, lastSlash));
+          }
         }
       }
       setIsLoading(false);
@@ -405,7 +460,11 @@ function AppContent() {
 
   // 模態開啟時鎖定背景滾動，避免背後遊戲列表跟著滾
   useEffect(() => {
-    const anyModalOpen = dialogs.gameLaunchDialog.isOpen || dialogs.gameInfoDialog.isOpen || dialogs.isDirectoryManagerOpen || dialogs.isEmulatorConfigOpen;
+    const anyModalOpen =
+      dialogs.gameLaunchDialog.isOpen ||
+      dialogs.gameInfoDialog.isOpen ||
+      dialogs.isDirectoryManagerOpen ||
+      dialogs.isEmulatorConfigOpen;
     const prev = document.body.style.overflow;
     if (anyModalOpen) {
       document.body.style.overflow = 'hidden';
@@ -416,8 +475,12 @@ function AppContent() {
     return () => {
       document.body.style.overflow = '';
     };
-  }, [dialogs.gameLaunchDialog.isOpen, dialogs.gameInfoDialog.isOpen, dialogs.isDirectoryManagerOpen, dialogs.isEmulatorConfigOpen]);
-
+  }, [
+    dialogs.gameLaunchDialog.isOpen,
+    dialogs.gameInfoDialog.isOpen,
+    dialogs.isDirectoryManagerOpen,
+    dialogs.isEmulatorConfigOpen,
+  ]);
 
   // 目錄管理相關事件處理
   const handleDirectoriesChanged = async () => {
@@ -427,38 +490,35 @@ function AppContent() {
     }
   };
 
-
   const filteredGames = useMemo(() => {
     const lowerCaseSearchTerm = debouncedSearchTerm.toLowerCase();
     if (!lowerCaseSearchTerm) return games;
-    return games.filter(game => {
+    return games.filter((game) => {
       // 使用顯示名稱進行搜索（優先使用自訂名稱）
       const displayName = game.gameName || '';
       const displayVendor = game.vendor || '';
-      
-      return displayName.toLowerCase().includes(lowerCaseSearchTerm) ||
-             displayVendor.toLowerCase().includes(lowerCaseSearchTerm);
+
+      return (
+        displayName.toLowerCase().includes(lowerCaseSearchTerm) ||
+        displayVendor.toLowerCase().includes(lowerCaseSearchTerm)
+      );
     });
   }, [games, debouncedSearchTerm]);
 
   return (
-      <div
-        className="app-container desktop-mode"
-        data-theme={theme}
-      >
+    <div className="app-container desktop-mode" data-theme={theme}>
       <TitleBar />
       <div className="app">
-        
         <div className="main-content">
-          <SearchBar 
+          <SearchBar
             searchTerm={searchTerm}
-            onSearch={setSearchTerm} 
-            gameCount={filteredGames.length} 
+            onSearch={setSearchTerm}
+            gameCount={filteredGames.length}
             totalCount={games.length}
             directory={directory}
           />
           <div className="content-area">
-            <DesktopManagerHooks 
+            <DesktopManagerHooks
               games={filteredGames}
               searchQuery={debouncedSearchTerm}
               isLoading={isLoading}
@@ -477,8 +537,14 @@ function AppContent() {
               {/* FAB 圖標：桌面模式顯示電腦顯示器 */}
               <div className="fab-icon is-desktop" aria-hidden="true">
                 <span className="face front">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
-                    <path d="M21 3H3c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h7v2H8c-.55 0-1 .45-1 1s.45 1 1 1h8c.55 0 1-.45 1-1s-.45-1-1-1h-2v-2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 13H3V5h18v11z"/>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    width="24"
+                    height="24"
+                  >
+                    <path d="M21 3H3c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h7v2H8c-.55 0-1 .45-1 1s.45 1 1 1h8c.55 0 1-.45 1-1s-.45-1-1-1h-2v-2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 13H3V5h18v11z" />
                   </svg>
                 </span>
               </div>
@@ -507,9 +573,9 @@ function AppContent() {
           </div>
         </div>
       </div>
-      
+
       {/* 目錄管理彈窗 */}
-      <DirectoryManager 
+      <DirectoryManager
         isOpen={dialogs.isDirectoryManagerOpen}
         onClose={dialogs.closeDirectoryManager}
         onDirectoriesChanged={handleDirectoriesChanged}
@@ -533,13 +599,16 @@ function AppContent() {
 
       {/* 模擬器配置彈窗 */}
       {dialogs.isEmulatorConfigOpen && (
-        <EmulatorConfigDialog isOpen={dialogs.isEmulatorConfigOpen} onClose={dialogs.closeEmulatorConfig} />
+        <EmulatorConfigDialog
+          isOpen={dialogs.isEmulatorConfigOpen}
+          onClose={dialogs.closeEmulatorConfig}
+        />
       )}
 
       {/* 軟體配置（設定）彈窗 */}
       {dialogs.isSettingsOpen && (
-        <SettingsDialog 
-          isOpen={dialogs.isSettingsOpen} 
+        <SettingsDialog
+          isOpen={dialogs.isSettingsOpen}
           onClose={dialogs.closeSettings}
           theme={theme}
           setTheme={setTheme}
@@ -558,8 +627,8 @@ function AppContent() {
 
       {/* 歡迎指南對話框 */}
       {isWelcomeGuideOpen && (
-        <WelcomeGuideDialog 
-          isOpen={isWelcomeGuideOpen} 
+        <WelcomeGuideDialog
+          isOpen={isWelcomeGuideOpen}
           onClose={closeWelcomeGuide}
           onComplete={handleWelcomeGuideComplete}
         />
@@ -574,7 +643,11 @@ function AppContent() {
           onClose={dialogs.closeGameLaunchDialog}
           onSavedAndLaunch={async (g) => {
             // 保存已由對話框完成，這裡直接啟動
-            try { await window.electronAPI?.launchGame?.(g.filePath); } catch (e) { console.error(e); }
+            try {
+              await window.electronAPI?.launchGame?.(g.filePath);
+            } catch (e) {
+              console.error(e);
+            }
           }}
         />
       )}
@@ -590,11 +663,11 @@ function AppContent() {
           }}
         />
       )}
-      
+
       {/* 左下角通知氣泡 */}
       <NotificationBubble />
-      </div>
+    </div>
   );
 }
 
-export default App
+export default App;

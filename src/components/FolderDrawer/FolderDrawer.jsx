@@ -37,8 +37,12 @@ const FolderDrawer = ({
   // 允許在抽屜上方拖拽並放入資料夾
   const handleDragOverFolder = (e, folder) => {
     // 允許drop
-    try { e.preventDefault(); } catch {}
-    try { e.dataTransfer.dropEffect = 'move'; } catch {}
+    try {
+      e.preventDefault();
+    } catch {}
+    try {
+      e.dataTransfer.dropEffect = 'move';
+    } catch {}
     if (hoverFolderId !== folder.id) setHoverFolderId(folder.id);
   };
 
@@ -48,11 +52,17 @@ const FolderDrawer = ({
   };
 
   const handleDropOnFolder = async (e, folder) => {
-    try { e.preventDefault(); } catch {}
-    try { e.stopPropagation(); } catch {}
+    try {
+      e.preventDefault();
+    } catch {}
+    try {
+      e.stopPropagation();
+    } catch {}
     const api = window.electronAPI;
     let handled = false;
-    try { console.log('[DROP_UI] drop on folder:', folder && folder.id); } catch {}
+    try {
+      console.log('[DROP_UI] drop on folder:', folder && folder.id);
+    } catch {}
     // 優先走跨窗口拖拽會話
     try {
       if (api?.dropDragSession) {
@@ -60,14 +70,31 @@ const FolderDrawer = ({
         let types = [];
         let filesLen = 0;
         try {
-          types = Array.from((e.dataTransfer && e.dataTransfer.types) ? e.dataTransfer.types : []);
+          types = Array.from(e.dataTransfer && e.dataTransfer.types ? e.dataTransfer.types : []);
           filesLen = e.dataTransfer?.files ? e.dataTransfer.files.length : 0;
         } catch {}
-        const hasInternalMIME = types.includes('application/x-j2me-internal') || types.includes('application/x-j2me-filepath');
+        const hasInternalMIME =
+          types.includes('application/x-j2me-internal') ||
+          types.includes('application/x-j2me-filepath');
         const internalHint = !!(hasInternalMIME || (types.length === 0 && filesLen === 0));
-        try { console.log('[DROP_UI] attempting dropDragSession to folder:', folder && folder.id, 'internal=', internalHint, 'types=', types); } catch {}
-        const dropRes = await api.dropDragSession({ type: 'folder', id: folder.id, internal: internalHint });
-        try { console.log('[DROP_UI] dropDragSession result:', dropRes); } catch {}
+        try {
+          console.log(
+            '[DROP_UI] attempting dropDragSession to folder:',
+            folder && folder.id,
+            'internal=',
+            internalHint,
+            'types=',
+            types
+          );
+        } catch {}
+        const dropRes = await api.dropDragSession({
+          type: 'folder',
+          id: folder.id,
+          internal: internalHint,
+        });
+        try {
+          console.log('[DROP_UI] dropDragSession result:', dropRes);
+        } catch {}
         handled = !!(dropRes && dropRes.success === true);
       }
     } catch {}
@@ -76,10 +103,16 @@ const FolderDrawer = ({
       // 後備：HTML5 內部拖拽（僅單個 text/plain 檔案路徑）
       try {
         try {
-          const types = Array.from((e.dataTransfer && e.dataTransfer.types) ? e.dataTransfer.types : []);
+          const types = Array.from(
+            e.dataTransfer && e.dataTransfer.types ? e.dataTransfer.types : []
+          );
           console.log('[DROP_UI] dataTransfer.types=', types);
           const filesLen = e.dataTransfer?.files ? e.dataTransfer.files.length : 0;
-          console.log('[DROP_UI] dataTransfer.files.length=', filesLen, filesLen > 0 ? ('first.path=' + (e.dataTransfer.files[0]?.path || '')) : '');
+          console.log(
+            '[DROP_UI] dataTransfer.files.length=',
+            filesLen,
+            filesLen > 0 ? 'first.path=' + (e.dataTransfer.files[0]?.path || '') : ''
+          );
         } catch {}
         const raw = e.dataTransfer?.getData && e.dataTransfer.getData('text/plain');
         let filePath = raw;
@@ -98,7 +131,8 @@ const FolderDrawer = ({
         }
         if (!filePath) {
           try {
-            const custom = e.dataTransfer?.getData && e.dataTransfer.getData('application/x-j2me-filepath');
+            const custom =
+              e.dataTransfer?.getData && e.dataTransfer.getData('application/x-j2me-filepath');
             if (custom) filePath = custom;
           } catch {}
         }
@@ -113,29 +147,55 @@ const FolderDrawer = ({
         if (raw && typeof raw === 'string' && raw.trim().startsWith('{')) {
           try {
             const payload = JSON.parse(raw);
-            try { console.log('[DROP_UI] parsed JSON payload from text/plain:', payload && Object.keys(payload)); } catch {}
+            try {
+              console.log(
+                '[DROP_UI] parsed JSON payload from text/plain:',
+                payload && Object.keys(payload)
+              );
+            } catch {}
             if (payload && payload.type === 'game') {
-              if (payload.game && typeof payload.game.filePath === 'string') filePath = payload.game.filePath;
+              if (payload.game && typeof payload.game.filePath === 'string')
+                filePath = payload.game.filePath;
               else if (typeof payload.filePath === 'string') filePath = payload.filePath;
             }
           } catch (err) {
-            try { console.log('[DROP_UI] JSON.parse failed for text/plain payload:', err && err.message); } catch {}
+            try {
+              console.log(
+                '[DROP_UI] JSON.parse failed for text/plain payload:',
+                err && err.message
+              );
+            } catch {}
           }
         }
         if (filePath && typeof filePath === 'string') {
-          try { console.log('[DROP_UI] fallback addGameToFolder with filePath:', filePath, '→ folder:', folder && folder.id); } catch {}
+          try {
+            console.log(
+              '[DROP_UI] fallback addGameToFolder with filePath:',
+              filePath,
+              '→ folder:',
+              folder && folder.id
+            );
+          } catch {}
           const r = await api?.addGameToFolder?.(filePath, folder.id);
-          try { console.log('[DROP_UI] fallback addGameToFolder result:', r); } catch {}
+          try {
+            console.log('[DROP_UI] fallback addGameToFolder result:', r);
+          } catch {}
           handled = !!(r && r.success !== false);
         } else {
-          try { console.log('[DROP_UI] fallback missing usable filePath, raw=', raw); } catch {}
+          try {
+            console.log('[DROP_UI] fallback missing usable filePath, raw=', raw);
+          } catch {}
         }
       } catch {}
     }
 
     // 結束會話
-    try { console.log('[DROP_UI] calling endDragSession()'); } catch {}
-    try { api?.endDragSession?.(); } catch {}
+    try {
+      console.log('[DROP_UI] calling endDragSession()');
+    } catch {}
+    try {
+      api?.endDragSession?.();
+    } catch {}
     setHoverFolderId(null);
     if (handled) {
       setJiggleFolderId(folder.id);
@@ -164,13 +224,21 @@ const FolderDrawer = ({
         overflow: 'hidden', // 關鍵：讓圓角裁切內部滾動容器與滾動條
       }}
     >
-      <div className="folder-drawer-scroll" style={{ flex: '1 1 auto', overflowY: 'auto', padding: '10px 6px 60px 6px' }}>
+      <div
+        className="folder-drawer-scroll"
+        style={{ flex: '1 1 auto', overflowY: 'auto', padding: '10px 6px 60px 6px' }}
+      >
         {folders.map((folder) => (
-          <div key={folder.id} style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+          <div
+            key={folder.id}
+            style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}
+          >
             <FolderCard
               folder={folder}
               onClick={() => onOpenFolder && onOpenFolder(folder)}
-              onContextMenu={(e) => openMenu && openMenu(e, folder, { view: 'drawer', kind: 'folder' })}
+              onContextMenu={(e) =>
+                openMenu && openMenu(e, folder, { view: 'drawer', kind: 'folder' })
+              }
               className={`folder-card ${jiggleFolderId === folder.id ? 'jiggle' : ''}`}
               isDropTarget={hoverFolderId === folder.id}
               onDragOver={(e) => handleDragOverFolder(e, folder)}
@@ -190,7 +258,8 @@ const FolderDrawer = ({
           right: 0,
           bottom: 0,
           height: 64,
-          background: 'linear-gradient(180deg, var(--background-primary) 40%, var(--background-primary-2, var(--background-primary)) 100%)',
+          background:
+            'linear-gradient(180deg, var(--background-primary) 40%, var(--background-primary-2, var(--background-primary)) 100%)',
           borderTop: '1px solid var(--overlay-on-light-20)',
           pointerEvents: 'none',
           zIndex: 0,
@@ -214,20 +283,33 @@ const FolderDrawer = ({
           fontSize: 20,
           lineHeight: 1,
           color: 'var(--text-primary)',
-          background: isBtnActive ? 'var(--hover-color-strong, var(--hover-color))' : (isBtnHover ? 'var(--hover-color)' : 'var(--background-secondary)'),
+          background: isBtnActive
+            ? 'var(--hover-color-strong, var(--hover-color))'
+            : isBtnHover
+              ? 'var(--hover-color)'
+              : 'var(--background-secondary)',
           border: `1px solid ${isBtnHover ? 'var(--overlay-on-light-30)' : 'var(--overlay-on-light-20)'}`,
-          boxShadow: isBtnHover ? 'var(--shadow-lg, 0 6px 12px rgba(234, 1, 1, 0.15))' : 'var(--shadow-md)',
-          transition: 'transform 100ms ease, box-shadow 120ms ease, background-color 120ms ease, border-color 120ms ease',
+          boxShadow: isBtnHover
+            ? 'var(--shadow-lg, 0 6px 12px rgba(234, 1, 1, 0.15))'
+            : 'var(--shadow-md)',
+          transition:
+            'transform 100ms ease, box-shadow 120ms ease, background-color 120ms ease, border-color 120ms ease',
           cursor: 'pointer',
           WebkitAppRegion: 'no-drag',
           zIndex: 1,
         }}
         onMouseEnter={() => setIsBtnHover(true)}
-        onMouseLeave={() => { setIsBtnHover(false); setIsBtnActive(false); }}
+        onMouseLeave={() => {
+          setIsBtnHover(false);
+          setIsBtnActive(false);
+        }}
         onMouseDown={() => setIsBtnActive(true)}
         onMouseUp={() => setIsBtnActive(false)}
         onFocus={() => setIsBtnHover(true)}
-        onBlur={() => { setIsBtnHover(false); setIsBtnActive(false); }}
+        onBlur={() => {
+          setIsBtnHover(false);
+          setIsBtnActive(false);
+        }}
       >
         +
       </button>

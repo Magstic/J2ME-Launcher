@@ -11,7 +11,15 @@ const {
   updateDirectoryScanTime: sqlUpdateDirectoryScanTime,
 } = require('../sql/directories');
 
-function register({ ipcMain, dialog, DataStore, processDirectory, processMultipleDirectories, addUrlToGames, broadcastToAll }) {
+function register({
+  ipcMain,
+  dialog,
+  DataStore,
+  processDirectory,
+  processMultipleDirectories,
+  addUrlToGames,
+  broadcastToAll,
+}) {
   // 初始遊戲列表
   ipcMain.handle('get-initial-games', () => {
     try {
@@ -36,7 +44,7 @@ function register({ ipcMain, dialog, DataStore, processDirectory, processMultipl
   // 添加新目录（多選）
   ipcMain.handle('add-directories', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
-      properties: ['openDirectory', 'multiSelections']
+      properties: ['openDirectory', 'multiSelections'],
     });
 
     if (canceled || filePaths.length === 0) {
@@ -49,7 +57,7 @@ function register({ ipcMain, dialog, DataStore, processDirectory, processMultipl
     for (const directoryPath of filePaths) {
       try {
         // 檢查是否已存在
-        const existing = sqlGetDirectories().some(d => d.path === directoryPath);
+        const existing = sqlGetDirectories().some((d) => d.path === directoryPath);
         if (existing) {
           existingDirectories.push(directoryPath);
           console.log(`目录已存在: ${directoryPath}`);
@@ -68,7 +76,7 @@ function register({ ipcMain, dialog, DataStore, processDirectory, processMultipl
       success: true,
       addedDirectories,
       existingDirectories,
-      totalSelected: filePaths.length
+      totalSelected: filePaths.length,
     };
   });
 
@@ -76,14 +84,19 @@ function register({ ipcMain, dialog, DataStore, processDirectory, processMultipl
   ipcMain.handle('remove-directory', async (event, directoryPath) => {
     try {
       // 檢查目錄是否存在
-      const exists = sqlGetDirectories().some(d => d.path === directoryPath);
+      const exists = sqlGetDirectories().some((d) => d.path === directoryPath);
       if (exists) {
         sqlRemoveDirectory(directoryPath);
         // Purge games under this directory from SQL (and cascade folder_games)
         try {
           const db = getDB();
-          const likePrefix = directoryPath.endsWith('\\') || directoryPath.endsWith('/') ? directoryPath : (directoryPath + (process.platform === 'win32' ? '\\' : '/'));
-          const affected = db.prepare(`DELETE FROM games WHERE filePath LIKE ?`).run(likePrefix + '%');
+          const likePrefix =
+            directoryPath.endsWith('\\') || directoryPath.endsWith('/')
+              ? directoryPath
+              : directoryPath + (process.platform === 'win32' ? '\\' : '/');
+          const affected = db
+            .prepare(`DELETE FROM games WHERE filePath LIKE ?`)
+            .run(likePrefix + '%');
           if (affected && affected.changes) {
             console.log('[SQL] removed', affected.changes, 'games under', directoryPath);
           }
@@ -93,7 +106,9 @@ function register({ ipcMain, dialog, DataStore, processDirectory, processMultipl
         // 清理目錄刪除後遺留的圖標快取檔案（異步）
         try {
           setImmediate(() => {
-            try { DataStore.cleanupOrphanIcons(); } catch (_) {}
+            try {
+              DataStore.cleanupOrphanIcons();
+            } catch (_) {}
           });
         } catch (_) {}
       }
@@ -137,8 +152,10 @@ function register({ ipcMain, dialog, DataStore, processDirectory, processMultipl
 
       const result = await processMultipleDirectories(null, forceFullScan, {
         emit: (payload) => {
-          try { broadcastToAll('scan:progress', payload); } catch (_) {}
-        }
+          try {
+            broadcastToAll('scan:progress', payload);
+          } catch (_) {}
+        },
       });
 
       if (result.success) {
@@ -158,7 +175,9 @@ function register({ ipcMain, dialog, DataStore, processDirectory, processMultipl
           const dirs = sqlGetDirectories();
           for (const d of dirs) {
             if (d.enabled) {
-              try { sqlUpdateDirectoryScanTime(d.path, iso); } catch (e) {}
+              try {
+                sqlUpdateDirectoryScanTime(d.path, iso);
+              } catch (e) {}
             }
           }
         } catch (_) {}
@@ -175,7 +194,7 @@ function register({ ipcMain, dialog, DataStore, processDirectory, processMultipl
   // 兼容舊的單目錄選擇
   ipcMain.handle('select-directory', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
-      properties: ['openDirectory']
+      properties: ['openDirectory'],
     });
     if (canceled || filePaths.length === 0) {
       return null;
@@ -185,24 +204,36 @@ function register({ ipcMain, dialog, DataStore, processDirectory, processMultipl
 
     DataStore.addDirectory(directoryPath);
     DataStore.saveData();
-    try { sqlAddDirectory(directoryPath); } catch (e) { console.warn('[SQL write] addDirectory (single) failed:', e.message); }
+    try {
+      sqlAddDirectory(directoryPath);
+    } catch (e) {
+      console.warn('[SQL write] addDirectory (single) failed:', e.message);
+    }
 
     try {
       const result = await processDirectory(directoryPath, false, {
         emit: (payload) => {
-          try { broadcastToAll('scan:progress', payload); } catch (_) {}
-        }
+          try {
+            broadcastToAll('scan:progress', payload);
+          } catch (_) {}
+        },
       });
       try {
         const sqlGames = getAllGamesFromSql();
         broadcastToAll('games-updated', addUrlToGames(sqlGames));
       } catch (_) {
         const games = DataStore.getAllGames();
-        try { upsertGames(games); } catch (e) { console.warn('[SQL sync] select-directory upsert failed:', e.message); }
+        try {
+          upsertGames(games);
+        } catch (e) {
+          console.warn('[SQL sync] select-directory upsert failed:', e.message);
+        }
         const gamesWithUrl = addUrlToGames(games);
         broadcastToAll('games-updated', gamesWithUrl);
       }
-      try { sqlUpdateDirectoryScanTime(directoryPath, new Date().toISOString()); } catch (_) {}
+      try {
+        sqlUpdateDirectoryScanTime(directoryPath, new Date().toISOString());
+      } catch (_) {}
       // Return current SQL list if available for the caller
       try {
         const sqlGamesNow = getAllGamesFromSql();

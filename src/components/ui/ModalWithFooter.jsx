@@ -48,11 +48,15 @@ export default function ModalWithFooter({
 
   useEffect(() => {
     isMountedRef.current = true;
-    return () => { isMountedRef.current = false; };
+    return () => {
+      isMountedRef.current = false;
+    };
   }, []);
 
   // 重置關閉狀態
-  useEffect(() => { if (isOpen) setIsClosing(false); }, [isOpen]);
+  useEffect(() => {
+    if (isOpen) setIsClosing(false);
+  }, [isOpen]);
 
   // ESC 關閉
   useEffect(() => {
@@ -69,11 +73,17 @@ export default function ModalWithFooter({
     if (!isOpen) return;
     const t = setTimeout(() => {
       if (initialFocusRef && initialFocusRef.current && initialFocusRef.current.focus) {
-        try { initialFocusRef.current.focus({ preventScroll: true }); } catch {}
+        try {
+          initialFocusRef.current.focus({ preventScroll: true });
+        } catch {}
       } else {
         // 若無指定，嘗試聚焦第一個可聚焦的 action
         const firstAuto = contentRef.current?.querySelector('.modal-footer .btn:not([disabled])');
-        if (firstAuto && firstAuto.focus) { try { firstAuto.focus({ preventScroll: true }); } catch {} }
+        if (firstAuto && firstAuto.focus) {
+          try {
+            firstAuto.focus({ preventScroll: true });
+          } catch {}
+        }
       }
     }, 0);
     return () => clearTimeout(t);
@@ -83,10 +93,12 @@ export default function ModalWithFooter({
   useEffect(() => {
     const active = !!(isOpen || isClosing);
     if (active) {
-      try { window.__modalOverlayCount = (window.__modalOverlayCount || 0) + 1; } catch {}
+      try {
+        window.__modalOverlayCount = (window.__modalOverlayCount || 0) + 1;
+      } catch {}
     }
     const updateBodyClass = () => {
-      const cnt = (window.__modalOverlayCount || 0);
+      const cnt = window.__modalOverlayCount || 0;
       if (cnt > 0) document.body.classList.add('any-modal-open');
       else document.body.classList.remove('any-modal-open');
     };
@@ -101,7 +113,7 @@ export default function ModalWithFooter({
 
   // 若正在關閉且這是最後一個彈窗，提前觸發 FAB 的漸出效果
   useEffect(() => {
-    const count = (window.__modalOverlayCount || 0);
+    const count = window.__modalOverlayCount || 0;
     if (isClosing && count === 1) {
       document.body.classList.add('modal-fading-out');
     } else if (!isClosing && count > 0) {
@@ -110,7 +122,7 @@ export default function ModalWithFooter({
     }
     return () => {
       // 在卸載或狀態變更時清理：當沒有任何彈窗時移除標記
-      const remaining = (window.__modalOverlayCount || 0);
+      const remaining = window.__modalOverlayCount || 0;
       if (remaining === 0) document.body.classList.remove('modal-fading-out');
     };
   }, [isClosing]);
@@ -120,14 +132,18 @@ export default function ModalWithFooter({
     const el = bodyRef.current;
     if (!isOpen || !el || !preserveScrollOnMutations) return;
 
-    const onScroll = () => { lastScrollTopRef.current = el.scrollTop; };
+    const onScroll = () => {
+      lastScrollTopRef.current = el.scrollTop;
+    };
     el.addEventListener('scroll', onScroll, { passive: true });
 
     const observer = new MutationObserver(() => {
       const st = lastScrollTopRef.current;
       // 下一幀恢復，避免布局抖動
       requestAnimationFrame(() => {
-        try { if (Math.abs(el.scrollTop - st) > 1) el.scrollTop = st; } catch {}
+        try {
+          if (Math.abs(el.scrollTop - st) > 1) el.scrollTop = st;
+        } catch {}
       });
     });
     observer.observe(el, { childList: true, subtree: true });
@@ -148,7 +164,11 @@ export default function ModalWithFooter({
     document.body.classList.add('fab-disabled');
 
     const host = contentRef.current || bodyRef.current;
-    if (!host) return () => { document.body.classList.remove('fab-disabled'); document.body.classList.remove('fab-dragging'); };
+    if (!host)
+      return () => {
+        document.body.classList.remove('fab-disabled');
+        document.body.classList.remove('fab-dragging');
+      };
     const onDown = () => document.body.classList.add('fab-dragging');
     const clearDrag = () => document.body.classList.remove('fab-dragging');
     host.addEventListener('mousedown', onDown);
@@ -178,14 +198,20 @@ export default function ModalWithFooter({
   useEffect(() => {
     if (requestCloseRef) {
       requestCloseRef.current = startClose;
-      return () => { requestCloseRef.current = null; };
+      return () => {
+        requestCloseRef.current = null;
+      };
     }
   }, [requestCloseRef, isClosing]);
 
   // 僅對「帶按鈕的彈窗」套用固定尺寸（如 75%），純資訊/無按鈕彈窗維持自然高度
   const hasActionButtons = !!footer || (actions && actions.length > 0);
   const sizeClass = hasActionButtons
-    ? (size === 'sm' ? 'modal-sm' : size === 'lg' ? 'modal-lg' : 'modal-md')
+    ? size === 'sm'
+      ? 'modal-sm'
+      : size === 'lg'
+        ? 'modal-lg'
+        : 'modal-md'
     : '';
 
   const renderActions = () => {
@@ -220,7 +246,7 @@ export default function ModalWithFooter({
   return (
     <div
       className={`modal-overlay ${isClosing ? 'closing' : ''}`}
-      onClick={(!isClosing && closeOnOverlay) ? startClose : undefined}
+      onClick={!isClosing && closeOnOverlay ? startClose : undefined}
       style={{ zIndex }}
     >
       <div
@@ -234,7 +260,9 @@ export default function ModalWithFooter({
         <div className="modal-header">
           <h2>{title}</h2>
           {allowCloseButton && (
-            <button className="modal-close-btn" onClick={startClose} aria-label="關閉">×</button>
+            <button className="modal-close-btn" onClick={startClose} aria-label="關閉">
+              ×
+            </button>
           )}
           {headerExtra}
         </div>
@@ -243,17 +271,13 @@ export default function ModalWithFooter({
         </div>
         {hasActionButtons && (
           <div className="modal-footer">
-            {footer
-              ? (
-                // 若提供自訂 footer，直接渲染，由外部決定左右佈局
-                footer
-              ) : (
-                // 預設動作：僅右側按鈕（不再保留左側佔位）
-                <div className="push-right">
-                  {renderActions()}
-                </div>
-              )
-            }
+            {footer ? (
+              // 若提供自訂 footer，直接渲染，由外部決定左右佈局
+              footer
+            ) : (
+              // 預設動作：僅右側按鈕（不再保留左側佔位）
+              <div className="push-right">{renderActions()}</div>
+            )}
           </div>
         )}
       </div>

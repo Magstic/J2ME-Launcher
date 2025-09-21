@@ -24,23 +24,25 @@ desktop-manager
 
 ### CSS 職責分工
 
-| 層級 | 檔案位置 | 主要職責 | 關鍵樣式 |
-|------|----------|----------|----------|
-| `content-area` | App.css | 純容器，無邊距干擾 | `padding: 0, overflow: hidden` |
-| `content-area-inner` | App.jsx (inline) | 負責視覺間距 | `padding: 10px 6px 6px 6px` |
-| `desktop-view` | Desktop.css | 背景和基礎布局 | `overflow: hidden, flex: 1` |
-| `desktop-grid` | VirtualizedUnifiedGrid.jsx | 滾動容器 | `overflow: hidden auto, scrollbar-gutter: stable` |
+| 層級                 | 檔案位置                   | 主要職責           | 關鍵樣式                                          |
+| -------------------- | -------------------------- | ------------------ | ------------------------------------------------- |
+| `content-area`       | App.css                    | 純容器，無邊距干擾 | `padding: 0, overflow: hidden`                    |
+| `content-area-inner` | App.jsx (inline)           | 負責視覺間距       | `padding: 10px 6px 6px 6px`                       |
+| `desktop-view`       | Desktop.css                | 背景和基礎布局     | `overflow: hidden, flex: 1`                       |
+| `desktop-grid`       | VirtualizedUnifiedGrid.jsx | 滾動容器           | `overflow: hidden auto, scrollbar-gutter: stable` |
 
 ## 歷史問題與修復
 
 ### 問題 1：滾動條無法貼合邊緣
 
 **原始問題**：
+
 - `content-area` 設定 `padding: 6px` 和 `scrollbar-gutter: stable both-edges`
 - `desktop-view` 也設定 `overflow: hidden auto` 和 `scrollbar-gutter: stable`
 - 造成雙重滾動容器衝突，滾動條出現在錯誤層級
 
 **修復方案**：
+
 - 移除 `content-area` 的內邊距和滾動條預留
 - 將內邊距下移到 `content-area-inner`
 - 只保留 `VirtualizedUnifiedGrid` 的滾動處理
@@ -48,11 +50,13 @@ desktop-manager
 ### 問題 2：多餘的 margin-left 偏移
 
 **問題來源**：
+
 ```javascript
 const leftOffset = Math.floor((availableWidth - actualGridWidth) / 2);
 ```
 
 **影響**：
+
 - 產生 1-2px 的微小居中偏移
 - 技術上正確但視覺上無意義
 - 增加了不必要的計算複雜性
@@ -88,6 +92,7 @@ const leftOffset = Math.floor((availableWidth - actualGridWidth) / 2);
 ### 單一職責原則
 
 每個容器層級都有明確的單一職責：
+
 - **content-area**: 純容器邊界
 - **content-area-inner**: 視覺間距控制
 - **desktop-view**: 背景和基礎布局
@@ -125,12 +130,15 @@ const leftOffset = Math.floor((availableWidth - actualGridWidth) / 2);
 ## 虛擬化滾動條修復 (2025-09-03)
 
 ### 問題根因
+
 虛擬化模式出現水平滾動條的原因：
+
 - **錯誤做法**: 手動預留 17px 滾動條寬度
 - **衝突**: react-window Grid 自己處理滾動，導致雙重滾動條計算
 - **結果**: Grid 寬度 + 內部滾動條 > 容器寬度
 
 ### 解決方案
+
 ```javascript
 // ❌ 錯誤：手動預留滾動條空間
 const scrollbarWidth = 17;
@@ -141,6 +149,7 @@ const availableWidth = containerWidth;
 ```
 
 ### Linus 式設計原則
+
 - **信任平台**: 瀏覽器和 react-window 比手動計算更可靠
 - **單一職責**: 容器負責佈局，react-window 負責虛擬化
 - **避免魔術數字**: 17px 滾動條寬度在不同系統不同
@@ -168,18 +177,15 @@ const availableWidth = containerWidth;
 
 ---
 
-
-
 # 拖動 & 加入的差異
 
 拖動 vs 右鍵『加入』的API路徑
 拖動操作流程
-拖動 → drag-session:drop → batchAddGamesToFolder → 
+拖動 → drag-session:drop → batchAddGamesToFolder →
 統一事件系統 → games-incremental-update + folder-updated
 右鍵『加入』操作流程
-右鍵加入 → addGameToFolder/batchAddGamesToFolder → 
+右鍵加入 → addGameToFolder/batchAddGamesToFolder →
 直接SQL操作 → folder-updated (僅資料夾)
-
 
 1. 事件廣播機制不同
 
@@ -190,7 +196,7 @@ const availableWidth = containerWidth;
 broadcastToAll('games-incremental-update', {
   action: 'drag-drop-completed',
   affectedGames: [...new Set(affectedGames)],
-  operations: { added, moved, removed }
+  operations: { added, moved, removed },
 });
 broadcastToAll('folder-changed');
 broadcastToAll('folder-updated', folder);
@@ -206,19 +212,20 @@ setImmediate(() => {
   broadcastToAll('games-updated', addUrlToGames(sqlGames));
 });
 ```
+
 2. 快取更新策略不同
-拖動操作：使用 GameStateCache 進行增量更新
+   拖動操作：使用 GameStateCache 進行增量更新
 
 ```javascript
 const changes = cache.updateFolderMembership(filePaths, targetId, 'add');
 affectedGames.push(...changes.updated);
 ```
+
 右鍵加入：直接SQL操作，依賴後續的全量刷新
 
 3. 同步時機差異
-拖動：立即同步快取 + 立即廣播增量更新
-右鍵加入：SQL操作 + 異步廣播（setImmediate）
-
+   拖動：立即同步快取 + 立即廣播增量更新
+   右鍵加入：SQL操作 + 異步廣播（setImmediate）
 
 # 桌面視圖右鍵菜單多選功能修復文檔
 
@@ -231,8 +238,9 @@ affectedGames.push(...changes.updated);
 **桌面直連渲染路徑**（`App.jsx` 的 `DesktopViewDirect`）未正確轉發 `VirtualizedUnifiedGrid` 提供的第三參數 `selectedList`，導致多選數據在桌面右鍵菜單中丟失。
 
 其他路徑（`DesktopGrid.Unified.jsx`、`FolderGrid.Unified.jsx`）已正確轉發，所以：
+
 - ✅ 資料夾視圖正常
-- ✅ 桌面封裝視圖正常  
+- ✅ 桌面封裝視圖正常
 - ❌ 直連桌面視圖異常
 
 ## 修復方案
@@ -245,16 +253,16 @@ affectedGames.push(...changes.updated);
 
 ```javascript
 // 修正前
-onGameContextMenu={(e, game) => openMenu(e, game, { 
-  view: 'desktop', 
-  kind: 'game' 
+onGameContextMenu={(e, game) => openMenu(e, game, {
+  view: 'desktop',
+  kind: 'game'
 })}
 
 // 修正後
-onGameContextMenu={(e, game, selectedList) => openMenu(e, game, { 
-  view: 'desktop', 
-  kind: 'game', 
-  selectedFilePaths: selectedList 
+onGameContextMenu={(e, game, selectedList) => openMenu(e, game, {
+  view: 'desktop',
+  kind: 'game',
+  selectedFilePaths: selectedList
 })}
 ```
 
@@ -286,7 +294,7 @@ onGameContextMenu={(e, game, selectedList) => openMenu(e, game, {
 const useList = determineSelectedList();
 
 // 以第三參數傳遞給回調
-onGameContextMenu(e, item, useList)
+onGameContextMenu(e, item, useList);
 ```
 
 **架構特點**：這是多選資訊的唯一來源，符合「唯一實現 VirtualizedUnifiedGrid.jsx」的設計原則。
@@ -294,20 +302,22 @@ onGameContextMenu(e, item, useList)
 ### 4. 封裝層對齊處理
 
 #### 桌面封裝層
+
 **檔案位置**：`src/components/Desktop/DesktopGrid.Unified.jsx`
 
 **狀態**：✅ 已正確轉發 `selectedList` 至 `openMenu(..., { selectedFilePaths: selectedList })`
 
-#### 資料夾封裝層  
+#### 資料夾封裝層
+
 **檔案位置**：`src/components/FolderGrid.Unified.jsx`
 
 **實作**：同步轉發選中列表，並附加資料夾 ID：
 
 ```javascript
-openMenu(e, game, { 
+openMenu(e, game, {
   selectedFilePaths: selectedList,
-  extra: { folderId }
-})
+  extra: { folderId },
+});
 ```
 
 **目的**：支援「從資料夾移除」功能。
@@ -315,18 +325,22 @@ openMenu(e, game, {
 ### 5. 下游消費者批次支援
 
 #### 加入資料夾功能
+
 **檔案位置**：`src/hooks/useDesktopDialogs.js`
 
 **實作**：`handleAddToFolder()` 讀取 `target.selectedFilePaths`，存入 `folderSelectDialog.selectedFilePaths`
 
 #### 建立捷徑功能
+
 **檔案位置**：
+
 - `src/components/shared/hooks/useCreateShortcut.js`
 - `src/hooks/useDesktopView.js`
 
 **實作**：`handleCreateShortcut()` 支援 `game.selectedFilePaths` 批次建立捷徑
 
 **功能覆蓋**：
+
 - ✅ 加入資料夾（批次）
 - ✅ 從資料夾移除（批次）
 - ✅ 建立捷徑（批次）
@@ -334,11 +348,13 @@ openMenu(e, game, {
 ## 修復結果
 
 ### 修復前
+
 - ❌ 桌面多選右鍵菜單無法獲取選中項目
 - ❌ 批次操作功能失效
 - ✅ 資料夾視圖正常工作
 
-### 修復後  
+### 修復後
+
 - ✅ 桌面多選右鍵菜單正確獲取選集
 - ✅ 所有批次操作功能正常
 - ✅ 所有視圖模式統一行為
@@ -346,28 +362,32 @@ openMenu(e, game, {
 ## 測試驗證
 
 ### 測試場景
+
 1. **桌面多選**：在桌面視圖中選擇多個遊戲，右鍵開啟選單
 2. **批次加入資料夾**：驗證多個遊戲可同時加入資料夾
 3. **批次建立捷徑**：驗證多個遊戲可同時建立捷徑
 4. **資料夾批次移除**：驗證從資料夾中批次移除功能
 
 ### 預期結果
+
 所有多選相關功能在桌面視圖與資料夾視圖中保持一致的行為表現。
 
 ## 技術架構說明
 
 ### 數據流向
+
 ```
 VirtualizedUnifiedGrid.jsx (數據源)
     ↓ selectedList
 App.jsx / DesktopGrid.Unified.jsx / FolderGrid.Unified.jsx (封裝層)
     ↓ selectedFilePaths
 useUnifiedContextMenu.js (統一處理)
-    ↓ finalTarget.selectedFilePaths  
+    ↓ finalTarget.selectedFilePaths
 各功能 hooks (消費者)
 ```
 
 ### 設計原則
+
 - **單一數據源**：選集資訊統一由 `VirtualizedUnifiedGrid.jsx` 提供
 - **透明傳遞**：各封裝層透明轉發選集數據
 - **統一處理**：`useUnifiedContextMenu.js` 統一掛載選集到目標對象

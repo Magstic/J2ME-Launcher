@@ -4,15 +4,10 @@ import '../DirectoryManager.css';
 import { ModalHeaderOnly } from '@ui';
 import { useTranslation } from '@hooks/useTranslation';
 
-const GameInfoDialog = ({ 
-  isOpen, 
-  game, 
-  onClose
-}) => {
+const GameInfoDialog = ({ isOpen, game, onClose }) => {
   const overlayRef = useRef(null);
   const dialogRef = useRef(null);
   const { t } = useTranslation();
-
 
   // 阻止滾輪與鍵盤方向鍵導致滾動
   useEffect(() => {
@@ -56,7 +51,7 @@ const GameInfoDialog = ({
         month: '2-digit',
         day: '2-digit',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
       });
     } catch {
       return '未知';
@@ -78,12 +73,18 @@ const GameInfoDialog = ({
   };
 
   return (
-    <ModalHeaderOnly isOpen={isOpen} onClose={onClose} title={t('gameInfo.title')} size="md" zIndex={11001}>
+    <ModalHeaderOnly
+      isOpen={isOpen}
+      onClose={onClose}
+      title={t('gameInfo.title')}
+      size="md"
+      zIndex={11001}
+    >
       {/* 遊戲圖標和基本信息 */}
       <div className="game-info-main" ref={dialogRef}>
         <div className="game-icon-large">
           {game.iconUrl ? (
-            <img src={game.iconUrl} alt={(game.gameName || game.name || getFileName() || 'N/A')} />
+            <img src={game.iconUrl} alt={game.gameName || game.name || getFileName() || 'N/A'} />
           ) : (
             <div className="game-icon-placeholder">🎮</div>
           )}

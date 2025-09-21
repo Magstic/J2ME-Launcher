@@ -11,22 +11,22 @@ export const useAppDialogs = () => {
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isBackupOpen, setIsBackupOpen] = useState(false);
   const [isWelcomeGuideOpen, setIsWelcomeGuideOpen] = useState(false);
-  const [gameLaunchDialog, setGameLaunchDialog] = useState({ 
-    isOpen: false, 
-    game: null, 
-    configureOnly: false 
+  const [gameLaunchDialog, setGameLaunchDialog] = useState({
+    isOpen: false,
+    game: null,
+    configureOnly: false,
   });
-  const [gameInfoDialog, setGameInfoDialog] = useState({ 
-    isOpen: false, 
-    game: null 
+  const [gameInfoDialog, setGameInfoDialog] = useState({
+    isOpen: false,
+    game: null,
   });
   const [clusterDialog, setClusterDialog] = useState({
     isOpen: false,
     clusterId: null,
   });
-  const [emulatorNotConfiguredDialog, setEmulatorNotConfiguredDialog] = useState({ 
-    isOpen: false, 
-    game: null 
+  const [emulatorNotConfiguredDialog, setEmulatorNotConfiguredDialog] = useState({
+    isOpen: false,
+    game: null,
   });
 
   // Directory Manager

@@ -25,7 +25,7 @@ async function parseJarFileYauzl(jarPath) {
       zipfile.on('entry', (entry) => {
         if (entry.fileName.toUpperCase() === 'META-INF/MANIFEST.MF') {
           readEntryContent(zipfile, entry, false)
-            .then(content => {
+            .then((content) => {
               manifest = parseManifest(content.toString());
               // 集中處理圖標路徑解析
               iconPathInJar = resolveIconPath(manifest);
@@ -35,7 +35,10 @@ async function parseJarFileYauzl(jarPath) {
               }
               zipfile.readEntry();
             })
-            .catch(e => { console.error(e); zipfile.readEntry(); });
+            .catch((e) => {
+              console.error(e);
+              zipfile.readEntry();
+            });
         } else {
           zipfile.readEntry();
         }
@@ -56,14 +59,21 @@ async function parseJarFileYauzl(jarPath) {
           const normalizedManifestPath = iconPathInJar.replace(/\\/g, '/');
           const manifestPathCleaned = normalizedManifestPath.replace(/^[\/\\]+/, '');
 
-          if (!iconBuffer && (normalizedEntryPath.toLowerCase() === normalizedManifestPath.toLowerCase() || normalizedEntryPath.toLowerCase() === manifestPathCleaned.toLowerCase())) {
+          if (
+            !iconBuffer &&
+            (normalizedEntryPath.toLowerCase() === normalizedManifestPath.toLowerCase() ||
+              normalizedEntryPath.toLowerCase() === manifestPathCleaned.toLowerCase())
+          ) {
             readEntryContent(zipfile, entry, true)
-              .then(buffer => {
+              .then((buffer) => {
                 iconBuffer = buffer;
                 zipfile.close();
                 resolve();
               })
-              .catch(err => { console.error(err); zipfile.readEntry(); });
+              .catch((err) => {
+                console.error(err);
+                zipfile.readEntry();
+              });
           } else {
             zipfile.readEntry();
           }

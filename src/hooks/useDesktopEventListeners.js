@@ -9,7 +9,7 @@ export const useDesktopEventListeners = ({
   guardedRefresh,
   loadDesktopItems,
   setBulkMutating,
-  setBulkStatus
+  setBulkStatus,
 }) => {
   const { t } = useTranslation();
 
@@ -43,7 +43,9 @@ export const useDesktopEventListeners = ({
         console.log('遊戲變更事件觸發（desktop）: 僅重新載入桌面項目');
         if (timer) clearTimeout(timer);
         timer = setTimeout(() => {
-          try { loadDesktopItems && loadDesktopItems(); } catch (_) {}
+          try {
+            loadDesktopItems && loadDesktopItems();
+          } catch (_) {}
           timer = null;
         }, 50);
       };
@@ -63,11 +65,18 @@ export const useDesktopEventListeners = ({
     const off = api.onClusterChanged(() => {
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => {
-        try { loadDesktopItems && loadDesktopItems(); } catch (_) {}
+        try {
+          loadDesktopItems && loadDesktopItems();
+        } catch (_) {}
         timer = null;
       }, 50);
     });
-    return () => { if (timer) clearTimeout(timer); try { off && off(); } catch (_) {} };
+    return () => {
+      if (timer) clearTimeout(timer);
+      try {
+        off && off();
+      } catch (_) {}
+    };
   }, [loadDesktopItems]);
 
   // 監聽簇刪除事件：刷新桌面項目
@@ -75,9 +84,15 @@ export const useDesktopEventListeners = ({
     const api = window.electronAPI;
     if (!api?.onClusterDeleted) return;
     const off = api.onClusterDeleted(() => {
-      try { loadDesktopItems && loadDesktopItems(); } catch (_) {}
+      try {
+        loadDesktopItems && loadDesktopItems();
+      } catch (_) {}
     });
-    return () => { try { off && off(); } catch (_) {} };
+    return () => {
+      try {
+        off && off();
+      } catch (_) {}
+    };
   }, [loadDesktopItems]);
 
   // 監聽批次操作事件
@@ -86,11 +101,11 @@ export const useDesktopEventListeners = ({
       console.log('批次操作開始:', data);
       if (data.total > 30) {
         setBulkMutating(true);
-        setBulkStatus({ 
-          active: true, 
-          total: data.total, 
-          done: 0, 
-          label: t('desktopManager.label') 
+        setBulkStatus({
+          active: true,
+          total: data.total,
+          done: 0,
+          label: t('desktopManager.label'),
         });
       }
     };

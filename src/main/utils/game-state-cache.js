@@ -15,32 +15,32 @@ class GameStateCache {
     try {
       const { getAllGamesFromSql } = require('../sql/read');
       const { addUrlToGames } = require('./icon-url');
-      
+
       const sqlGames = getAllGamesFromSql();
       const gamesWithUrl = addUrlToGames(sqlGames);
-      
+
       this.games.clear();
       this.folderMembership.clear();
-      
+
       for (const game of gamesWithUrl) {
         this.games.set(game.filePath, game);
       }
-      
+
       // Build folder membership map
       const { getDB } = require('../db');
       const db = getDB();
       const rows = db.prepare('SELECT folderId, filePath FROM folder_games').all();
-      
+
       for (const row of rows) {
         if (!this.folderMembership.has(row.filePath)) {
           this.folderMembership.set(row.filePath, new Set());
         }
         this.folderMembership.get(row.filePath).add(row.folderId);
       }
-      
+
       this.lastFullSync = Date.now();
       this.isDirty = false;
-      
+
       return Array.from(this.games.values());
     } catch (e) {
       console.warn('[GameStateCache] initialize failed:', e.message);
@@ -66,15 +66,15 @@ class GameStateCache {
   // Update folder membership for specific games
   updateFolderMembership(filePaths, folderId, action) {
     const changes = { added: [], removed: [], updated: [] };
-    
+
     for (const filePath of filePaths) {
       if (!this.folderMembership.has(filePath)) {
         this.folderMembership.set(filePath, new Set());
       }
-      
+
       const folders = this.folderMembership.get(filePath);
       const hadFolder = folders.has(folderId);
-      
+
       if (action === 'add' && !hadFolder) {
         folders.add(folderId);
         changes.added.push(filePath);
@@ -82,22 +82,22 @@ class GameStateCache {
         folders.delete(folderId);
         changes.removed.push(filePath);
       }
-      
+
       if (changes.added.includes(filePath) || changes.removed.includes(filePath)) {
         changes.updated.push(filePath);
       }
     }
-    
+
     return changes;
   }
 
   // Move games between folders
   moveGamesBetweenFolders(filePaths, fromFolderId, toFolderId) {
     const changes = { moved: [], updated: [] };
-    
+
     for (const filePath of filePaths) {
       if (!this.folderMembership.has(filePath)) continue;
-      
+
       const folders = this.folderMembership.get(filePath);
       if (folders.has(fromFolderId)) {
         folders.delete(fromFolderId);
@@ -106,7 +106,7 @@ class GameStateCache {
         changes.updated.push(filePath);
       }
     }
-    
+
     return changes;
   }
 
@@ -116,8 +116,9 @@ class GameStateCache {
   }
 
   // Check if cache needs refresh
-  needsRefresh(maxAge = 30000) { // 30 seconds
-    return this.isDirty || (Date.now() - this.lastFullSync) > maxAge;
+  needsRefresh(maxAge = 30000) {
+    // 30 seconds
+    return this.isDirty || Date.now() - this.lastFullSync > maxAge;
   }
 }
 

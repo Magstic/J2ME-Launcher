@@ -14,7 +14,8 @@ export const useDrawerPositioning = () => {
     try {
       const wrap = contentWrapRef.current;
       if (!wrap) return;
-      const search = document.querySelector('.search-bar') || document.querySelector('.search-bar-container');
+      const search =
+        document.querySelector('.search-bar') || document.querySelector('.search-bar-container');
       if (!search) {
         setDrawerTopOffset(0);
         return;
@@ -35,9 +36,9 @@ export const useDrawerPositioning = () => {
     // 延遲一次確保初始布局完成
     const t = setTimeout(measureTopOffset, 50);
     window.addEventListener('resize', onResize);
-    return () => { 
-      window.removeEventListener('resize', onResize); 
-      clearTimeout(t); 
+    return () => {
+      window.removeEventListener('resize', onResize);
+      clearTimeout(t);
     };
   }, [measureTopOffset]);
 

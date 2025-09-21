@@ -14,12 +14,21 @@ function initJarCache(app) {
 function getCacheDir() {
   if (cacheDirResolved) {
     // Directory may have been removed by startup cleanup; re-ensure it exists.
-    try { fs.mkdirSync(cacheDirResolved, { recursive: true }); } catch (e) { console.warn('[cache] ensure dir failed:', e.message); }
+    try {
+      fs.mkdirSync(cacheDirResolved, { recursive: true });
+    } catch (e) {
+      console.warn('[cache] ensure dir failed:', e.message);
+    }
     return cacheDirResolved;
   }
-  const base = appRef && appRef.getPath ? appRef.getPath('userData') : path.join(process.cwd(), '.cache');
+  const base =
+    appRef && appRef.getPath ? appRef.getPath('userData') : path.join(process.cwd(), '.cache');
   cacheDirResolved = path.join(base, 'jar-cache');
-  try { fs.mkdirSync(cacheDirResolved, { recursive: true }); } catch (e) { console.warn('[cache] create dir failed:', e.message); }
+  try {
+    fs.mkdirSync(cacheDirResolved, { recursive: true });
+  } catch (e) {
+    console.warn('[cache] create dir failed:', e.message);
+  }
   console.log('[cache] dir =', cacheDirResolved);
   return cacheDirResolved;
 }
@@ -29,7 +38,9 @@ async function ensureCachedJar(originalPath) {
     const dsGame = DataStore.getGame(originalPath);
     let md5 = dsGame && dsGame.md5;
     if (!md5) {
-      try { md5 = await calculateMD5(originalPath); } catch (_) {}
+      try {
+        md5 = await calculateMD5(originalPath);
+      } catch (_) {}
     }
     if (!md5) {
       const stat = fs.statSync(originalPath);
@@ -46,7 +57,13 @@ async function ensureCachedJar(originalPath) {
       }
     } catch (_) {}
     if (needCopy) {
-      try { fs.copyFileSync(originalPath, target); console.log('[cache] copied ->', target); } catch (e) { console.warn('[cache] copy failed:', e.message); throw e; }
+      try {
+        fs.copyFileSync(originalPath, target);
+        console.log('[cache] copied ->', target);
+      } catch (e) {
+        console.warn('[cache] copy failed:', e.message);
+        throw e;
+      }
     } else {
       console.log('[cache] reuse existing ->', target);
     }
@@ -64,12 +81,16 @@ function cleanupCacheOnStartup() {
     for (const name of items) {
       if (name.toLowerCase().endsWith('.jar')) {
         const p = path.join(dir, name);
-        try { fs.unlinkSync(p); } catch (_) {}
+        try {
+          fs.unlinkSync(p);
+        } catch (_) {}
       }
     }
     const rest = fs.readdirSync(dir);
     if (!rest || rest.length === 0) {
-      try { fs.rmdirSync(dir); } catch (_) {}
+      try {
+        fs.rmdirSync(dir);
+      } catch (_) {}
     }
     console.log('[cache] startup cleanup done');
   } catch (_) {}

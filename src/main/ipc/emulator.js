@@ -8,7 +8,17 @@ const { shell } = require('electron');
 const { ensureCachedJar } = require('../utils/jar-cache.js');
 const { createEmulatorService } = require('../services/emulator-service.js');
 
-function register({ ipcMain, dialog, DataStore, freej2mePlusAdapter, keAdapter, libretroAdapter, configService, getConfigGameName, app }) {
+function register({
+  ipcMain,
+  dialog,
+  DataStore,
+  freej2mePlusAdapter,
+  keAdapter,
+  libretroAdapter,
+  configService,
+  getConfigGameName,
+  app,
+}) {
   // ==================== 模擬器設定 IPC ====================
   // 取得模擬器設定
   ipcMain.handle('get-emulator-config', () => {
@@ -38,7 +48,14 @@ function register({ ipcMain, dialog, DataStore, freej2mePlusAdapter, keAdapter, 
   // 取得特定模擬器能力（若需要細分）
   ipcMain.handle('get-emulator-capabilities', (event, emulatorId) => {
     try {
-      const adp = emulatorId === 'ke' ? keAdapter : (emulatorId === 'freej2mePlus' ? freej2mePlusAdapter : (emulatorId === 'libretro' ? libretroAdapter : null));
+      const adp =
+        emulatorId === 'ke'
+          ? keAdapter
+          : emulatorId === 'freej2mePlus'
+            ? freej2mePlusAdapter
+            : emulatorId === 'libretro'
+              ? libretroAdapter
+              : null;
       if (!adp) return null;
       return { id: adp.id, name: adp.name, capabilities: adp.capabilities || {} };
     } catch (error) {
@@ -50,7 +67,14 @@ function register({ ipcMain, dialog, DataStore, freej2mePlusAdapter, keAdapter, 
   // 取得特定模擬器的設定 Schema（若該 adapter 提供）
   ipcMain.handle('get-emulator-schema', (event, emulatorId) => {
     try {
-      const adp = emulatorId === 'ke' ? keAdapter : (emulatorId === 'freej2mePlus' ? freej2mePlusAdapter : (emulatorId === 'libretro' ? libretroAdapter : null));
+      const adp =
+        emulatorId === 'ke'
+          ? keAdapter
+          : emulatorId === 'freej2mePlus'
+            ? freej2mePlusAdapter
+            : emulatorId === 'libretro'
+              ? libretroAdapter
+              : null;
       if (!adp || typeof adp.getConfigSchema !== 'function') return null;
       const schema = adp.getConfigSchema();
       return schema || null;
@@ -84,7 +108,7 @@ function register({ ipcMain, dialog, DataStore, freej2mePlusAdapter, keAdapter, 
       }
       const { canceled, filePaths } = await dialog.showOpenDialog({
         properties: ['openFile'],
-        filters: [filter, { name: 'All Files', extensions: ['*'] }]
+        filters: [filter, { name: 'All Files', extensions: ['*'] }],
       });
       if (canceled || !filePaths || filePaths.length === 0) return null;
       return filePaths[0];
@@ -111,7 +135,7 @@ function register({ ipcMain, dialog, DataStore, freej2mePlusAdapter, keAdapter, 
       }
       const { canceled, filePaths } = await dialog.showOpenDialog({
         properties: ['openFile'],
-        filters: [filter]
+        filters: [filter],
       });
       if (canceled || !filePaths || filePaths.length === 0) return null;
       return filePaths[0];
@@ -147,7 +171,8 @@ function register({ ipcMain, dialog, DataStore, freej2mePlusAdapter, keAdapter, 
 
       const jarDir = path.dirname(jarPath);
       const sysDir = path.join(jarDir, 'freej2me_system');
-      const targetSub = type === 'soundfont' ? 'customMIDI' : (type === 'textfont' ? 'customFont' : 'custom');
+      const targetSub =
+        type === 'soundfont' ? 'customMIDI' : type === 'textfont' ? 'customFont' : 'custom';
       const destDir = path.join(sysDir, targetSub);
       fs.mkdirSync(destDir, { recursive: true });
 
@@ -156,7 +181,9 @@ function register({ ipcMain, dialog, DataStore, freej2mePlusAdapter, keAdapter, 
         const entries = fs.readdirSync(destDir, { withFileTypes: true });
         for (const ent of entries) {
           if (ent.isFile()) {
-            try { fs.unlinkSync(path.join(destDir, ent.name)); } catch {}
+            try {
+              fs.unlinkSync(path.join(destDir, ent.name));
+            } catch {}
           }
         }
       } catch (_) {}
@@ -175,11 +202,7 @@ function register({ ipcMain, dialog, DataStore, freej2mePlusAdapter, keAdapter, 
   // 取得指定遊戲的模擬器配置
   ipcMain.handle('get-game-emulator-config', (event, filePath) => {
     try {
-      try {
-        const { getGameEmulatorConfig: sqlGetGameEmuCfg } = require('../sql/emulator-configs');
-        const v = sqlGetGameEmuCfg(filePath);
-        if (v !== null && v !== undefined) return v;
-      } catch (_) { /* fallback below */ }
+      // 統一從 DataStore（SQL 層）讀取
       return DataStore.getGameEmulatorConfig(filePath);
     } catch (error) {
       console.error('取得遊戲模擬器設定失敗:', error);
@@ -190,16 +213,8 @@ function register({ ipcMain, dialog, DataStore, freej2mePlusAdapter, keAdapter, 
   // 設置指定遊戲的模擬器配置
   ipcMain.handle('set-game-emulator-config', (event, filePath, emulatorConfig) => {
     try {
-      // First, persist to JSON to keep legacy behavior
-      const saved = DataStore.setGameEmulatorConfig(filePath, emulatorConfig);
-      // Best-effort write-through to SQL
-      try {
-        const { setGameEmulatorConfig: sqlSetGameEmuCfg } = require('../sql/emulator-configs');
-        sqlSetGameEmuCfg(filePath, emulatorConfig);
-      } catch (e) {
-        console.warn('[SQL write] set-game-emulator-config failed:', e.message);
-      }
-      return saved;
+      // 統一透過 DataStore 寫入（SQL 層），避免雙寫副作用
+      return DataStore.setGameEmulatorConfig(filePath, emulatorConfig);
     } catch (error) {
       console.error('設置遊戲模擬器設定失敗:', error);
       return { error: error.message };
@@ -213,16 +228,24 @@ function register({ ipcMain, dialog, DataStore, freej2mePlusAdapter, keAdapter, 
       const globalFree = emus?.freej2mePlus || { jarPath: '' };
       const jarPath = globalFree.jarPath || '';
       if (!jarPath) return { success: false, error: '尚未配置 FreeJ2ME-Plus jarPath' };
-      if (!fs.existsSync(jarPath)) return { success: false, error: `模擬器 JAR 不存在: ${jarPath}` };
-      if (!fs.existsSync(gameFilePath)) return { success: false, error: `ROM 不存在: ${gameFilePath}` };
+      if (!fs.existsSync(jarPath))
+        return { success: false, error: `模擬器 JAR 不存在: ${jarPath}` };
+      if (!fs.existsSync(gameFilePath))
+        return { success: false, error: `ROM 不存在: ${gameFilePath}` };
 
       const dsGame = DataStore.getGame(gameFilePath);
-      const fallback = (dsGame && dsGame.gameName) ? dsGame.gameName : path.basename(gameFilePath, path.extname(gameFilePath));
+      const fallback =
+        dsGame && dsGame.gameName
+          ? dsGame.gameName
+          : path.basename(gameFilePath, path.extname(gameFilePath));
       const gameName = await getConfigGameName(gameFilePath, fallback);
       const confDir = path.join(path.dirname(jarPath), 'config', gameName);
       const confPath = path.join(confDir, 'game.conf');
 
-      const ensureInt = (v, def) => { const n = parseInt(v, 10); return Number.isFinite(n) ? n : def; };
+      const ensureInt = (v, def) => {
+        const n = parseInt(v, 10);
+        return Number.isFinite(n) ? n : def;
+      };
       const width = ensureInt(effectiveParams?.width, 240);
       const height = ensureInt(effectiveParams?.height, 320);
       const fpsValue = ensureInt(effectiveParams?.framerate, 60);
@@ -232,14 +255,19 @@ function register({ ipcMain, dialog, DataStore, freej2mePlusAdapter, keAdapter, 
         const text = fs.readFileSync(confPath, 'utf8');
         lines = text.split(/\r?\n/);
       }
-      let hasW = false, hasH = false, hasPhone = false, hasTextfont = false, hasSoundfont = false, hasFps = false;
+      let hasW = false,
+        hasH = false,
+        hasPhone = false,
+        hasTextfont = false,
+        hasSoundfont = false,
+        hasFps = false;
       // 需要寫入的相容性旗標（值為 'on' / 'off'）
       const compatKeys = [
         'compatfantasyzonefix',
         'compatimmediaterepaints',
         'compatoverrideplatchecks',
         'compatsiemensfriendlydrawing',
-        'compattranstooriginonreset'
+        'compattranstooriginonreset',
       ];
       // 其他參數（直接寫入字串值）
       const extraKeys = [
@@ -248,23 +276,25 @@ function register({ ipcMain, dialog, DataStore, freej2mePlusAdapter, keAdapter, 
         'rotate',
         'fpshack',
         'sound',
-        'spdhacknoalpha'
+        'spdhacknoalpha',
       ];
       const mapFpshack = (v) => {
         const s = String(v).trim();
-        if (['Disabled','Safe','Extended','Aggressive'].includes(s)) return s;
-        const m = { '0': 'Disabled', '1': 'Safe', '2': 'Extended', '3': 'Aggressive' };
+        if (['Disabled', 'Safe', 'Extended', 'Aggressive'].includes(s)) return s;
+        const m = { 0: 'Disabled', 1: 'Safe', 2: 'Extended', 3: 'Aggressive' };
         return m[s] ?? s;
       };
       // 字體/音色：優先使用每遊戲設定，缺省時回退到全局
       const globalSoundfont = (globalFree?.defaults && globalFree.defaults.soundfont) || 'Default';
       const globalTextfont = (globalFree?.defaults && globalFree.defaults.textfont) || 'Default';
-      const desiredTextfont = (effectiveParams?.textfont && String(effectiveParams.textfont).length > 0)
-        ? String(effectiveParams.textfont)
-        : globalTextfont;
-      const desiredSoundfont = (effectiveParams?.soundfont && String(effectiveParams.soundfont).length > 0)
-        ? String(effectiveParams.soundfont)
-        : globalSoundfont;
+      const desiredTextfont =
+        effectiveParams?.textfont && String(effectiveParams.textfont).length > 0
+          ? String(effectiveParams.textfont)
+          : globalTextfont;
+      const desiredSoundfont =
+        effectiveParams?.soundfont && String(effectiveParams.soundfont).length > 0
+          ? String(effectiveParams.soundfont)
+          : globalSoundfont;
       // keyLayout -> game.conf 的 phone: 文字映射（與啟動流程一致）
       const phoneMap = [
         'Standard',
@@ -277,24 +307,46 @@ function register({ ipcMain, dialog, DataStore, freej2mePlusAdapter, keAdapter, 
         'Siemens',
         'Sharp',
         'SKT',
-        'KDDI'
+        'KDDI',
       ];
       const phoneIdx = ensureInt(effectiveParams?.keyLayout, 0);
       const phoneName = phoneMap[phoneIdx] || 'Standard';
-      const compatValues = Object.fromEntries(compatKeys.map(k => {
-        const v = (effectiveParams && effectiveParams[k]) || '';
-        const norm = String(v).toLowerCase() === 'on' ? 'on' : (String(v).toLowerCase() === 'off' ? 'off' : undefined);
-        return [k, norm];
-      }));
-      lines = lines.map(ln => {
+      const compatValues = Object.fromEntries(
+        compatKeys.map((k) => {
+          const v = (effectiveParams && effectiveParams[k]) || '';
+          const norm =
+            String(v).toLowerCase() === 'on'
+              ? 'on'
+              : String(v).toLowerCase() === 'off'
+                ? 'off'
+                : undefined;
+          return [k, norm];
+        })
+      );
+      lines = lines.map((ln) => {
         const idx = ln.indexOf(':');
         if (idx > 0) {
           const key = ln.slice(0, idx).trim();
-          if (key === 'scrwidth') { hasW = true; return `scrwidth:${width}`; }
-          if (key === 'scrheight') { hasH = true; return `scrheight:${height}`; }
-          if (key === 'fps') { hasFps = true; return `fps:${fpsValue}`; }
-          if (key === 'textfont') { hasTextfont = true; return `textfont:${desiredTextfont}`; }
-          if (key === 'soundfont') { hasSoundfont = true; return `soundfont:${desiredSoundfont}`; }
+          if (key === 'scrwidth') {
+            hasW = true;
+            return `scrwidth:${width}`;
+          }
+          if (key === 'scrheight') {
+            hasH = true;
+            return `scrheight:${height}`;
+          }
+          if (key === 'fps') {
+            hasFps = true;
+            return `fps:${fpsValue}`;
+          }
+          if (key === 'textfont') {
+            hasTextfont = true;
+            return `textfont:${desiredTextfont}`;
+          }
+          if (key === 'soundfont') {
+            hasSoundfont = true;
+            return `soundfont:${desiredSoundfont}`;
+          }
           if (compatKeys.includes(key)) {
             const val = compatValues[key];
             if (val === 'on' || val === 'off') return `${key}:${val}`;
@@ -322,14 +374,14 @@ function register({ ipcMain, dialog, DataStore, freej2mePlusAdapter, keAdapter, 
       for (const k of compatKeys) {
         const val = compatValues[k];
         if (val === 'on' || val === 'off') {
-          if (!lines.some(ln => ln.trim().startsWith(`${k}:`))) lines.push(`${k}:${val}`);
+          if (!lines.some((ln) => ln.trim().startsWith(`${k}:`))) lines.push(`${k}:${val}`);
         }
       }
       for (const k of extraKeys) {
         let val = effectiveParams?.[k];
         if (val !== undefined && val !== null && String(val).length > 0) {
           if (k === 'fpshack') val = mapFpshack(val);
-          if (!lines.some(ln => ln.trim().startsWith(`${k}:`))) lines.push(`${k}:${val}`);
+          if (!lines.some((ln) => ln.trim().startsWith(`${k}:`))) lines.push(`${k}:${val}`);
         }
       }
 
@@ -367,10 +419,10 @@ function register({ ipcMain, dialog, DataStore, freej2mePlusAdapter, keAdapter, 
         const v = ln.slice(idx + 1).trim();
         presentMap.set(k, v);
       }
-      const others = lines.filter(ln => !isTarget(ln));
+      const others = lines.filter((ln) => !isTarget(ln));
       const orderedOut = [
         ...others,
-        ...orderedKeys.filter(k => presentMap.has(k)).map(k => `${k}:${presentMap.get(k)}`),
+        ...orderedKeys.filter((k) => presentMap.has(k)).map((k) => `${k}:${presentMap.get(k)}`),
       ];
 
       fs.mkdirSync(confDir, { recursive: true });
