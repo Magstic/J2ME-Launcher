@@ -509,7 +509,25 @@ export default function ClusterDialog({ isOpen, clusterId, onClose }) {
 
   const handleLaunch = async (filePath) => {
     try {
-      await window.electronAPI.launchGame(filePath);
+      // 先判斷是否已有遊戲層級配置（首次啟動需引導配置）
+      const cfg = await window.electronAPI?.getGameEmulatorConfig?.(filePath);
+      if (!cfg) {
+        try {
+          // 嘗試攜帶完整成員資料，供對話框呈現
+          const m = members.find((x) => x.filePath === filePath) || { filePath };
+          window.dispatchEvent(new CustomEvent('open-game-launch', { detail: m }));
+        } catch (_) {}
+        return;
+      }
+
+      const result = await window.electronAPI?.launchGame?.(filePath);
+      if (!result?.success && result?.error === 'EMULATOR_NOT_CONFIGURED') {
+        // 模擬器未配置：打開『遊戲配置對話框』（configureOnly=true），更貼近使用者期待
+        try {
+          const m = members.find((x) => x.filePath === filePath) || { filePath };
+          window.dispatchEvent(new CustomEvent('open-game-config', { detail: m }));
+        } catch (_) {}
+      }
     } catch (e) {
       console.error(e);
     }

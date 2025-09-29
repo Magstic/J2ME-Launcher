@@ -62,6 +62,7 @@ function DesktopViewDirect({
     ClusterSelectElement,
     ClusterMergeElement,
     ClusterRenameElement,
+    optimisticHideSet,
   } = useDesktopView({
     games,
     onGameSelect,
@@ -69,6 +70,8 @@ function DesktopViewDirect({
     onRefresh,
     onGameInfo,
   });
+
+  // 不再在父層做 O(n) 過濾，改由 GridCell 依據 optimisticHideSet 決定是否渲染
 
   return (
     <div
@@ -80,6 +83,7 @@ function DesktopViewDirect({
       <VirtualizedUnifiedGrid
         games={games}
         items={items}
+        optimisticHideSet={optimisticHideSet}
         onGameClick={onGameSelect}
         onGameContextMenu={(e, game, selectedList, selectedClusterIds) =>
           openMenu(e, game, {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, startTransition } from 'react';
 
 /**
  * 桌面狀態管理 Hook
@@ -23,13 +23,32 @@ export const useDesktopState = () => {
   // 事件刷新抑制與受控刷新
   const suppressUntilRef = useRef(0);
   const refreshTimerRef = useRef(null);
+  // 最近使用者互動時間（用於刷新閘門）
+  const lastUserInputRef = useRef(0);
+  useEffect(() => {
+    const markNow = () => {
+      try {
+        lastUserInputRef.current = Date.now();
+      } catch (_) {}
+    };
+    window.addEventListener('wheel', markNow, { passive: true });
+    window.addEventListener('touchmove', markNow, { passive: true });
+    window.addEventListener('keydown', markNow, { passive: true });
+    return () => {
+      window.removeEventListener('wheel', markNow);
+      window.removeEventListener('touchmove', markNow);
+      window.removeEventListener('keydown', markNow);
+    };
+  }, []);
 
   // 載入資料夾資料
   const loadFolders = useCallback(async () => {
     try {
       if (window.electronAPI?.getFolders) {
         const folderList = await window.electronAPI.getFolders();
-        setFolders(folderList);
+        startTransition(() => {
+          setFolders(folderList);
+        });
       }
     } catch (error) {
       console.error('載入資料夾失敗:', error);
@@ -41,26 +60,142 @@ export const useDesktopState = () => {
     try {
       if (desktopItemsSupported) {
         const items = await window.electronAPI.getDesktopItems();
-        setDesktopItems(items || []);
-        setDesktopItemsLoaded(true);
+        // 快速路徑：若新舊清單等效，則跳過 setDesktopItems 以避免不必要的重算
+        const isSameList = (a, b) => {
+          if (!Array.isArray(a) || !Array.isArray(b)) return false;
+          if (a.length !== b.length) return false;
+          // 檢查前 512 個元素（足夠覆蓋可視區域與少量 overscan）
+          const n = Math.min(512, a.length);
+          for (let i = 0; i < n; i++) {
+            const x = a[i];
+            const y = b[i];
+            const xid = x?.type === 'cluster' ? `C:${x?.id}` : `G:${x?.filePath}`;
+            const yid = y?.type === 'cluster' ? `C:${y?.id}` : `G:${y?.filePath}`;
+            if (xid !== yid) return false;
+          }
+          // 若前 512 個一致，再抽查尾部 4 個元素
+          for (let k = 1; k <= 4; k++) {
+            const i = a.length - k;
+            if (i < 0) break;
+            const x = a[i];
+            const y = b[i];
+            const xid = x?.type === 'cluster' ? `C:${x?.id}` : `G:${x?.filePath}`;
+            const yid = y?.type === 'cluster' ? `C:${y?.id}` : `G:${y?.filePath}`;
+            if (xid !== yid) return false;
+          }
+          return true;
+        };
+
+        const apply = () =>
+          startTransition(() => {
+            // 僅在內容變更時才替換，避免觸發 Grid 大量重繪
+            if (!isSameList(desktopItems, items || [])) {
+              setDesktopItems(items || []);
+            }
+            setDesktopItemsLoaded(true);
+          });
+        // 若使用者仍在互動中，延後套用狀態
+        const remain = Date.now() - (lastUserInputRef.current || 0) < 1000;
+        if (remain) {
+          setTimeout(apply, 240);
+        } else {
+          apply();
+        }
       } else {
         // 舊版或不支援：標記未載入以便上層能使用回退
-        setDesktopItems([]);
-        setDesktopItemsLoaded(false);
+        startTransition(() => {
+          setDesktopItems([]);
+          setDesktopItemsLoaded(false);
+        });
       }
     } catch (error) {
       console.error('載入桌面資料失敗:', error);
       // 失敗時保持回退邏輯（標記為未載入）
-      setDesktopItems([]);
-      setDesktopItemsLoaded(false);
+      startTransition(() => {
+        setDesktopItems([]);
+        setDesktopItemsLoaded(false);
+      });
     }
-  }, [desktopItemsSupported]);
+  }, [desktopItemsSupported, desktopItems]);
 
   // 初始化資料
   useEffect(() => {
     loadFolders();
     loadDesktopItems();
   }, [loadFolders, loadDesktopItems]);
+
+  // 即時（樂觀）更新：拖放完成後，先行從桌面清單移除受影響的遊戲，降低體感延遲
+  useEffect(() => {
+    const api = window.electronAPI;
+    if (!api?.onGamesIncrementalUpdate) return;
+    const off = api.onGamesIncrementalUpdate((update) => {
+      try {
+        const action = update && update.action;
+        const affected = Array.isArray(update && update.affectedGames) ? update.affectedGames : [];
+        if (action === 'drag-drop-completed' && affected.length > 0) {
+          try {
+            console.log('[DesktopState] drag-drop-completed received:', {
+              count: affected.length,
+              at: Date.now(),
+            });
+          } catch (_) {}
+          // 抑制在短暫窗口內的自動刷新，與徽章刷新一致（1.4s），降低剛放下後的滾動卡頓
+          try {
+            suppressUntilRef.current = Date.now() + 1400;
+          } catch (_) {}
+          const removeSet = new Set(affected.map(String));
+          setDesktopItems((prev) => {
+            if (!Array.isArray(prev) || prev.length === 0) return prev;
+            // 僅移除桌面上的遊戲項目（type==='game'）
+            const next = prev.filter(
+              (it) =>
+                !(it && it.type === 'game' && it.filePath && removeSet.has(String(it.filePath)))
+            );
+            return next;
+          });
+        }
+      } catch (_) {}
+    });
+    return () => {
+      try {
+        off && off();
+      } catch (_) {}
+    };
+  }, [setDesktopItems]);
+
+  // 立即響應主進程的『桌面移除』事件（更早於全量/增量刷新）
+  useEffect(() => {
+    const api = window.electronAPI;
+    if (!api?.onDesktopRemoveItems) return;
+    const off = api.onDesktopRemoveItems((payload) => {
+      try {
+        const fps = Array.isArray(payload?.filePaths) ? payload.filePaths : [];
+        if (fps.length === 0) return;
+        try {
+          console.log('[DesktopState] desktop:remove-items received:', {
+            count: fps.length,
+            at: Date.now(),
+          });
+        } catch (_) {}
+        // 抑制在短暫窗口內的自動刷新，與徽章刷新一致（1.4s），降低剛放下後的滾動卡頓
+        try {
+          suppressUntilRef.current = Date.now() + 1400;
+        } catch (_) {}
+        const removeSet = new Set(fps.map(String));
+        setDesktopItems((prev) => {
+          if (!Array.isArray(prev) || prev.length === 0) return prev;
+          return prev.filter(
+            (it) => !(it && it.type === 'game' && it.filePath && removeSet.has(String(it.filePath)))
+          );
+        });
+      } catch (_) {}
+    });
+    return () => {
+      try {
+        off && off();
+      } catch (_) {}
+    };
+  }, [setDesktopItems]);
 
   // 受控刷新（避免加入後先消失再動）
   const guardedRefresh = useCallback(() => {
@@ -73,18 +208,46 @@ export const useDesktopState = () => {
           refreshTimerRef.current = null;
           guardedRefresh();
         },
-        Math.min(remain + 20, 200)
+        Math.min(remain + 30, 1200)
       );
       return;
     }
-    (async () => {
+    // 在主執行緒空閒時執行，避免打斷用戶滾動
+    const run = () => {
+      // 若近期有使用者互動，稍後再試
+      const active = Date.now() - (lastUserInputRef.current || 0) < 1000;
+      if (active) {
+        setTimeout(run, 250);
+        return;
+      }
       try {
-        await loadFolders();
+        loadFolders();
       } catch (_) {}
       try {
-        await loadDesktopItems();
+        if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+          window.requestIdleCallback(() => {
+            try {
+              loadDesktopItems();
+            } catch (_) {}
+          });
+        } else {
+          setTimeout(() => {
+            try {
+              loadDesktopItems();
+            } catch (_) {}
+          }, 80);
+        }
       } catch (_) {}
-    })();
+    };
+    try {
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        window.requestIdleCallback(run);
+      } else {
+        setTimeout(run, 0);
+      }
+    } catch (_) {
+      setTimeout(run, 0);
+    }
   }, [loadFolders, loadDesktopItems]);
 
   // 手動刷新功能

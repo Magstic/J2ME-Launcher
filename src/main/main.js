@@ -22,6 +22,7 @@ const { broadcastToAll } = require('./ipc/unified-events.js');
 const ConfigService = require('./services/config-service.js');
 const { toIconUrl, addUrlToGames } = require('./utils/icon-url.js');
 const { getGameStateCache } = require('./utils/game-state-cache.js');
+const { getStoreBridge } = require('./store-bridge.js');
 // IPC modules
 const { register: registerEmulatorIpc } = require('./ipc/emulator.js');
 const { register: registerFoldersIpc } = require('./ipc/folders.js');
@@ -350,6 +351,10 @@ function createWindow() {
 
   // 等待內容真正載入完成後 + 保證 splash 至少顯示 5 秒，再顯示主窗口並做淡入
   mainWindow.webContents.once('did-finish-load', async () => {
+    // 將主窗口註冊到 StoreBridge（提供 store-sync / store-action 管道）
+    try {
+      getStoreBridge().registerWindow(mainWindow);
+    } catch (_) {}
     try {
       // 等待兩個條件：
       // 1) 啟動畫面最短顯示 5000ms
@@ -506,6 +511,15 @@ function createFolderWindow(folderId, folderName) {
     });
   }
 
+  // 註冊資料夾窗口到 StoreBridge（用於分窗保持遊戲狀態一致）
+  try {
+    folderWindow.webContents.once('did-finish-load', () => {
+      try {
+        getStoreBridge().registerWindow(folderWindow);
+      } catch (_) {}
+    });
+  } catch (_) {}
+
   // 開發者工具：在開發模式自動打開，並綁定快捷鍵（F12 / Ctrl+Shift+I）
   try {
     if (isDev && folderWindow && folderWindow.webContents) {
@@ -608,6 +622,15 @@ app.whenReady().then(async () => {
     console.error('[Startup] DB init/migration failed:', e);
   }
 
+  // 初始化 StoreBridge 與快取（即使沒有新遊戲，也保證 FULL_SYNC 能運作）
+  try {
+    const cache = getGameStateCache();
+    await cache.initialize();
+    await getStoreBridge().initialize();
+  } catch (e) {
+    console.warn('[Startup] StoreBridge initialize failed:', e && e.message ? e.message : e);
+  }
+
   // DataStore 已移除 JSON 加載，現在完全依賴 SQLite
   console.log(`[Path Debug] UserData Path: ${app.getPath('userData')}`); // 调试日志
 
@@ -640,13 +663,12 @@ app.whenReady().then(async () => {
         } catch (_) {}
         const gamesWithUrl = addUrlToGames(payloadGames || games);
 
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('games-updated', gamesWithUrl);
-          mainWindow.webContents.send('auto-scan-completed', {
-            newGamesCount: scanResult.summary.totalNewGames,
-            totalDirectories: scanResult.totalDirectories,
-          });
-        }
+        // 改用統一事件系統的批次廣播，避免即時直送造成 UI 壓力
+        broadcastToAll('games-updated', gamesWithUrl);
+        broadcastToAll('auto-scan-completed', {
+          newGamesCount: scanResult.summary.totalNewGames,
+          totalDirectories: scanResult.totalDirectories,
+        });
       }
       // 無論是否有新增或發生錯誤，只要自動掃描結束，即視為「數據庫處理完成」
       try {

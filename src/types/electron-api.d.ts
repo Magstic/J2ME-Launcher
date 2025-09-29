@@ -106,17 +106,16 @@ interface ElectronAPI {
   removeDirectory(directoryPath: string): Promise<J2ME.Result>;
   toggleDirectory(directoryPath: string, enabled: boolean): Promise<J2ME.Result>;
   scanDirectories(forceFullScan?: boolean): Promise<{ success: boolean; [k: string]: any }>;
-  selectDirectory(): Promise<{
-    games: J2ME.Game[];
-    directoryPath: string;
-    scanResult?: any;
-    error?: string;
-  } | null>;
   onScanProgress(callback: (payload: any) => void): J2ME.Unsubscribe;
 
   // ===== Global events =====
+  on?: (channel: string, handler: (...args: any[]) => void) => void;
+  removeListener?: (channel: string, handler: (...args: any[]) => void) => void;
   onGamesUpdated(callback: (games: J2ME.Game[]) => void): J2ME.Unsubscribe;
   onGamesIncrementalUpdate(callback: (update: any) => void): J2ME.Unsubscribe;
+  onDesktopRemoveItems?(
+    callback: (payload: { filePaths: string[]; reason?: string }) => void
+  ): J2ME.Unsubscribe;
   onAutoScanCompleted(callback: (result: any) => void): void;
   removeAllListeners(channel: string): void;
 
@@ -147,7 +146,6 @@ interface ElectronAPI {
     folderId: string,
     options?: { threshold?: number; chunkSize?: number; quiet?: boolean }
   ): Promise<{ success: boolean; processed: number }>;
-  emitFolderBatchUpdates(folderId?: string): Promise<J2ME.Result>;
   removeGameFromFolder(gameIdOrPath: string, folderId: string): Promise<J2ME.Result>;
   batchRemoveGamesFromFolder(filePaths: string[], folderId: string): Promise<J2ME.Result>;
   moveGameBetweenFolders(
@@ -174,13 +172,7 @@ interface ElectronAPI {
   }>;
 
   // ===== Stats =====
-  getFolderStats(): Promise<{
-    totalFolders: number;
-    totalGames: number;
-    categorizedGames: number;
-    uncategorizedGames: number;
-    folders: Array<{ id: string; name: string; gameCount: number }>;
-  }>;
+  // (已移除對外暴露，保留在主進程內部使用或 DEV 模式)
 
   // ===== Launch =====
   launchGame(gameFilePath: string): Promise<J2ME.Result | any>;
@@ -209,21 +201,17 @@ interface ElectronAPI {
   ): Promise<J2ME.Result & { destPath?: string }>;
 
   // ===== Cross-refs =====
-  getGameFolders(gameIdOrPath: string): Promise<J2ME.Folder[]>;
+  // (已移除對外暴露)
 
   // ===== Folder events =====
   onFolderUpdated(callback: (folder: J2ME.Folder) => void): J2ME.Unsubscribe;
-  onFolderDeleted(callback: (folderId: string) => void): J2ME.Unsubscribe;
-  onGameFolderChanged(callback: (data: any) => void): J2ME.Unsubscribe;
   onFolderChanged(callback: (...args: any[]) => void): J2ME.Unsubscribe;
 
   // ===== Drag session =====
   startDragSession(items: any[], source: any): Promise<any>;
-  updateDragSession(position: any): Promise<any>;
   dropDragSession(target: any): Promise<any>;
   endDragSession(): Promise<any>;
   onDragSessionStarted(callback: (payload: any) => void): J2ME.Unsubscribe;
-  onDragSessionUpdated(callback: (pos: any) => void): J2ME.Unsubscribe;
   onDragSessionEnded(callback: (...args: any[]) => void): J2ME.Unsubscribe;
 
   // ===== Independent folder windows =====

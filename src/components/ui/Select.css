@@ -89,12 +89,13 @@
   border-radius: var(--select-radius);
   box-shadow: var(--card-shadow);
   animation: select-fade-in 0.12s ease-out;
+  will-change: opacity;
 }
 
 .select-popover.drop-up {
   top: auto;
   bottom: calc(100% + 6px);
-  animation: select-fade-in-up 0.12s ease-out;
+  animation: select-fade-in 0.12s ease-out;
 }
 
 .select-popover.closing {
@@ -103,54 +104,24 @@
 }
 
 .select-popover.drop-up.closing {
-  animation: select-fade-out-up 0.12s ease-in forwards;
+  animation: select-fade-out 0.12s ease-in forwards;
 }
 
 @keyframes select-fade-in {
   from {
     opacity: 0;
-    transform: translateY(-4px);
   }
-
   to {
     opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes select-fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }
 
 @keyframes select-fade-out {
   from {
     opacity: 1;
-    transform: translateY(0);
   }
-
   to {
     opacity: 0;
-    transform: translateY(-4px);
-  }
-}
-
-@keyframes select-fade-out-up {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  to {
-    opacity: 0;
-    transform: translateY(4px);
   }
 }
 

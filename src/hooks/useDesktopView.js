@@ -30,8 +30,38 @@ export const useDesktopView = ({ games, onGameSelect, onAddToFolder, onRefresh, 
 
   // 資料夾徽章狀態
   const [memberSet, setMemberSet] = useState(() => new Set());
+  // 抑制徽章刷新（在拖放後短暫時間內避免大量同步查詢）
+  const suppressBadgeUntilRef = useRef(0);
+  const pendingBadgeTimerRef = useRef(0);
 
-  // 刷新資料夾徽章
+  // 即時（樂觀）隱藏集合：在拖放加入資料夾後，先行把桌面上的該遊戲隱藏，避免等待重載
+  const [optimisticHideSet, setOptimisticHideSet] = useState(() => new Set());
+  const pruneTimerRef = useRef(null);
+  const lastUserInputRef = useRef(0);
+  const pendingMemberOpsRef = useRef(null); // { add:Set, remove:Set }
+  const memberOpsTimerRef = useRef(null);
+
+  // 向子卡片傳遞的拖拽結束信號（數值累加即可）
+  const [dragEndSignal, setDragEndSignal] = useState(0);
+
+  // 記錄最近使用者輸入（滑輪/觸控/鍵盤翻頁），避免在互動中執行昂貴重算
+  useEffect(() => {
+    const markNow = () => {
+      try {
+        lastUserInputRef.current = Date.now();
+      } catch (_) {}
+    };
+    window.addEventListener('wheel', markNow, { passive: true });
+    window.addEventListener('touchmove', markNow, { passive: true });
+    window.addEventListener('keydown', markNow, { passive: true });
+    return () => {
+      window.removeEventListener('wheel', markNow);
+      window.removeEventListener('touchmove', markNow);
+      window.removeEventListener('keydown', markNow);
+    };
+  }, []);
+
+  // 刷新資料夾徽章（先定義）
   const refreshMemberSet = useCallback(async () => {
     try {
       const list = await window.electronAPI?.getGamesInAnyFolder?.();
@@ -45,26 +75,210 @@ export const useDesktopView = ({ games, onGameSelect, onAddToFolder, onRefresh, 
     }
   }, []);
 
-  // 監聽資料夾變更事件，更新徽章
+  // 以 ref 保存最新的 refreshMemberSet，避免依賴陣列對 TDZ 的影響
+  const refreshMemberSetRef = useRef(refreshMemberSet);
+  useEffect(() => {
+    refreshMemberSetRef.current = refreshMemberSet;
+  }, [refreshMemberSet]);
+
+  // 監聽資料夾結構變更（例如刪除資料夾）以刷新徽章 memberSet
+  useEffect(() => {
+    const api = window.electronAPI;
+    if (!api?.onFolderChanged) return;
+    const off = api.onFolderChanged(() => {
+      try {
+        const now = Date.now();
+        const until = Number(suppressBadgeUntilRef.current || 0);
+        const needDelay = now < until;
+        if (needDelay) {
+          if (pendingBadgeTimerRef.current) clearTimeout(pendingBadgeTimerRef.current);
+          pendingBadgeTimerRef.current = setTimeout(
+            () => {
+              try {
+                refreshMemberSetRef.current && refreshMemberSetRef.current();
+              } finally {
+                pendingBadgeTimerRef.current = 0;
+              }
+            },
+            Math.max(250, until - now)
+          );
+        } else {
+          refreshMemberSetRef.current && refreshMemberSetRef.current();
+        }
+      } catch (_) {
+        try {
+          refreshMemberSetRef.current && refreshMemberSetRef.current();
+        } catch (_) {}
+      }
+    });
+    return () => {
+      try {
+        off && off();
+      } catch (_) {}
+    };
+  }, []);
+
+  // 合併與延後套用徽章 memberSet 變更，避免一次性更新大量 item 造成重繪卡頓
+  const enqueueMemberSetUpdate = useCallback((op, filePaths) => {
+    if (!Array.isArray(filePaths) || filePaths.length === 0) return;
+    const fps = new Set(filePaths.map(String));
+    if (!pendingMemberOpsRef.current)
+      pendingMemberOpsRef.current = { add: new Set(), remove: new Set() };
+    const bag = pendingMemberOpsRef.current;
+    if (op === 'add') {
+      for (const fp of fps) {
+        bag.add.add(fp);
+        bag.remove.delete(fp);
+      }
+    } else if (op === 'remove') {
+      for (const fp of fps) {
+        bag.remove.add(fp);
+        bag.add.delete(fp);
+      }
+    }
+    const flush = () => {
+      const run = () => {
+        const now = Date.now();
+        const recent = now - (lastUserInputRef.current || 0) < 1000;
+        if (recent) {
+          memberOpsTimerRef.current = setTimeout(run, 300);
+          return;
+        }
+        const ops = pendingMemberOpsRef.current;
+        pendingMemberOpsRef.current = null;
+        memberOpsTimerRef.current = null;
+        if (!ops) return;
+        const addSet = ops.add;
+        const rmSet = ops.remove;
+        try {
+          React.startTransition?.(() => {
+            setMemberSet((prev) => {
+              const next = new Set(prev || []);
+              if (addSet && addSet.size) {
+                for (const fp of addSet) next.add(fp);
+              }
+              if (rmSet && rmSet.size) {
+                for (const fp of rmSet) next.delete(fp);
+              }
+              return next;
+            });
+          });
+        } catch (_) {}
+      };
+      try {
+        if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+          window.requestIdleCallback(run);
+        } else {
+          memberOpsTimerRef.current = setTimeout(run, 400);
+        }
+      } catch (_) {
+        memberOpsTimerRef.current = setTimeout(run, 400);
+      }
+    };
+    if (memberOpsTimerRef.current) return; // 已排程
+    flush();
+  }, []);
+
+  // 僅在使用者空閒時修剪樂觀隱藏集合，避免在滾動中引發大量重算
+  const scheduleIdlePrune = useCallback((filePathsToPrune) => {
+    const run = () => {
+      const now = Date.now();
+      const recent = now - (lastUserInputRef.current || 0) < 300; // 300ms 內有互動則延後
+      if (recent) {
+        pruneTimerRef.current = setTimeout(run, 250);
+        return;
+      }
+      try {
+        // 僅在需要時修剪（例如：已不再出現在桌面 items 中時）
+        // 保守策略：先嘗試移除這批，若仍在桌面資料中，也不會出現因為 items 已變更而回彈的問題
+        React.startTransition?.(() => {
+          setOptimisticHideSet((prev) => {
+            if (!prev || prev.size === 0) return prev;
+            const next = new Set(prev);
+            for (const fp of filePathsToPrune || []) next.delete(String(fp));
+            return next;
+          });
+        });
+      } finally {
+        pruneTimerRef.current = null;
+      }
+    };
+    if (pruneTimerRef.current) clearTimeout(pruneTimerRef.current);
+    // 使用 requestIdleCallback 優先在空閒期運行，否則退回 setTimeout
+    try {
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        window.requestIdleCallback(run, { timeout: 1000 });
+      } else {
+        pruneTimerRef.current = setTimeout(run, 600);
+      }
+    } catch (_) {
+      pruneTimerRef.current = setTimeout(run, 600);
+    }
+  }, []);
+
+  // 監聽主進程通知：桌面移除（desktop:remove-items）與增量更新（drag-drop-completed），建立暫時隱藏集合
+  useEffect(() => {
+    const api = window.electronAPI;
+    const addToHide = (filePaths) => {
+      try {
+        const list = Array.isArray(filePaths) ? filePaths.map(String) : [];
+        if (list.length === 0) return;
+        React.startTransition?.(() => {
+          setOptimisticHideSet((prev) => new Set([...prev, ...list]));
+        });
+        // 關鍵：一旦收到樂觀移除事件，立即退出拖拽狀態，避免等待原生 dragend
+        setDragState((prev) =>
+          prev && prev.isDragging
+            ? { isDragging: false, draggedItem: null, draggedType: null, dropTarget: null }
+            : prev
+        );
+        // 併發廣播給子卡片（重置本地 dragging 樣式）
+        setDragEndSignal((s) => s + 1);
+        try {
+          setExternalDragActive(false);
+        } catch (_) {}
+        // 在較長的短暫窗口內抑制徽章刷新（避免剛放下後的快速滾動被阻塞）
+        try {
+          suppressBadgeUntilRef.current = Date.now() + 1400;
+        } catch (_) {}
+        // 嘗試在空閒時修剪（當前批次）
+        scheduleIdlePrune(list);
+      } catch (_) {}
+    };
+    const offA = api?.onDesktopRemoveItems
+      ? api.onDesktopRemoveItems((payload) => addToHide(payload?.filePaths))
+      : null;
+    const offB = api?.onGamesIncrementalUpdate
+      ? api.onGamesIncrementalUpdate((u) => {
+          if (u && u.action === 'drag-drop-completed' && Array.isArray(u.affectedGames)) {
+            addToHide(u.affectedGames);
+            // 輕量維護徽章 memberSet：延後到空閒時合併更新
+            try {
+              const fps = Array.from(new Set(u.affectedGames.map(String)));
+              const hasSource = !!u.sourceFolder;
+              const hasTarget = !!u.targetFolder;
+              if (!hasSource && hasTarget) enqueueMemberSetUpdate('add', fps);
+              else if (hasSource && !hasTarget) enqueueMemberSetUpdate('remove', fps);
+              else if (hasSource && hasTarget) enqueueMemberSetUpdate('add', fps);
+            } catch (_) {}
+          }
+        })
+      : null;
+    return () => {
+      try {
+        offA && offA();
+      } catch (_) {}
+      try {
+        offB && offB();
+      } catch (_) {}
+    };
+  }, []);
+
+  // 徽章初始化：僅初始化抓一次，其後完全依賴增量事件維護，避免大量查詢造成卡頓
   useEffect(() => {
     refreshMemberSet();
-    let debounceTimer = 0;
-    const debounced = () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        refreshMemberSet();
-      }, 120);
-    };
-    const offA = window.electronAPI?.onGameFolderChanged?.(() => debounced());
-    const offB = window.electronAPI?.onFolderChanged?.(() => debounced());
-    const offC = window.electronAPI?.onFolderUpdated?.(() => debounced());
-    const offD = window.electronAPI?.onFolderDeleted?.(() => debounced());
     return () => {
-      offA && offA();
-      offB && offB();
-      offC && offC();
-      offD && offD();
-      if (debounceTimer) clearTimeout(debounceTimer);
+      if (pendingBadgeTimerRef.current) clearTimeout(pendingBadgeTimerRef.current);
     };
   }, [refreshMemberSet]);
 
@@ -73,7 +287,17 @@ export const useDesktopView = ({ games, onGameSelect, onAddToFolder, onRefresh, 
     const api = window.electronAPI;
     if (!api?.onDragSessionStarted || !api?.onDragSessionEnded) return;
     const offStart = api.onDragSessionStarted(() => setExternalDragActive(true));
-    const offEnd = api.onDragSessionEnded(() => setExternalDragActive(false));
+    const offEnd = api.onDragSessionEnded(() => {
+      setExternalDragActive(false);
+      // 關鍵：收到結束事件時，直接退出拖拽狀態（不等待 GameCard 的 onDragEnd）
+      setDragState((prev) =>
+        prev && prev.isDragging
+          ? { isDragging: false, draggedItem: null, draggedType: null, dropTarget: null }
+          : prev
+      );
+      // 通知子卡片重置 dragging 樣式
+      setDragEndSignal((s) => s + 1);
+    });
     return () => {
       offStart && offStart();
       offEnd && offEnd();
@@ -141,8 +365,9 @@ export const useDesktopView = ({ games, onGameSelect, onAddToFolder, onRefresh, 
   const gameCardExtraProps = useCallback(
     (game) => ({
       hasFolder: !!(game && memberSet.has(game.filePath)),
+      dragEndSignal,
     }),
-    [memberSet]
+    [memberSet, dragEndSignal]
   );
 
   // 捷徑創建邏輯（使用共享 hook，統一事件派發與錯誤處理）
@@ -308,6 +533,7 @@ export const useDesktopView = ({ games, onGameSelect, onAddToFolder, onRefresh, 
     rootRef,
     dragState,
     memberSet,
+    optimisticHideSet,
     gameCardExtraProps,
 
     // Actions

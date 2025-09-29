@@ -36,7 +36,6 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
   - `removeDirectory(directoryPath)`
   - `toggleDirectory(directoryPath, enabled)`
   - `scanDirectories(forceFullScan = false)`
-  - `selectDirectory()`
   - 事件：
     - `onGamesUpdated(callback)` → channel: `'games-updated'`，回傳 unsubscribe 函式
     - `onGamesIncrementalUpdate(callback)` → channel: `'games-incremental-update'`，回傳 unsubscribe 函式
@@ -55,7 +54,6 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
   - `addGameToFolder(gameId, folderId)`
   - `addGamesToFolderBatch(gameIdsOrPaths, folderId, options)`
   - `batchAddGamesToFolder(filePaths, folderId, options)`
-  - `emitFolderBatchUpdates(folderId)`
   - `removeGameFromFolder(gameId, folderId)`
   - `batchRemoveGamesFromFolder(filePaths, folderId)`
   - `moveGameBetweenFolders(gameId, fromFolderId, toFolderId)`
@@ -66,9 +64,6 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
 - **桌面/資料夾數據**
   - `getDesktopItems()`
   - `getFolderContents(folderId)`
-
-- **統計**
-  - `getFolderStats()`
 
 - **自訂名稱管理**
   - `updateCustomName(filePath, customName)`
@@ -92,12 +87,9 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
   - FreeJ2ME-Plus 資產：
     - `pickFreej2meAsset(type)`
     - `importFreej2meAsset(type, sourcePath)`
-  - `getGameFolders(gameId)`
 
 - **資料夾事件監聽**
   - `onFolderUpdated(callback)` → channel: `'folder-updated'`（回傳 unsubscribe）
-  - `onFolderDeleted(callback)` → channel: `'folder-deleted'`（回傳 unsubscribe）
-  - `onGameFolderChanged(callback)` → channel: `'game-folder-changed'`（回傳 unsubscribe）
   - `onFolderChanged(callback)` → channel: `'folder-changed'`（回傳 unsubscribe）
 
 - **批次操作事件監聽**
@@ -107,12 +99,10 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
 
 - **跨窗口拖拽會話**
   - `startDragSession(items, source)`
-  - `updateDragSession(position)`
   - `dropDragSession(target)`
   - `endDragSession()`
   - 事件：
     - `onDragSessionStarted(callback)` → channel: `'drag-session:started'`（回傳 unsubscribe）
-    - `onDragSessionUpdated(callback)` → channel: `'drag-session:updated'`（回傳 unsubscribe）
     - `onDragSessionEnded(callback)` → channel: `'drag-session:ended'`（回傳 unsubscribe）
 
 - **獨立資料夾窗口**
@@ -170,7 +160,6 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
   - `removeDirectory` → `'remove-directory'`（invoke）
   - `toggleDirectory` → `'toggle-directory'`（invoke）
   - `scanDirectories` → `'scan-directories'`（invoke）
-  - `selectDirectory` → `'select-directory'`（invoke）
   - `onGamesUpdated` → `'games-updated'`（event，return unsubscribe）
   - `onGamesIncrementalUpdate` → `'games-incremental-update'`（event，return unsubscribe）
   - `onAutoScanCompleted` → `'auto-scan-completed'`（event）
@@ -193,7 +182,6 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
   - `addGameToFolder` → `'add-game-to-folder'`（invoke）
   - `addGamesToFolderBatch` → `'add-games-to-folder-batch'`（invoke）
   - `batchAddGamesToFolder` → `'batch-add-games-to-folder'`（invoke）
-  - `emitFolderBatchUpdates` → `'emit-folder-batch-updates'`（invoke）
   - `removeGameFromFolder` → `'remove-game-from-folder'`（invoke）
   - `batchRemoveGamesFromFolder` → `'batch-remove-games-from-folder'`（invoke）
   - `moveGameBetweenFolders` → `'move-game-between-folders'`（invoke）
@@ -207,7 +195,6 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
 - **桌面/資料夾數據與統計**
   - `getDesktopItems` → `'get-desktop-items'`（invoke）
   - `getFolderContents` → `'get-folder-contents'`（invoke）
-  - `getFolderStats` → `'get-folder-stats'`（invoke）
 
 - **遊戲啟動**
   - `launchGame` → `'launch-game'`（invoke）
@@ -224,22 +211,17 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
   - `updateFreej2meGameConf` → `'update-freej2me-game-conf'`（invoke）
   - `pickFreej2meAsset` → `'freej2me:pick-asset'`（invoke）
   - `importFreej2meAsset` → `'freej2me:import-asset'`（invoke）
-  - `getGameFolders` → `'get-game-folders'`（invoke）
 
 - **資料夾事件監聽**
   - `onFolderUpdated` → `'folder-updated'`（event，return unsubscribe）
-  - `onFolderDeleted` → `'folder-deleted'`（event，return unsubscribe）
-  - `onGameFolderChanged` → `'game-folder-changed'`（event，return unsubscribe）
   - `onFolderChanged` → `'folder-changed'`（event，return unsubscribe）
 
 - **跨窗口拖拽會話**
   - `startDragSession` → `'drag-session:start'`（invoke）
-  - `updateDragSession` → `'drag-session:update'`（invoke）
   - `dropDragSession` → `'drag-session:drop'`（invoke）
   - `endDragSession` → `'drag-session:end'`（invoke）
   - 事件：
     - `onDragSessionStarted` → `'drag-session:started'`（return unsubscribe）
-    - `onDragSessionUpdated` → `'drag-session:updated'`（return unsubscribe）
     - `onDragSessionEnded` → `'drag-session:ended'`（return unsubscribe）
 
 - **獨立資料夾窗口**

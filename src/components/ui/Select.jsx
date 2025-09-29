@@ -36,6 +36,7 @@ export default function Select({
   const listRef = useRef(null);
   const [portalPos, setPortalPos] = useState(null); // { left, top?, bottom?, width, maxHeight, dropUp }
   const [inDialog, setInDialog] = useState(false);
+  const [portalZ, setPortalZ] = useState(11000);
   // 平滑滾動控制（避免彈出時「硬滾動」）
   const smoothingRef = useRef(false);
   const smoothRafRef = useRef(0);
@@ -86,6 +87,24 @@ export default function Select({
         }
       }, duration + 80);
     });
+  };
+
+  // 計算當前應用中應使用的浮層 z-index：
+  // 使其永遠高於最頂層的 modal-overlay，避免被遮擋（資料夾視窗內的彈窗 z-index 可能更高）。
+  const computePortalZIndex = () => {
+    let base = 11000;
+    try {
+      const overlays = Array.from(document.querySelectorAll('.modal-overlay'));
+      let maxZ = base;
+      for (const el of overlays) {
+        const style = window.getComputedStyle(el);
+        const z = parseInt(style.zIndex || '0', 10);
+        if (!Number.isNaN(z)) maxZ = Math.max(maxZ, z);
+      }
+      return maxZ + 2; // 確保高於 overlay 本身與其內容
+    } catch (_) {
+      return base;
+    }
   };
 
   // 計算浮層在視窗中的定位（使用 portal/fixed，不再嘗試滾動父容器）
@@ -207,6 +226,7 @@ export default function Select({
       setHighlightIndex(idx >= 0 ? idx : -1);
       // 計算 portal 定位並聚焦列表（不再平滑滾動父容器）
       setPortalPos(computePortalPosition());
+      setPortalZ(computePortalZIndex());
       // 標記是否位於對話框內（影響 popover 主題代幣）
       try {
         setInDialog(!!(rootRef.current && rootRef.current.closest('.modal-body')));
@@ -214,7 +234,16 @@ export default function Select({
         setInDialog(false);
       }
       const t = window.setTimeout(() => {
-        listRef.current && listRef.current.focus();
+        if (listRef.current) {
+          try {
+            listRef.current.focus({ preventScroll: true });
+          } catch {
+            // 後備：舊環境不支援 preventScroll 時退回普通 focus
+            try {
+              listRef.current.focus();
+            } catch {}
+          }
+        }
       }, 0);
       return () => window.clearTimeout(t);
     } else {
@@ -298,7 +327,7 @@ export default function Select({
               top: portalPos.top ?? undefined,
               bottom: portalPos.bottom ?? undefined,
               minWidth: portalPos.width,
-              zIndex: 11000,
+              zIndex: portalZ,
             }}
           >
             <ul

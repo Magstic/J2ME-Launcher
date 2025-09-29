@@ -148,6 +148,12 @@
 
   /* 用 auto 避免總是顯示滾動條，並與子級滾動更好協作 */
   overflow-y: auto;
+
+  /* 避免因滾動條出現/消失造成內容寬度抖動（下拉初次開啟常見的微位移） */
+  scrollbar-gutter: stable both-edges;
+
+  /* 防止滾動鏈造成外層視口位移（搭配 Select 的輪播鎖更穩定） */
+  overscroll-behavior: contain;
 }
 
 /* 讓目錄管理彈窗的 body 使用彈性佈局，

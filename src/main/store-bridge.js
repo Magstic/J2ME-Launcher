@@ -7,6 +7,9 @@ class StoreBridge {
   constructor() {
     this.cache = getGameStateCache();
     this.rendererWindows = new Set();
+    // 批次 action 佇列，避免即時廣播造成 UI 壓力
+    this.actionQueue = [];
+    this.flushTimeout = null;
   }
 
   // Register renderer window for store updates
@@ -42,15 +45,43 @@ class StoreBridge {
     }
   }
 
-  // Broadcast to all renderer windows
+  // Broadcast to all renderer windows（批次）
   broadcastToRenderers(action) {
+    try {
+      this.actionQueue.push(action);
+    } catch (_) {
+      // 若入隊失敗，退回即時廣播以確保不丟事件
+      this.rendererWindows.forEach((window) => {
+        if (window.isDestroyed()) return;
+        try {
+          window.webContents.send('store-action', action);
+        } catch (e) {
+          console.warn('[StoreBridge] Fallback broadcast failed:', e.message);
+        }
+      });
+      return;
+    }
+
+    if (this.flushTimeout) return; // 已排程
+    this.flushTimeout = setTimeout(() => {
+      this.flushTimeout = null;
+      this.flushQueuedActions();
+    }, 16); // ~60fps 範圍內批次
+  }
+
+  // 一次性發送隊列中的所有 action（保持順序）
+  flushQueuedActions() {
+    if (!this.actionQueue || this.actionQueue.length === 0) return;
+    const queue = this.actionQueue;
+    this.actionQueue = [];
     this.rendererWindows.forEach((window) => {
       if (window.isDestroyed()) return;
-
-      try {
-        window.webContents.send('store-action', action);
-      } catch (e) {
-        console.warn('[StoreBridge] Broadcast failed:', e.message);
+      for (const action of queue) {
+        try {
+          window.webContents.send('store-action', action);
+        } catch (e) {
+          console.warn('[StoreBridge] Batch send failed:', e.message);
+        }
       }
     });
   }

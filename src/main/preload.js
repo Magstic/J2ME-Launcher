@@ -18,7 +18,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // 掃描功能
   scanDirectories: (forceFullScan = false) => ipcRenderer.invoke('scan-directories', forceFullScan),
-  selectDirectory: () => ipcRenderer.invoke('select-directory'), // 保持向後相容
   // 掃描進度事件
   onScanProgress: (callback) => {
     const ch = 'scan:progress';
@@ -28,6 +27,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   // 事件監聽
+  // 通用事件（僅限內部使用：store-sync / store-action 等）
+  on: (channel, handler) => {
+    ipcRenderer.on(channel, handler);
+  },
+  removeListener: (channel, handler) => {
+    ipcRenderer.removeListener(channel, handler);
+  },
+
   onGamesUpdated: (callback) => {
     const handler = (event, games) => callback(games);
     ipcRenderer.on('games-updated', handler);
@@ -40,6 +47,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const handler = (event, updateData) => callback(updateData);
     ipcRenderer.on('games-incremental-update', handler);
     return () => ipcRenderer.removeListener('games-incremental-update', handler);
+  },
+  // 桌面即時移除事件：從桌面加入到資料夾後，立即移除對應圖標
+  onDesktopRemoveItems: (callback) => {
+    const ch = 'desktop:remove-items';
+    const handler = (_e, payload) => callback && callback(payload);
+    ipcRenderer.on(ch, handler);
+    return () => ipcRenderer.removeListener(ch, handler);
   },
   onAutoScanCompleted: (callback) => {
     ipcRenderer.on('auto-scan-completed', (event, result) => callback(result));
@@ -95,7 +109,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 統一的批次處理 API（支援進度回調）
   batchAddGamesToFolder: (filePaths, folderId, options) =>
     ipcRenderer.invoke('batch-add-games-to-folder', filePaths, folderId, options),
-  emitFolderBatchUpdates: (folderId) => ipcRenderer.invoke('emit-folder-batch-updates', folderId),
 
   // 從資料夾中移除遊戲
   removeGameFromFolder: (gameId, folderId) =>
@@ -151,9 +164,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // ==================== 統計信息 API ====================
 
-  // 獲取資料夾統計信息
-  getFolderStats: () => ipcRenderer.invoke('get-folder-stats'),
-
   // ==================== 遊戲啟動 API ====================
 
   // 啟動遊戲
@@ -186,9 +196,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   importFreej2meAsset: (type, sourcePath) =>
     ipcRenderer.invoke('freej2me:import-asset', type, sourcePath),
 
-  // 獲取遊戲所屬資料夾
-  getGameFolders: (gameId) => ipcRenderer.invoke('get-game-folders', gameId),
-
   // ==================== 資料夾事件監聽 ====================
 
   // 資料夾更新事件
@@ -199,47 +206,33 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener(ch, handler);
   },
 
-  // 資料夾刪除事件
-  onFolderDeleted: (callback) => {
-    const ch = 'folder-deleted';
-    const handler = (event, folderId) => callback(folderId);
-    ipcRenderer.on(ch, handler);
-    return () => ipcRenderer.removeListener(ch, handler);
-  },
-
-  // 遊戲資料夾變更事件
-  onGameFolderChanged: (callback) => {
-    ipcRenderer.on('game-folder-changed', (event, data) => callback(data));
-    return () => ipcRenderer.removeAllListeners('game-folder-changed');
-  },
-
   // 資料夾變更通用事件（用於多窗口同步）
   onFolderChanged: (callback) => {
-    ipcRenderer.on('folder-changed', callback);
-    return () => ipcRenderer.removeAllListeners('folder-changed');
+    const ch = 'folder-changed';
+    const handler = (event, ...args) => callback && callback(...args);
+    ipcRenderer.on(ch, handler);
+    return () => ipcRenderer.removeListener(ch, handler);
   },
 
   // ==================== 跨窗口拖拽會話 API ====================
   // 開始拖拽會話（支持多選）
   startDragSession: (items, source) => ipcRenderer.invoke('drag-session:start', { items, source }),
-  // 更新拖拽進度（可選）
-  updateDragSession: (position) => ipcRenderer.invoke('drag-session:update', position),
   // 在目標放置
   dropDragSession: (target) => ipcRenderer.invoke('drag-session:drop', target),
   // 結束/取消拖拽
   endDragSession: () => ipcRenderer.invoke('drag-session:end'),
   // 會話事件
   onDragSessionStarted: (callback) => {
-    ipcRenderer.on('drag-session:started', (e, payload) => callback(payload));
-    return () => ipcRenderer.removeAllListeners('drag-session:started');
-  },
-  onDragSessionUpdated: (callback) => {
-    ipcRenderer.on('drag-session:updated', (e, pos) => callback(pos));
-    return () => ipcRenderer.removeAllListeners('drag-session:updated');
+    const ch = 'drag-session:started';
+    const handler = (e, payload) => callback(payload);
+    ipcRenderer.on(ch, handler);
+    return () => ipcRenderer.removeListener(ch, handler);
   },
   onDragSessionEnded: (callback) => {
-    ipcRenderer.on('drag-session:ended', callback);
-    return () => ipcRenderer.removeAllListeners('drag-session:ended');
+    const ch = 'drag-session:ended';
+    const handler = (...args) => callback && callback(...args);
+    ipcRenderer.on(ch, handler);
+    return () => ipcRenderer.removeListener(ch, handler);
   },
 
   // ==================== 獨立資料夾窗口 API ====================

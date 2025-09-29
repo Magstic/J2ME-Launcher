@@ -17,6 +17,8 @@ function GameCard({
   isDraggingSelf = false,
   disableAppear = false,
   hasFolder = false,
+  // 父層廣播的拖拽結束信號（數值遞增或時間戳變更）
+  dragEndSignal = 0,
   ...rest
 }) {
   // 如果 game.iconUrl 不存在，則使用 public 目錄下的主圖標作為備用
@@ -32,6 +34,11 @@ function GameCard({
     const id = requestAnimationFrame(() => setAppearing(false));
     return () => cancelAnimationFrame(id);
   }, [disableAppear]);
+
+  // 父層拖拽結束信號變更時，立即清除本地 dragging 樣式
+  React.useEffect(() => {
+    setIsDragging(false);
+  }, [dragEndSignal]);
 
   // 單擊交給父層（onMouseDownById 會處理多選/範圍選），這裡只處理雙擊啟動
   const handleDoubleClick = (event) => {

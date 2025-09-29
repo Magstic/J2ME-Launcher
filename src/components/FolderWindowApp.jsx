@@ -33,6 +33,10 @@ const FolderWindowApp = () => {
   }, [isLoading]);
   const hasLoadedRef = useRef(false);
   const [folderId, setFolderId] = useState(null);
+  // 用於增量 membership 與事件合併去抖
+  const lastFileSetRef = useRef(null);
+  const refreshTimerRef = useRef(null);
+  const pendingUpdatedFolderRef = useRef(null);
   const [gameLaunchDialog, setGameLaunchDialog] = useState({
     isOpen: false,
     game: null,
@@ -325,11 +329,46 @@ const FolderWindowApp = () => {
       const cs = Array.isArray(result.clusters) ? result.clusters : [];
       setClusters(cs.map((c) => ({ ...c, type: 'cluster' })));
       gameActions.loadGames(games);
-
-      // Sync folder membership for all games in this folder
+      // Sync folder membership（增量 + 去重）：僅在集合變更時執行，且僅提交新增差集
       if (games.length > 0) {
         const filePaths = games.map((game) => game.filePath);
-        gameActions.folderMembershipChanged(filePaths, folderId, 'add');
+        const currentSet = new Set(filePaths);
+        const prevSet = lastFileSetRef.current;
+        if (!prevSet) {
+          // 初次：與既有行為一致，全部 add
+          gameActions.folderMembershipChanged(filePaths, folderId, 'add');
+          lastFileSetRef.current = currentSet;
+        } else {
+          // 若集合完全相同，跳過任何 membership 更新
+          if (prevSet.size === currentSet.size) {
+            let same = true;
+            for (const fp of currentSet) {
+              if (!prevSet.has(fp)) {
+                same = false;
+                break;
+              }
+            }
+            if (same) {
+              // 無變化，直接返回
+            } else {
+              // 僅新增差集（保守策略：不在此移除，避免影響既有行為）
+              const toAdd = filePaths.filter((fp) => !prevSet.has(fp));
+              if (toAdd.length > 0) {
+                gameActions.folderMembershipChanged(toAdd, folderId, 'add');
+              }
+            }
+          } else {
+            // 尺寸不同：僅新增差集
+            const toAdd = filePaths.filter((fp) => !prevSet.has(fp));
+            if (toAdd.length > 0) {
+              gameActions.folderMembershipChanged(toAdd, folderId, 'add');
+            }
+          }
+          lastFileSetRef.current = currentSet;
+        }
+      } else {
+        // 空集合：不在此處移除 membership（保持行為相容），僅更新快取
+        lastFileSetRef.current = new Set();
       }
     } catch (error) {
       console.error('載入資料夾內容失敗:', error);
@@ -346,6 +385,37 @@ const FolderWindowApp = () => {
   useEffect(() => {
     loadFolderContents();
   }, [loadFolderContents]);
+
+  // 切換資料夾時重置比較集合
+  useEffect(() => {
+    lastFileSetRef.current = null;
+  }, [folderId]);
+
+  // 合併資料夾更新事件（去抖 150ms），避免同時收到 folder-updated 與 folder-changed 造成雙重重載
+  const scheduleRefresh = useCallback(
+    (reason, updatedFolder) => {
+      try {
+        // 記錄最新的資料夾物件，等刷新時同步設置
+        if (updatedFolder && updatedFolder.id === folderId) {
+          pendingUpdatedFolderRef.current = updatedFolder;
+        }
+      } catch (_) {}
+      if (refreshTimerRef.current) return; // 已排程
+      refreshTimerRef.current = setTimeout(async () => {
+        refreshTimerRef.current = null;
+        try {
+          if (pendingUpdatedFolderRef.current && pendingUpdatedFolderRef.current.id === folderId) {
+            setFolder(pendingUpdatedFolderRef.current);
+          }
+        } catch (_) {}
+        pendingUpdatedFolderRef.current = null;
+        try {
+          await loadFolderContents();
+        } catch (_) {}
+      }, 150);
+    },
+    [folderId, loadFolderContents]
+  );
 
   // 監聽簇詳情事件（Folder 窗口自帶版本）
   useEffect(() => {
@@ -379,6 +449,34 @@ const FolderWindowApp = () => {
     return () => window.removeEventListener('open-game-config', onOpenGameConfig);
   }, []);
 
+  // 監聽：簇內成員首次啟動事件（folder window 本地處理）
+  useEffect(() => {
+    const onOpenGameLaunch = (event) => {
+      const game = event?.detail;
+      if (!game) return;
+      setGameLaunchDialog({ isOpen: true, game, configureOnly: false });
+    };
+    window.addEventListener('open-game-launch', onOpenGameLaunch);
+    return () => window.removeEventListener('open-game-launch', onOpenGameLaunch);
+  }, []);
+
+  // 監聽：需要開啟模擬器設定（folder window 本地處理）
+  useEffect(() => {
+    const onOpenEmulatorConfig = () => {
+      try {
+        // 若 folder 視窗無本地設定對話框，請求主進程/主窗口開啟設定
+        if (window.electronAPI?.openSettings) {
+          window.electronAPI.openSettings('emulator');
+        } else {
+          // 後備：向主窗口廣播（由主窗口的 useAppEventListeners 來處理）
+          window.dispatchEvent(new CustomEvent('open-emulator-config-proxy'));
+        }
+      } catch (_) {}
+    };
+    window.addEventListener('open-emulator-config', onOpenEmulatorConfig);
+    return () => window.removeEventListener('open-emulator-config', onOpenEmulatorConfig);
+  }, []);
+
   // 監聽簇事件以刷新當前資料夾內容
   useEffect(() => {
     const api = window.electronAPI;
@@ -407,33 +505,38 @@ const FolderWindowApp = () => {
     };
   }, [loadFolderContents]);
 
-  // 監聽資料夾更新事件
+  // 監聽資料夾相關事件（合併處理 + 去抖）
   useEffect(() => {
-    if (!window.electronAPI?.onFolderUpdated) return;
-
-    const handleFolderUpdated = (updatedFolder) => {
-      if (updatedFolder.id === folderId) {
-        setFolder(updatedFolder);
-        loadFolderContents(); // 重新載入遊戲列表
-      }
-    };
-
-    window.electronAPI.onFolderUpdated(handleFolderUpdated);
-
+    const api = window.electronAPI;
+    if (!api) return;
+    const offUpdated = api.onFolderUpdated
+      ? api.onFolderUpdated((updatedFolder) => {
+          if (updatedFolder && updatedFolder.id === folderId) {
+            scheduleRefresh('folder-updated', updatedFolder);
+          }
+        })
+      : null;
+    const offChanged = api.onFolderChanged
+      ? api.onFolderChanged(() => {
+          scheduleRefresh('folder-changed');
+        })
+      : null;
     return () => {
-      window.electronAPI.removeAllListeners?.('folder-updated');
+      try {
+        offUpdated && offUpdated();
+      } catch (_) {}
+      try {
+        offChanged && offChanged();
+      } catch (_) {}
+      try {
+        if (refreshTimerRef.current) {
+          clearTimeout(refreshTimerRef.current);
+          refreshTimerRef.current = null;
+        }
+      } catch (_) {}
+      pendingUpdatedFolderRef.current = null;
     };
-  }, [folderId, loadFolderContents]);
-
-  // 監聽通用 folder-changed 事件（跨窗口同步）
-  useEffect(() => {
-    if (!window.electronAPI?.onFolderChanged) return;
-    const unsubscribe = window.electronAPI.onFolderChanged(async () => {
-      // 若當前資料夾可能受影響，直接重載
-      await loadFolderContents();
-    });
-    return unsubscribe;
-  }, [loadFolderContents]);
+  }, [folderId, scheduleRefresh]);
 
   // 監聽跨窗口拖拽會話
   useEffect(() => {

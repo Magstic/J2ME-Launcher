@@ -163,41 +163,12 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
             broadcastToAll('folder-updated', updatedFolder);
           }
         } catch (_) {}
-        // 異步廣播，避免阻塞 UI
-        setImmediate(() => {
-          try {
-            const { getAllGamesFromSql } = require('../sql/read');
-            const sqlGames = getAllGamesFromSql();
-            broadcastToAll('games-updated', addUrlToGames(sqlGames));
-          } catch (_) {}
-        });
+        // 僅廣播資料夾與通用事件，避免渲染端全量重載
         broadcastToAll('folder-changed');
       }
       return { success: true, count: filePaths.length };
     } catch (error) {
       console.error('批次添加遊戲到資料夾失敗:', error);
-      return { success: false, error: error.message };
-    }
-  });
-
-  // 僅廣播：在多個 quiet 批次後集中刷新 UI
-  ipcMain.handle('emit-folder-batch-updates', (event, folderId) => {
-    try {
-      if (folderId) {
-        try {
-          const updatedFolder = sqlGetFolderById(folderId);
-          if (updatedFolder) broadcastToAll('folder-updated', updatedFolder);
-        } catch (_) {}
-      }
-      try {
-        const { getAllGamesFromSql } = require('../sql/read');
-        const sqlGames = getAllGamesFromSql();
-        broadcastToAll('games-updated', addUrlToGames(sqlGames));
-      } catch (_) {}
-      broadcastToAll('folder-changed');
-      return { success: true };
-    } catch (error) {
-      console.error('emit-folder-batch-updates 失敗:', error);
       return { success: false, error: error.message };
     }
   });
@@ -251,16 +222,34 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
   // 刪除資料夾
   ipcMain.handle('delete-folder', (event, folderId, moveGamesToUncategorized) => {
     try {
+      // 先收集該資料夾目前的成員，以便刪除後推送增量事件
+      let filePaths = [];
+      try {
+        const gamesInFolder = sqlGetGamesByFolder(folderId) || [];
+        filePaths = gamesInFolder.map((g) => g.filePath).filter(Boolean);
+      } catch (_) {}
+
       sqlDeleteFolder(folderId);
-      broadcastToAll('folder-deleted', folderId);
-      // 異步更新遊戲列表，避免阻塞 UI
-      setImmediate(() => {
-        try {
-          const { getAllGamesFromSql } = require('../sql/read');
-          const sqlGames = getAllGamesFromSql();
-          broadcastToAll('games-updated', addUrlToGames(sqlGames));
-        } catch (_) {}
-      });
+
+      // 通知 cache 與渲染端：這些遊戲已不再隸屬該資料夾
+      try {
+        const cache = getGameStateCache();
+        const bridge = getStoreBridge();
+        if (filePaths.length > 0) {
+          cache.updateFolderMembership(filePaths, folderId, 'remove');
+          bridge.onCacheUpdate('folder-membership-changed', {
+            filePaths,
+            folderId,
+            operation: 'remove',
+          });
+        }
+      } catch (_) {}
+
+      // 廣播通用資料夾變更事件（用於多窗口同步）
+      try {
+        broadcastToAll('folder-changed');
+      } catch (_) {}
+
       return { success: true };
     } catch (error) {
       console.error('刪除資料夾失敗:', error);
@@ -323,7 +312,6 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
         );
       } catch {}
       sqlAddGameToFolder(folderId, filePath);
-      broadcastToAll('game-folder-changed', { gameId, folderId, action: 'add' });
       try {
         const updatedFolder = sqlGetFolderById(folderId);
         if (updatedFolder) {
@@ -339,14 +327,7 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
           broadcastToAll('folder-updated', updatedFolder);
         }
       } catch (_) {}
-      // 異步廣播最新遊戲列表，避免阻塞 UI
-      setImmediate(() => {
-        try {
-          const { getAllGamesFromSql } = require('../sql/read');
-          const sqlGames = getAllGamesFromSql();
-          broadcastToAll('games-updated', addUrlToGames(sqlGames));
-        } catch (_) {}
-      });
+      // 不再廣播全量 games-updated（資料夾與增量事件足夠同步 UI）
       return { success: true };
     } catch (error) {
       console.error('添加遊戲到資料夾失敗:', error);
@@ -359,19 +340,21 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
     try {
       const filePath = resolveFilePath(gameId);
       sqlRemoveGameFromFolder(folderId, filePath);
-      broadcastToAll('game-folder-changed', { gameId, folderId, action: 'remove' });
       try {
         const updatedFolder = sqlGetFolderById(folderId);
         if (updatedFolder) broadcastToAll('folder-updated', updatedFolder);
       } catch (_) {}
-      // 異步廣播最新遊戲列表，避免阻塞 UI
-      setImmediate(() => {
-        try {
-          const { getAllGamesFromSql } = require('../sql/read');
-          const sqlGames = getAllGamesFromSql();
-          broadcastToAll('games-updated', addUrlToGames(sqlGames));
-        } catch (_) {}
-      });
+      // 增量廣播：更新快取與渲染端的 membership 狀態
+      try {
+        const cache = getGameStateCache();
+        const bridge = getStoreBridge();
+        cache.updateFolderMembership([filePath], folderId, 'remove');
+        bridge.onCacheUpdate('folder-membership-changed', {
+          filePaths: [filePath],
+          folderId,
+          operation: 'remove',
+        });
+      } catch (_) {}
       return { success: true };
     } catch (error) {
       console.error('從資料夾移除遊戲失敗:', error);
@@ -394,21 +377,13 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
       } catch (e) {
         console.warn('[SQL write] move add failed:', e.message);
       }
-      broadcastToAll('game-folder-changed', { gameId, fromFolderId, toFolderId, action: 'move' });
       try {
         const fromFolder = sqlGetFolderById(fromFolderId);
         if (fromFolder) broadcastToAll('folder-updated', fromFolder);
         const toFolder = sqlGetFolderById(toFolderId);
         if (toFolder) broadcastToAll('folder-updated', toFolder);
       } catch (_) {}
-      // 異步保持桌面遊戲列表同步，避免阻塞 UI
-      setImmediate(() => {
-        try {
-          const { getAllGamesFromSql } = require('../sql/read');
-          const sqlGames = getAllGamesFromSql();
-          broadcastToAll('games-updated', addUrlToGames(sqlGames));
-        } catch (_) {}
-      });
+      // 不再廣播全量 games-updated（資料夾與增量事件足夠同步 UI）
       return { success: true };
     } catch (error) {
       console.error('移動遊戲失敗:', error);
@@ -473,14 +448,7 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
         if (updatedFolder) broadcastToAll('folder-updated', updatedFolder);
       } catch (_) {}
 
-      // 立即廣播完整遊戲列表更新，確保桌面同步
-      setImmediate(() => {
-        try {
-          const { getAllGamesFromSql } = require('../sql/read');
-          const sqlGames = getAllGamesFromSql();
-          broadcastToAll('games-updated', addUrlToGames(sqlGames));
-        } catch (_) {}
-      });
+      // 不再廣播全量 games-updated（資料夾與增量事件足夠同步 UI）
 
       return { success: true, count: resolvedPaths.length };
     } catch (error) {
@@ -541,25 +509,12 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
         addGamesToFolderBatch,
       });
 
-      // 異步廣播更新，避免阻塞 UI
-      setImmediate(() => {
-        try {
-          const { getAllGamesFromSql } = require('../sql/read');
-          const sqlGames = getAllGamesFromSql();
-          broadcastToAll('games-updated', addUrlToGames(sqlGames));
-        } catch (_) {}
-      });
+      // 不再廣播全量 games-updated（資料夾與增量事件足夠同步 UI）
 
       try {
         const updatedFolder = sqlGetFolderById(folderId);
         if (updatedFolder) broadcastToAll('folder-updated', updatedFolder);
       } catch (_) {}
-
-      broadcastToAll('game-folder-changed', {
-        folderId,
-        action: 'batch-add',
-        count: result.processed,
-      });
 
       return result;
     } catch (error) {

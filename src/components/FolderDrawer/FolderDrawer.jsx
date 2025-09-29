@@ -87,15 +87,25 @@ const FolderDrawer = ({
             types
           );
         } catch {}
-        const dropRes = await api.dropDragSession({
+        // 非阻塞：不要等待主進程完成，避免阻塞拖拽結束與前端互動
+        const p = api.dropDragSession({
           type: 'folder',
           id: folder.id,
           internal: internalHint,
         });
         try {
-          console.log('[DROP_UI] dropDragSession result:', dropRes);
+          p?.then?.((dropRes) => {
+            try {
+              console.log('[DROP_UI] dropDragSession result (async):', dropRes);
+            } catch {}
+          })?.catch?.((err) => {
+            try {
+              console.warn('[DROP_UI] dropDragSession error (async):', err && err.message);
+            } catch {}
+          });
         } catch {}
-        handled = !!(dropRes && dropRes.success === true);
+        // 樂觀：交由事件（desktop:remove-items / drag-drop-completed）驅動 UI，即刻恢復互動
+        handled = true;
       }
     } catch {}
 

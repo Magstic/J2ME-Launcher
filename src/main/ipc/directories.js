@@ -191,70 +191,7 @@ function register({
     }
   });
 
-  // 兼容舊的單目錄選擇
-  ipcMain.handle('select-directory', async () => {
-    const { canceled, filePaths } = await dialog.showOpenDialog({
-      properties: ['openDirectory'],
-    });
-    if (canceled || filePaths.length === 0) {
-      return null;
-    }
-
-    const directoryPath = filePaths[0];
-
-    DataStore.addDirectory(directoryPath);
-    DataStore.saveData();
-    try {
-      sqlAddDirectory(directoryPath);
-    } catch (e) {
-      console.warn('[SQL write] addDirectory (single) failed:', e.message);
-    }
-
-    try {
-      const result = await processDirectory(directoryPath, false, {
-        emit: (payload) => {
-          try {
-            broadcastToAll('scan:progress', payload);
-          } catch (_) {}
-        },
-      });
-      try {
-        const sqlGames = getAllGamesFromSql();
-        broadcastToAll('games-updated', addUrlToGames(sqlGames));
-      } catch (_) {
-        const games = DataStore.getAllGames();
-        try {
-          upsertGames(games);
-        } catch (e) {
-          console.warn('[SQL sync] select-directory upsert failed:', e.message);
-        }
-        const gamesWithUrl = addUrlToGames(games);
-        broadcastToAll('games-updated', gamesWithUrl);
-      }
-      try {
-        sqlUpdateDirectoryScanTime(directoryPath, new Date().toISOString());
-      } catch (_) {}
-      // Return current SQL list if available for the caller
-      try {
-        const sqlGamesNow = getAllGamesFromSql();
-        return { games: addUrlToGames(sqlGamesNow), directoryPath, scanResult: result };
-      } catch (_) {
-        const games = DataStore.getAllGames();
-        const gamesWithUrl = addUrlToGames(games);
-        return { games: gamesWithUrl, directoryPath, scanResult: result };
-      }
-    } catch (error) {
-      console.error('扫描目录失败:', error);
-      try {
-        const sqlGames = getAllGamesFromSql();
-        return { games: addUrlToGames(sqlGames), directoryPath, error: error.message };
-      } catch (_) {
-        const games = DataStore.getAllGames();
-        const gamesWithUrl = addUrlToGames(games);
-        return { games: gamesWithUrl, directoryPath, error: error.message };
-      }
-    }
-  });
+  // 已移除單目錄相容 API：select-directory
 }
 
 module.exports = { register };

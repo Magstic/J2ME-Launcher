@@ -27,12 +27,12 @@ This directory contains modular IPC handlers for the Electron main process. Each
   - Channels (handle):
     - `get-initial-games`
     - `get-directories`, `add-directories`, `remove-directory`, `toggle-directory`
-    - `scan-directories`, `select-directory`
+    - `scan-directories`
   - Deps: `ipcMain`, `dialog`, `DataStore`, `processDirectory`, `processMultipleDirectories`, `addUrlToGames`, `broadcastToAll`
 
 - drag-session.js
   - Channels (handle): `drag-session:start`, `drag-session:update`, `drag-session:drop`, `drag-session:end`
-  - Broadcasts: `drag-session:started`, `drag-session:updated`, `drag-session:ended`, `games-updated`, `folder-changed`, `folder-updated`
+  - Broadcasts: `drag-session:started`, `drag-session:updated`, `drag-session:ended`, `games-incremental-update`, `folder-changed`, `folder-updated`
   - Deps: `ipcMain`, `DataStore`, `addUrlToGames`, `broadcastToAll`, `BrowserWindow`
   - Notes:
     - Renderer now defers ending sessions on `dragend` and relies on `drop` IPC, with an 800ms safety timeout.

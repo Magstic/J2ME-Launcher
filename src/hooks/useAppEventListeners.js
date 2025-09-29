@@ -89,6 +89,30 @@ export const useAppEventListeners = ({
     openGameLaunchDialog,
   ]);
 
+  // 監聽全局的首次啟動事件（非配置模式）
+  useEffect(() => {
+    const handleOpenGameLaunch = (e) => {
+      const game = e?.detail;
+      // 若已有任一彈窗開啟，忽略
+      if (
+        gameLaunchDialog.isOpen ||
+        gameInfoDialog.isOpen ||
+        isDirectoryManagerOpen ||
+        isEmulatorConfigOpen
+      )
+        return;
+      if (game) openGameLaunchDialog(game, false);
+    };
+    window.addEventListener('open-game-launch', handleOpenGameLaunch);
+    return () => window.removeEventListener('open-game-launch', handleOpenGameLaunch);
+  }, [
+    gameLaunchDialog.isOpen,
+    gameInfoDialog.isOpen,
+    isDirectoryManagerOpen,
+    isEmulatorConfigOpen,
+    openGameLaunchDialog,
+  ]);
+
   // 監聽歡迎指南觸發的事件
   useEffect(() => {
     const handleOpenEmulatorConfig = () => openEmulatorConfig();
@@ -154,14 +178,18 @@ export const useAppEventListeners = ({
 
     // 增量更新處理器：僅更新受影響的遊戲
     const handleIncrementalUpdate = (updateData) => {
-      const { action, affectedGames } = updateData;
-
+      const { action, affectedGames } = updateData || {};
       if (!affectedGames || affectedGames.length === 0) return;
 
-      // 對於資料夾成員關係變更，我們需要重新獲取完整遊戲列表
-      // 因為遊戲的資料夾徽章狀態可能改變
-      if (action === 'folder-membership-changed' || action === 'drag-drop-completed') {
-        // 延遲重新獲取，避免與全量更新衝突
+      // 減少拖放後的瞬時壓力：
+      // drag-drop-completed 僅涉及資料夾成員變更，桌面層已有樂觀隱藏與徽章延後刷新，
+      // 在此不再做全量 getInitialGames() 重載，以避免渲染端大陣列重算造成卡頓。
+      if (action === 'drag-drop-completed') {
+        return;
+      }
+
+      if (action === 'folder-membership-changed') {
+        // 若未来需要，可改為閒置時刷新或延後更長時間
         setTimeout(async () => {
           try {
             const updatedGames = await window.electronAPI.getInitialGames();
@@ -169,7 +197,7 @@ export const useAppEventListeners = ({
           } catch (e) {
             console.warn('增量更新失敗，回退到當前狀態:', e);
           }
-        }, 100);
+        }, 150);
       }
     };
 

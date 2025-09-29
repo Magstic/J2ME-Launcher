@@ -21,7 +21,7 @@ import { AppIconSvg } from '@/assets/icons';
  */
 
 // Grid Cell 渲染器
-const GridCell = React.memo(({ columnIndex, rowIndex, style, data }) => {
+const GridCell = React.memo(({ columnIndex, rowIndex, style, data, isScrolling }) => {
   const {
     items,
     columns,
@@ -38,6 +38,8 @@ const GridCell = React.memo(({ columnIndex, rowIndex, style, data }) => {
     onClusterDragStart,
     onClusterDragEnd,
     clustersList,
+    optimisticHideSet,
+    virtEnabled,
   } = data;
   const index = rowIndex * columns + columnIndex;
 
@@ -56,14 +58,20 @@ const GridCell = React.memo(({ columnIndex, rowIndex, style, data }) => {
 
   // 渲染遊戲
   if (item.type === 'game') {
-    const extra =
+    const baseExtra =
       typeof gameCardExtraProps === 'function'
         ? gameCardExtraProps(item) || {}
         : gameCardExtraProps || {};
+    const extra = virtEnabled || isScrolling ? { ...baseExtra, disableAppear: true } : baseExtra;
     const key = `game:${item.filePath}`;
     const isSelected = selectedSet.has(key);
     const isDraggingSelf =
       dragState.isDragging && dragState.draggedItem?.filePath === item.filePath;
+
+    // 若在樂觀隱藏集合內，立即不渲染卡片（保留佈局空位）
+    if (optimisticHideSet && optimisticHideSet.has(String(item.filePath))) {
+      return <div style={cellStyle} />;
+    }
 
     return (
       <div style={cellStyle}>
@@ -132,6 +140,7 @@ const VirtualizedUnifiedGrid = ({
   // 資料
   games = [],
   items: itemsProp = null,
+  optimisticHideSet = null,
 
   // 點擊/右鍵
   onGameClick,
@@ -301,13 +310,27 @@ const VirtualizedUnifiedGrid = ({
     (it) => (it?.type === 'cluster' ? `cluster:${it.id}` : `game:${it.filePath}`),
     []
   );
-  const keyIndexMap = React.useMemo(() => {
+  // 延遲建立 key->index 對照，避免在每次重渲染都進行 O(n) 構建
+  const keyIndexMapRef = React.useRef(null);
+  const buildKeyIndexMap = React.useCallback(() => {
     const map = new Map();
     for (let i = 0; i < items.length; i++) {
       const k = keyForItem(items[i]);
       if (k) map.set(k, i);
     }
+    keyIndexMapRef.current = map;
     return map;
+  }, [items, keyForItem]);
+  const getIndexForKey = React.useCallback(
+    (key) => {
+      const map = keyIndexMapRef.current || buildKeyIndexMap();
+      return map.get(key);
+    },
+    [buildKeyIndexMap]
+  );
+  React.useEffect(() => {
+    // items 改變時，重置索引映射避免讀取到舊值
+    keyIndexMapRef.current = null;
   }, [items, keyForItem]);
 
   const anchorIndexRef = React.useRef(null);
@@ -355,7 +378,7 @@ const VirtualizedUnifiedGrid = ({
         e.stopPropagation();
       } catch (_) {}
       if (e.button === 2) return;
-      const curIdx = keyIndexMap.get(key);
+      const curIdx = getIndexForKey(key);
       const hasAnchor = typeof anchorIndexRef.current === 'number' && anchorIndexRef.current >= 0;
       const isSelected = sel.selected.has(key);
 
@@ -393,7 +416,7 @@ const VirtualizedUnifiedGrid = ({
         anchorIndexRef.current = curIdx;
       }
     },
-    [keyIndexMap, items, keyForItem, sel.selected, sel.setSelected]
+    [getIndexForKey, items, keyForItem, sel.selected, sel.setSelected]
   );
 
   const onItemDragStart = React.useCallback(
@@ -409,32 +432,12 @@ const VirtualizedUnifiedGrid = ({
   const onItemDragEnd = React.useCallback(
     (e) => {
       try {
-        const ms = 2500;
-        const ts = Date.now();
-        try {
-          console.log('[DRAG_UI] onItemDragEnd scheduled endDragSession in', ms, 'ms at', ts);
-        } catch {}
-        setTimeout(() => {
-          try {
-            try {
-              console.log(
-                '[DRAG_UI] onItemDragEnd -> endDragSession now at',
-                Date.now(),
-                'scheduledAt=',
-                ts
-              );
-            } catch {}
-            endDragSession();
-          } catch (_) {}
-        }, ms);
+        console.log('[DRAG_UI] onItemDragEnd -> endDragSession immediately');
+        endDragSession();
       } catch (_) {}
       if (onDragEnd) {
         try {
-          setTimeout(() => {
-            try {
-              onDragEnd(e);
-            } catch (_) {}
-          }, 150);
+          onDragEnd(e);
         } catch (_) {}
       }
     },
@@ -452,32 +455,12 @@ const VirtualizedUnifiedGrid = ({
   const onClusterDragEnd = React.useCallback(
     (e) => {
       try {
-        const ms = 2500;
-        const ts = Date.now();
-        try {
-          console.log('[DRAG_UI] onClusterDragEnd scheduled endDragSession in', ms, 'ms at', ts);
-        } catch {}
-        setTimeout(() => {
-          try {
-            try {
-              console.log(
-                '[DRAG_UI] onClusterDragEnd -> endDragSession now at',
-                Date.now(),
-                'scheduledAt=',
-                ts
-              );
-            } catch {}
-            endDragSession();
-          } catch (_) {}
-        }, ms);
+        console.log('[DRAG_UI] onClusterDragEnd -> endDragSession immediately');
+        endDragSession();
       } catch (_) {}
       if (onDragEnd) {
         try {
-          setTimeout(() => {
-            try {
-              onDragEnd(e);
-            } catch (_) {}
-          }, 150);
+          onDragEnd(e);
         } catch (_) {}
       }
     },
@@ -492,6 +475,7 @@ const VirtualizedUnifiedGrid = ({
       itemWidth: gridDimensions.itemWidth,
       selectedSet: sel.selected,
       clustersList,
+      optimisticHideSet,
       onItemClick,
       onItemContextMenu,
       onItemMouseDownKey,
@@ -503,6 +487,7 @@ const VirtualizedUnifiedGrid = ({
       gameCardExtraProps,
       onClusterClick,
       onClusterContextMenu,
+      virtEnabled,
     }),
     [
       items,
@@ -510,6 +495,7 @@ const VirtualizedUnifiedGrid = ({
       gridDimensions.itemWidth,
       sel.selected,
       clustersList,
+      optimisticHideSet,
       onItemClick,
       onItemContextMenu,
       onItemMouseDownKey,
@@ -521,8 +507,23 @@ const VirtualizedUnifiedGrid = ({
       gameCardExtraProps,
       onClusterClick,
       onClusterContextMenu,
+      virtEnabled,
     ]
   );
+
+  // 為 react-window Grid 提供穩定的 itemKey，減少因列數/寬度變化導致的重掛載
+  const gridItemKey = React.useCallback(({ columnIndex, rowIndex, data }) => {
+    try {
+      const idx = rowIndex * (data?.columns || 1) + columnIndex;
+      if (!data || !Array.isArray(data.items) || idx >= data.items.length) {
+        return `empty:${rowIndex}:${columnIndex}`;
+      }
+      const it = data.items[idx];
+      return it && it.type === 'cluster' ? `cluster:${it.id}` : `game:${it.filePath}`;
+    } catch (_) {
+      return `cell:${rowIndex}:${columnIndex}`;
+    }
+  }, []);
 
   // 右鍵處理
   const onContextMenu = (e) => {
@@ -603,8 +604,10 @@ const VirtualizedUnifiedGrid = ({
           rowHeight={ITEM_HEIGHT}
           width={gridDimensions.width}
           itemData={itemData}
-          overscanRowCount={2}
+          itemKey={gridItemKey}
+          overscanRowCount={1}
           overscanColumnCount={1}
+          useIsScrolling
           style={{
             overflowX: 'hidden',
             marginLeft: gridDimensions.leftOffset || 0,

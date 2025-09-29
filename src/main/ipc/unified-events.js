@@ -35,8 +35,13 @@ class UnifiedEventSystem {
   }
 
   // Queue event for batched processing
-  queueEvent(eventType, payload) {
-    this.eventQueue.push({ type: eventType, payload, timestamp: Date.now() });
+  queueEvent(eventType, payload, excludeWindowId = null) {
+    this.eventQueue.push({
+      type: eventType,
+      payload,
+      excludeWindowId: excludeWindowId || null,
+      timestamp: Date.now(),
+    });
 
     // Batch events to avoid overwhelming the UI
     if (this.batchTimeout) {
@@ -63,18 +68,25 @@ class UnifiedEventSystem {
     try {
       // Group events by type for intelligent merging
       const groupedEvents = this.groupEvents(events);
+      // Build batch context for cross-type optimizations (e.g., suppress folder-changed when updated exists)
+      const batchContext = this.buildBatchContext(groupedEvents);
 
       // Send merged events with individual error handling
       for (const [eventType, eventData] of groupedEvents) {
         try {
           // Process grouped events using the smart handler
-          this.processEventGroup(eventType, eventData);
+          this.processEventGroup(eventType, eventData, batchContext);
         } catch (error) {
           console.error(`[UnifiedEvents] Failed to broadcast ${eventType}:`, error);
 
           // Re-queue critical events for retry
           if (this.isCriticalEvent(eventType)) {
-            this.queueEvent(eventType, eventData, 'high');
+            // Re-queue original events to preserve payload and excludeWindowId
+            for (const ev of Array.isArray(eventData) ? eventData : []) {
+              try {
+                this.queueEvent(ev.type, ev.payload, ev.excludeWindowId || null);
+              } catch (_) {}
+            }
           }
         }
       }
@@ -113,54 +125,129 @@ class UnifiedEventSystem {
     return groups;
   }
 
+  // Build per-batch context used for cross-type deduplication
+  buildBatchContext(groups) {
+    const excludeWithUpdated = new Set(); // key: String(excludeId|null)
+    try {
+      const updated = groups.get('folder-updated');
+      if (Array.isArray(updated)) {
+        for (const ev of updated) {
+          const key = ev && (ev.excludeWindowId == null ? 'null' : String(ev.excludeWindowId));
+          excludeWithUpdated.add(key);
+        }
+      }
+    } catch (_) {}
+    return { excludeWithUpdated };
+  }
+
   // Process a group of similar events
-  async processEventGroup(eventType, events) {
+  async processEventGroup(eventType, events, context = {}) {
+    // 依 excludeWindowId 分組，確保不回送給來源視窗
+    const byExclude = new Map(); // excludeId (null|number) -> events[]
+    for (const ev of events) {
+      const key = ev.excludeWindowId == null ? null : ev.excludeWindowId;
+      if (!byExclude.has(key)) byExclude.set(key, []);
+      byExclude.get(key).push(ev);
+    }
+
+    const send = (channel, payload, excludeId) =>
+      sendToAllWindows(channel, payload, excludeId == null ? null : excludeId);
+
     switch (eventType) {
-      case 'games-updated':
-        // Only send the latest games update
-        const latestGamesUpdate = events[events.length - 1];
-        this.bridge.onCacheUpdate('games-loaded', {
-          games: latestGamesUpdate.payload,
-        });
-        break;
-
-      case 'folder-membership-changed':
-        // Merge all folder membership changes
-        const mergedChanges = this.mergeFolderChanges(events);
-        for (const change of mergedChanges) {
-          this.bridge.onCacheUpdate('folder-membership-changed', change);
+      case 'games-updated': {
+        // 只發送最新一次的全量列表
+        for (const [excludeId, evts] of byExclude) {
+          const latest = evts[evts.length - 1];
+          send('games-updated', latest.payload, excludeId);
         }
         break;
+      }
 
-      case 'folder-updated':
-        // Send all folder updates (they're typically different folders)
-        for (const event of events) {
-          this.bridge.broadcastToRenderers({
-            type: 'FOLDER_UPDATED',
-            payload: event.payload,
-          });
+      case 'folder-membership-changed': {
+        // 合併所有 membership 變化；payload 可能是陣列或單一物件
+        for (const [excludeId, evts] of byExclude) {
+          const merged = this.mergeFolderMembershipPayloads(evts);
+          if (merged.length > 0) {
+            send('folder-membership-changed', merged, excludeId);
+          }
         }
         break;
+      }
+
+      case 'folder-updated': {
+        // 對每個資料夾只發最後一次更新
+        for (const [excludeId, evts] of byExclude) {
+          const lastById = new Map();
+          for (const e of evts) {
+            const fid = e?.payload?.id;
+            if (fid != null) lastById.set(fid, e.payload);
+            else lastById.set(Symbol('noid'), e.payload);
+          }
+          for (const payload of lastById.values()) {
+            send('folder-updated', payload, excludeId);
+          }
+        }
+        break;
+      }
+
+      case 'folder-changed': {
+        // 若同批已有 folder-updated，則忽略相同 excludeId 的 folder-changed，避免雙重刷新
+        const excludeWithUpdated = context && context.excludeWithUpdated;
+        for (const [excludeId, evts] of byExclude) {
+          const k = excludeId == null ? 'null' : String(excludeId);
+          const hasUpdated = excludeWithUpdated && excludeWithUpdated.has(k);
+          if (hasUpdated) continue; // 抑制多餘的 folder-changed
+          // 仍保持批次內只送一次（取最後一個）
+          const latest = evts[evts.length - 1];
+          send('folder-changed', latest ? latest.payload : undefined, excludeId);
+        }
+        break;
+      }
 
       case 'drag-session-started':
-      case 'drag-session-ended':
-        // Only send the latest drag session state
-        const latestDragEvent = events[events.length - 1];
-        this.bridge.broadcastToRenderers({
-          type:
-            eventType === 'drag-session-started' ? 'DRAG_SESSION_STARTED' : 'DRAG_SESSION_ENDED',
-          payload: latestDragEvent.payload,
-        });
-        break;
-
-      default:
-        // Pass through other events as-is
-        for (const event of events) {
-          this.bridge.broadcastToRenderers({
-            type: event.type.toUpperCase().replace(/-/g, '_'),
-            payload: event.payload,
-          });
+      case 'drag-session:started': {
+        for (const [excludeId, evts] of byExclude) {
+          const latest = evts[evts.length - 1];
+          send('drag-session:started', latest.payload, excludeId);
         }
+        break;
+      }
+
+      case 'drag-session-ended':
+      case 'drag-session:ended': {
+        for (const [excludeId, evts] of byExclude) {
+          const latest = evts[evts.length - 1];
+          send('drag-session:ended', latest.payload, excludeId);
+        }
+        break;
+      }
+
+      case 'drag-session:updated': {
+        // 高頻事件：僅取最後一次位置更新
+        for (const [excludeId, evts] of byExclude) {
+          const latest = evts[evts.length - 1];
+          send('drag-session:updated', latest.payload, excludeId);
+        }
+        break;
+      }
+
+      case 'scan:progress': {
+        // 掃描進度高頻：僅傳遞最新一次進度
+        for (const [excludeId, evts] of byExclude) {
+          const latest = evts[evts.length - 1];
+          send('scan:progress', latest.payload, excludeId);
+        }
+        break;
+      }
+
+      default: {
+        // 其他事件：維持原始頻道名稱逐一送出（但仍在批次一次發）
+        for (const [excludeId, evts] of byExclude) {
+          for (const e of evts) {
+            send(e.type, e.payload, excludeId);
+          }
+        }
+      }
     }
   }
 
@@ -203,20 +290,41 @@ class UnifiedEventSystem {
     return result;
   }
 
+  // 兼容批次輸入（payload 可能已是多個變更物件的陣列）
+  mergeFolderMembershipPayloads(events) {
+    const flatten = [];
+    for (const e of events) {
+      const p = e && e.payload;
+      if (!p) continue;
+      if (Array.isArray(p)) flatten.push(...p);
+      else if (typeof p === 'object') flatten.push(p);
+    }
+    if (flatten.length === 0) return [];
+    const normalized = [];
+    for (const x of flatten) {
+      const folderId = x.folderId ?? null;
+      const filePaths = Array.isArray(x.filePaths) ? x.filePaths : x.filePath ? [x.filePath] : [];
+      const op = x.operation || x.action || null; // 支援 action/operation
+      if (!folderId || filePaths.length === 0) continue;
+      if (op !== 'add' && op !== 'remove') continue;
+      normalized.push({ payload: { folderId, filePaths, operation: op } });
+    }
+    if (normalized.length === 0) return [];
+    return this.mergeFolderChanges(normalized);
+  }
+
   // Immediate event (bypasses batching)
-  emitImmediate(eventType, payload) {
-    this.processEventGroup(eventType, [{ type: eventType, payload }]);
+  emitImmediate(eventType, payload, excludeWindowId = null) {
+    // 為了『全盤批次』一致性，仍走 queue，避免繞過批次
+    this.queueEvent(eventType, payload, excludeWindowId);
   }
 
   // Replace legacy broadcastToAll function
   // Compatibility mode: immediately send to renderer channels to preserve existing UI wiring.
   // Supports excludeWindowId to avoid echo to sender when needed.
   broadcastToAll(eventType, payload, excludeWindowId = null) {
-    try {
-      sendToAllWindows(eventType, payload, excludeWindowId);
-    } catch (e) {
-      console.warn('[UnifiedEvents] Legacy broadcast failed:', e && e.message ? e.message : e);
-    }
+    // 改為：僅排入批次佇列，由 queue/processBatch 統一送出
+    this.queueEvent(eventType, payload, excludeWindowId);
   }
 
   // Shutdown cleanup
@@ -243,9 +351,9 @@ function getUnifiedEventSystem() {
 }
 
 // Legacy compatibility wrapper
-function broadcastToAll(eventType, payload) {
+function broadcastToAll(eventType, payload, excludeWindowId = null) {
   const eventSystem = getUnifiedEventSystem();
-  eventSystem.broadcastToAll(eventType, payload);
+  eventSystem.broadcastToAll(eventType, payload, excludeWindowId);
 }
 
 module.exports = {

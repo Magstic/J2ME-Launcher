@@ -86,6 +86,21 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWi
     return probeCanonicalPath(normalizePath(gameIdOrPath));
   };
 
+  // 立即廣播（繞過批次系統）：用於 UI 需立即反應的輕量事件
+  const sendImmediateToAll = (channel, payload, excludeWindowId = null) => {
+    try {
+      const wins = BrowserWindow.getAllWindows();
+      for (const win of wins) {
+        if (excludeWindowId && win && win.id === excludeWindowId) continue;
+        if (win && !win.isDestroyed() && win.webContents) {
+          try {
+            win.webContents.send(channel, payload);
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
+  };
+
   // Shared batch operation functions
   const createBatchOperations = () => ({
     addGameToFolder: (filePath, folderId) => {
@@ -246,10 +261,24 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWi
         items: dragSession.items?.length || 0,
         source: dragSession.source,
       });
+      // 先快照必要資料，之後即可提前結束拖拽會話
       const items = dragSession.items || [];
       const source = dragSession.source || {};
       const targetType = target?.type;
       const targetId = target?.id || null;
+
+      // 提前結束跨窗口拖拽會話，立即恢復前端互動；後續使用本地快照繼續處理
+      try {
+        dragSession = {
+          active: false,
+          items: [],
+          source: null,
+          startedByWindowId: null,
+          lastPosition: null,
+          token: dragSession.token,
+        };
+        broadcastToAll('drag-session:ended');
+      } catch (_) {}
 
       const { addGameToFolder, addGamesToFolderBatch } = createBatchOperations();
 
@@ -365,6 +394,26 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWi
       // 批次加入資料夾
       if (addToFolderItems.length > 0) {
         try {
+          // 先用快速路徑（不查 DB）立即廣播：立刻讓桌面隱藏圖標
+          const fastFilePaths = addToFolderItems
+            .map((item) => (item && item.filePath ? normalizePath(item.filePath) : null))
+            .filter(Boolean);
+          if (fastFilePaths.length > 0) {
+            try {
+              sendImmediateToAll('desktop:remove-items', {
+                filePaths: fastFilePaths,
+                reason: 'added-to-folder',
+              });
+              try {
+                console.log(
+                  '[drag-session:drop] immediate desktop:remove-items sent (fast, no-DB):',
+                  fastFilePaths.length
+                );
+              } catch (_) {}
+            } catch (_) {}
+          }
+
+          // 再準備完整規範化路徑（含 DB 查詢）用於後續 DB 操作與冗餘廣播
           const filePaths = addToFolderItems.map((item) =>
             resolveFilePath(item.gameId || item.filePath || item.id)
           );
@@ -403,6 +452,13 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWi
               processed: result.processed,
             });
           }
+
+          // 立即通知桌面移除這些遊戲（樂觀更新）：從桌面加入到資料夾後，應即刻消失
+          try {
+            if (filePaths.length > 0) {
+              broadcastToAll('desktop:remove-items', { filePaths, reason: 'added-to-folder' });
+            }
+          } catch (_) {}
 
           if (!result.success) allOk = false;
         } catch (e) {
@@ -496,11 +552,13 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWi
               });
             } catch (_) {}
           }
-          // 目標資料夾更新
-          try {
-            const toFolder = sqlGetFolderById(targetId);
-            if (toFolder) broadcastToAll('folder-updated', toFolder);
-          } catch (_) {}
+          // 目標資料夾更新（延後更長時間，避免阻塞 UI 滾動）
+          setTimeout(() => {
+            try {
+              const toFolder = sqlGetFolderById(targetId);
+              if (toFolder) broadcastToAll('folder-updated', toFolder);
+            } catch (_) {}
+          }, 700);
         } catch (e) {
           console.warn('[clusters] add to folder failed:', e.message);
           allOk = false;
@@ -532,15 +590,17 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWi
               });
             } catch (_) {}
           }
-          // 更新來源/目標資料夾資訊
-          try {
-            const fromFolder = sqlGetFolderById(source.id);
-            if (fromFolder) broadcastToAll('folder-updated', fromFolder);
-          } catch (_) {}
-          try {
-            const toFolder = sqlGetFolderById(targetId);
-            if (toFolder) broadcastToAll('folder-updated', toFolder);
-          } catch (_) {}
+          // 更新來源/目標資料夾資訊（延後更長時間，避免阻塞 UI）
+          setTimeout(() => {
+            try {
+              const fromFolder = sqlGetFolderById(source.id);
+              if (fromFolder) broadcastToAll('folder-updated', fromFolder);
+            } catch (_) {}
+            try {
+              const toFolder = sqlGetFolderById(targetId);
+              if (toFolder) broadcastToAll('folder-updated', toFolder);
+            } catch (_) {}
+          }, 700);
         } catch (e) {
           console.warn('[clusters] move between folders failed:', e.message);
           allOk = false;
@@ -567,10 +627,13 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWi
               });
             } catch (_) {}
           }
-          try {
-            const fromFolder = sqlGetFolderById(source.id);
-            if (fromFolder) broadcastToAll('folder-updated', fromFolder);
-          } catch (_) {}
+          // 移除簇之後的來源資料夾更新（延後，避免阻塞）
+          setTimeout(() => {
+            try {
+              const fromFolder = sqlGetFolderById(source.id);
+              if (fromFolder) broadcastToAll('folder-updated', fromFolder);
+            } catch (_) {}
+          }, 700);
         } catch (e) {
           console.warn('[clusters] remove to desktop failed:', e.message);
           allOk = false;
@@ -662,41 +725,48 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWi
 
       // 若涉及到目標/來源資料夾，單獨更新
       if (source?.id) {
-        try {
-          const fromFolder = sqlGetFolderById(source.id);
-          if (fromFolder) {
-            const rawDb = getDB();
-            const rawCnt =
-              rawDb
-                .prepare(`SELECT COUNT(1) as c FROM folder_games WHERE folderId=?`)
-                .get(source.id)?.c || 0;
-            const visCnt = sqlGetFolderGameCount(source.id);
-            console.log('[drag-session:drop] source folder counts:', {
-              id: source.id,
-              raw: rawCnt,
-              visible: visCnt,
-            });
-            broadcastToAll('folder-updated', fromFolder);
-          }
-        } catch (_) {}
+        // 延後來源資料夾統計與廣播，避免阻塞拖拽後的互動
+        setTimeout(() => {
+          try {
+            const fromFolder = sqlGetFolderById(source.id);
+            if (fromFolder) {
+              const rawDb = getDB();
+              const rawCnt =
+                rawDb
+                  .prepare(`SELECT COUNT(1) as c FROM folder_games WHERE folderId=?`)
+                  .get(source.id)?.c || 0;
+              const visCnt = sqlGetFolderGameCount(source.id);
+              console.log('[drag-session:drop] source folder counts:', {
+                id: source.id,
+                raw: rawCnt,
+                visible: visCnt,
+              });
+              broadcastToAll('folder-updated', fromFolder);
+            }
+          } catch (_) {}
+        }, 700);
       }
       if (targetType === 'folder' && targetId) {
-        try {
-          const toFolder = sqlGetFolderById(targetId);
-          if (toFolder) {
-            const rawDb = getDB();
-            const rawCnt =
-              rawDb.prepare(`SELECT COUNT(1) as c FROM folder_games WHERE folderId=?`).get(targetId)
-                ?.c || 0;
-            const visCnt = sqlGetFolderGameCount(targetId);
-            console.log('[drag-session:drop] target folder counts:', {
-              id: targetId,
-              raw: rawCnt,
-              visible: visCnt,
-            });
-            broadcastToAll('folder-updated', toFolder);
-          }
-        } catch (_) {}
+        // 延後目標資料夾統計與廣播（700ms）
+        setTimeout(() => {
+          try {
+            const toFolder = sqlGetFolderById(targetId);
+            if (toFolder) {
+              const rawDb = getDB();
+              const rawCnt =
+                rawDb
+                  .prepare(`SELECT COUNT(1) as c FROM folder_games WHERE folderId=?`)
+                  .get(targetId)?.c || 0;
+              const visCnt = sqlGetFolderGameCount(targetId);
+              console.log('[drag-session:drop] target folder counts:', {
+                id: targetId,
+                raw: rawCnt,
+                visible: visCnt,
+              });
+              broadcastToAll('folder-updated', toFolder);
+            }
+          } catch (_) {}
+        }, 700);
       }
 
       // 結束會話

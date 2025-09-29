@@ -10,6 +10,12 @@ function parseRow(row) {
 }
 
 function register({ ipcMain }) {
+  // DEV 開關：打包後預設停用，除非設定 ENABLE_DEBUG_IPC=1
+  try {
+    const { app } = require('electron');
+    const allow = process.env.ENABLE_DEBUG_IPC === '1' || !app?.isPackaged;
+    if (!allow) return; // 不註冊任何通道
+  } catch (_) {}
   const db = getDB();
 
   ipcMain.handle('sql:games-upsertMany', (e, items) => {
