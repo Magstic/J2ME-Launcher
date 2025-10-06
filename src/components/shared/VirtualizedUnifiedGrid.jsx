@@ -35,6 +35,7 @@ const GridCell = React.memo(({ columnIndex, rowIndex, style, data, isScrolling }
     gameCardExtraProps,
     onClusterClick,
     onClusterContextMenu,
+    buildClusterContextPayload,
     onClusterDragStart,
     onClusterDragEnd,
     clustersList,
@@ -55,6 +56,8 @@ const GridCell = React.memo(({ columnIndex, rowIndex, style, data, isScrolling }
     justifyContent: 'center',
     padding: `${GRID_GAP / 2}px`,
   };
+
+  // 診斷應位於父組件（此處在 Cell 內會缺少容器引用），已移至父組件
 
   // 渲染遊戲
   if (item.type === 'game') {
@@ -97,23 +100,7 @@ const GridCell = React.memo(({ columnIndex, rowIndex, style, data, isScrolling }
   if (item.type === 'cluster') {
     const key = `cluster:${item.id}`;
     const isSelectedCluster = !!selectedSet?.has(key);
-    // 僅保留仍存在於當前列表中的選中簇 ID
-    const currentSet = new Set((clustersList || []).map((c) => String(c.id)));
-    const rawIds = Array.from(selectedSet || [])
-      .filter((k) => typeof k === 'string' && k.startsWith('cluster:'))
-      .map((k) => k.slice(8));
-    const filteredIds = rawIds.filter((id) => currentSet.has(String(id)));
-    const isMulti = filteredIds.length > 1 && filteredIds.includes(String(item.id));
-    // 將當前選中的遊戲（filePath）也附帶給右鍵菜單，支援『混合選擇』情境
-    const selectedGameFilePaths =
-      selectedSet && selectedSet.size > 0
-        ? Array.from(selectedSet)
-            .filter((k) => typeof k === 'string' && k.startsWith('game:'))
-            .map((k) => k.slice(5))
-        : [];
-    const clusterPayload = isMulti
-      ? { ...item, selectedClusterIds: filteredIds, selectedFilePaths: selectedGameFilePaths }
-      : { ...item, selectedFilePaths: selectedGameFilePaths };
+    const clusterExtra = virtEnabled || isScrolling ? { disableAppear: true } : {};
     return (
       <div style={cellStyle}>
         <ClusterCard
@@ -122,12 +109,15 @@ const GridCell = React.memo(({ columnIndex, rowIndex, style, data, isScrolling }
           isSelected={!!isSelectedCluster}
           onClick={() => onClusterClick && onClusterClick(item)}
           onMouseDown={(e) => onItemMouseDownKey && onItemMouseDownKey(key, e)}
-          onContextMenu={(e) => onClusterContextMenu && onClusterContextMenu(e, clusterPayload)}
+          onContextMenu={(e) =>
+            onClusterContextMenu && onClusterContextMenu(e, buildClusterContextPayload(item))
+          }
           draggable={true}
           data-filepath={key}
           onDragStart={(e) => onClusterDragStart && onClusterDragStart(item, e)}
           onDragEnd={onClusterDragEnd}
           className={`cluster-card`}
+          {...clusterExtra}
         />
       </div>
     );
@@ -168,6 +158,7 @@ const VirtualizedUnifiedGrid = ({
   dragSource = { type: 'desktop', id: null },
 }) => {
   const containerRef = React.useRef(null);
+  const gridOuterRef = React.useRef(null);
   const [gridDimensions, setGridDimensions] = React.useState({
     width: 800,
     height: 600,
@@ -179,6 +170,7 @@ const VirtualizedUnifiedGrid = ({
   // 框選（統一：同時覆蓋遊戲與簇）
   const sel = useSelectionBox({
     rootRef: containerRef,
+    scrollRef: gridOuterRef,
     controlled: selectionControlled,
     selectedSet: selectionProps.selectedSet,
     onSelectedChange: selectionProps.onSelectedChange,
@@ -305,6 +297,37 @@ const VirtualizedUnifiedGrid = ({
   const virtEnabled = !!virtualization?.enabled && itemCount >= VIRTUALIZATION_THRESHOLD;
   const rowCount = Math.ceil(itemCount / gridDimensions.columnCount);
 
+  // 開發期虛擬化診斷（確保在擁有正確變數作用域的父組件層執行）
+  React.useEffect(() => {
+    if (process.env.NODE_ENV === 'production') return;
+    try {
+      const cont = containerRef.current;
+      const outer = gridOuterRef.current;
+      const contStyle = cont ? window.getComputedStyle(cont) : null;
+      const outerStyle = outer ? window.getComputedStyle(outer) : null;
+      const nodes = cont?.querySelectorAll?.('.game-card, .cluster-card');
+      const n = nodes ? nodes.length : -1;
+      console.log('[VIRT_DIAG]', {
+        virtEnabled,
+        itemCount,
+        gridW: gridDimensions.width,
+        gridH: gridDimensions.height,
+        col: gridDimensions.columnCount,
+        rowCount,
+        containerOverflowY: contStyle?.overflowY,
+        outerOverflowY: outerStyle?.overflowY,
+        domCards: n,
+      });
+    } catch (_) {}
+  }, [
+    virtEnabled,
+    itemCount,
+    gridDimensions.width,
+    gridDimensions.height,
+    gridDimensions.columnCount,
+    rowCount,
+  ]);
+
   // 事件處理器
   const keyForItem = React.useCallback(
     (it) => (it?.type === 'cluster' ? `cluster:${it.id}` : `game:${it.filePath}`),
@@ -370,6 +393,32 @@ const VirtualizedUnifiedGrid = ({
       }
     },
     [onGameContextMenu, onClusterContextMenu, sel.selected]
+  );
+
+  // 延遲計算簇右鍵菜單所需的 payload，僅在右鍵觸發時計算
+  const buildClusterContextPayload = React.useCallback(
+    (item) => {
+      try {
+        const selKeys = sel.selected || new Set();
+        // 遊戲 filePaths（混合選擇支持）
+        const selectedGamePaths = Array.from(selKeys)
+          .filter((k) => typeof k === 'string' && k.startsWith('game:'))
+          .map((k) => k.slice(5));
+        // 保留仍存在的簇 id
+        const existing = new Set((clustersList || []).map((c) => String(c.id)));
+        const clusterIds = Array.from(selKeys)
+          .filter((k) => typeof k === 'string' && k.startsWith('cluster:'))
+          .map((k) => k.slice(8))
+          .filter((id) => existing.has(String(id)));
+        const isMulti = clusterIds.length > 1 && clusterIds.includes(String(item.id));
+        return isMulti
+          ? { ...item, selectedClusterIds: clusterIds, selectedFilePaths: selectedGamePaths }
+          : { ...item, selectedFilePaths: selectedGamePaths };
+      } catch (_) {
+        return item;
+      }
+    },
+    [sel.selected, clustersList]
   );
 
   const onItemMouseDownKey = React.useCallback(
@@ -487,6 +536,7 @@ const VirtualizedUnifiedGrid = ({
       gameCardExtraProps,
       onClusterClick,
       onClusterContextMenu,
+      buildClusterContextPayload,
       virtEnabled,
     }),
     [
@@ -507,6 +557,7 @@ const VirtualizedUnifiedGrid = ({
       gameCardExtraProps,
       onClusterClick,
       onClusterContextMenu,
+      buildClusterContextPayload,
       virtEnabled,
     ]
   );
@@ -593,7 +644,7 @@ const VirtualizedUnifiedGrid = ({
       ref={containerRef}
       onMouseDown={containerMouseDown}
       onContextMenu={onContextMenu}
-      style={{ overflow: 'hidden' }}
+      style={{ overflow: 'hidden', contain: 'content' }}
     >
       {virtEnabled ? (
         <Grid
@@ -603,6 +654,7 @@ const VirtualizedUnifiedGrid = ({
           rowCount={rowCount}
           rowHeight={ITEM_HEIGHT}
           width={gridDimensions.width}
+          outerRef={gridOuterRef}
           itemData={itemData}
           itemKey={gridItemKey}
           overscanRowCount={1}
@@ -610,6 +662,7 @@ const VirtualizedUnifiedGrid = ({
           useIsScrolling
           style={{
             overflowX: 'hidden',
+            overflowY: 'auto',
             marginLeft: gridDimensions.leftOffset || 0,
           }}
         >

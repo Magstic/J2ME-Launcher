@@ -185,9 +185,9 @@
   border: none;
   box-shadow: none;
   transition:
-    opacity 0.18s ease-out,
-    transform 0.18s ease-out,
-    background-color 0.2s ease;
+    opacity 120ms ease-out,
+    transform 120ms ease-out,
+    background-color 200ms ease;
   position: relative; /* 使用偽元素作為選中覆蓋層，需要建立定位上下文 */
   overflow: hidden; /* 防止覆蓋層外溢，保持圓角一致 */
 }

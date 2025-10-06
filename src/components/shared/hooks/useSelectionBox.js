@@ -10,6 +10,7 @@ import React from 'react';
  * useSelectionBox
  * @param {Object} options
  * @param {React.RefObject<HTMLElement>} options.rootRef - 用於命中測試/查找卡片的容器
+ * @param {React.RefObject<HTMLElement>=} options.scrollRef - 滾動容器（可選；虛擬化時傳入 react-window 的 outerRef）
  * @param {boolean} options.controlled - 是否外控（父層提供 selection 狀態）。true=外控，false=內控
  * @param {(Set<string>)=>void=} options.onSelectedChange - 外控時，回傳新的 selectedSet
  * @param {Set<string>=} options.selectedSet - 外控時，當前選中集合
@@ -21,6 +22,7 @@ import React from 'react';
  */
 export default function useSelectionBox({
   rootRef,
+  scrollRef,
   controlled = false,
   onSelectedChange,
   selectedSet,
@@ -489,7 +491,7 @@ export default function useSelectionBox({
 
   // 滾動時智能失效緩存（虛擬化優化）
   React.useEffect(() => {
-    const container = rootRef?.current;
+    const container = (scrollRef && scrollRef.current) || rootRef?.current;
     if (!container) return;
     let scrollTimeout;
     const onScroll = () => {
@@ -504,7 +506,7 @@ export default function useSelectionBox({
       container.removeEventListener('scroll', onScroll);
       clearTimeout(scrollTimeout);
     };
-  }, []);
+  }, [rootRef, scrollRef]);
 
   return {
     // 狀態（外控模式下可忽略）

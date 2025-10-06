@@ -5,3 +5,6 @@ export { default as useUnifiedContextMenu } from './useUnifiedContextMenu.js';
 export { default as useCreateShortcut } from './useCreateShortcut.js';
 export { default as useOutsideClick } from './useOutsideClick.js';
 export { default as useWheelTouchLock } from './useWheelTouchLock.js';
+export { default as useGuardedRefresh } from './useGuardedRefresh.js';
+export { default as useMergedEventRefresh } from './useMergedEventRefresh.js';
+export { default as useUserInputActivityRef } from './useUserInputActivityRef.js';
