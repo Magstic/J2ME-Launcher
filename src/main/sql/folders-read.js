@@ -130,7 +130,7 @@ function getGamesByFolder(folderId) {
         SELECT 1 FROM directories d
         WHERE d.enabled = 1 AND g.filePath GLOB (d.path || '*')
       )
-    ORDER BY g.gameName
+    ORDER BY COALESCE(g.customName, g.gameName)
   `
     )
     .all(folderId);
@@ -150,7 +150,7 @@ function getUncategorizedGames() {
       AND NOT EXISTS (
         SELECT 1 FROM folder_games fg WHERE fg.filePath = g.filePath COLLATE NOCASE
       )
-    ORDER BY g.gameName
+    ORDER BY COALESCE(g.customName, g.gameName)
   `
     )
     .all();
@@ -174,7 +174,7 @@ function getDesktopGames() {
       AND NOT EXISTS (
         SELECT 1 FROM cluster_games cg WHERE cg.filePath = g.filePath COLLATE NOCASE
       )
-    ORDER BY g.gameName
+    ORDER BY COALESCE(g.customName, g.gameName)
   `
     )
     .all();

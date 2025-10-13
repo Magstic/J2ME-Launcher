@@ -173,16 +173,18 @@ class DataStore {
       const dir = this.getIconCachePath();
       if (!fs.existsSync(dir)) return;
 
-      // 從 SQLite 蒐集所有被引用的圖標路徑
+      // 從 SQLite 蒐集所有被引用的圖標路徑（不受 enabled 目錄過濾影響）
       const referenced = new Set();
       try {
-        const allGames = this.getAllGames();
-        for (const game of allGames) {
-          if (game && game.iconPath) referenced.add(path.normalize(game.iconPath));
-          if (game && game.cachedIconPath) referenced.add(path.normalize(game.cachedIconPath));
+        const { getDB } = require('./db');
+        const db = getDB();
+        const rows = db.prepare('SELECT iconPath, cachedIconPath FROM games').all();
+        for (const r of rows) {
+          if (r && r.iconPath) referenced.add(path.normalize(r.iconPath));
+          if (r && r.cachedIconPath) referenced.add(path.normalize(r.cachedIconPath));
         }
       } catch (e) {
-        console.warn('[DataStore] cleanupOrphanIcons: failed to get games from SQL:', e.message);
+        console.warn('[DataStore] cleanupOrphanIcons: failed to query icons from SQL:', e.message);
       }
 
       const files = fs.readdirSync(dir);

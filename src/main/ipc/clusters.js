@@ -277,6 +277,9 @@ function register({ ipcMain, DataStore, addUrlToGames, toIconUrl, broadcastToAll
         broadcastToAll('games-updated', addUrlToGames(sqlGames));
       } catch (_) {}
       broadcastToAll('cluster:deleted', { id });
+      try {
+        broadcastToAll('folder-changed');
+      } catch (_) {}
       return res;
     } catch (error) {
       return { success: false, error: String(error && error.message ? error.message : error) };

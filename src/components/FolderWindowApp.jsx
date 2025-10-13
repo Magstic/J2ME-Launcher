@@ -397,7 +397,10 @@ const FolderWindowApp = () => {
                 const fp = String(m?.filePath);
                 if (!exist.has(fp)) toAdd.push(m);
               }
-              return toAdd.length ? [...prev, ...toAdd] : prev;
+              const next = toAdd.length ? [...prev, ...toAdd] : prev;
+              return next
+                .slice()
+                .sort((a, b) => String(a?.gameName || '').localeCompare(String(b?.gameName || '')));
             });
           }
         });
@@ -461,6 +464,98 @@ const FolderWindowApp = () => {
     },
   });
 
+  // 監聽：遊戲增量更新（若主進程提供），就地修補名稱/廠商/圖標，避免整體重載
+  useEffect(() => {
+    const api = window.electronAPI;
+    if (!api?.onGamesIncrementalUpdate) return;
+    const off = api.onGamesIncrementalUpdate((u) => {
+      try {
+        const arr = Array.isArray(u?.updated)
+          ? u.updated
+          : Array.isArray(u)
+            ? u
+            : u && u.games && Array.isArray(u.games)
+              ? u.games
+              : [];
+        if (!arr.length) return;
+        const byPath = new Map(
+          arr
+            .map((x) => ({
+              filePath: String(x?.filePath || x?.path || ''),
+              gameName: x?.gameName || x?.name || x?.title || x?.customName,
+              vendor: x?.vendor || x?.customVendor,
+              iconUrl: x?.iconUrl || x?.icon,
+              customName: x?.customName,
+              customVendor: x?.customVendor,
+            }))
+            .filter((x) => x.filePath)
+            .map((x) => [x.filePath, x])
+        );
+        if (byPath.size === 0) return;
+        // 局部修補：僅更新存在於當前資料夾列表中的項目
+        startTransition(() => {
+          setFolderGames((prev) => {
+            if (!Array.isArray(prev) || prev.length === 0) return prev;
+            let changed = false;
+            const next = prev.map((g) => {
+              const upd = byPath.get(String(g.filePath));
+              if (!upd) return g;
+              const hasCustomName = Object.prototype.hasOwnProperty.call(upd, 'customName');
+              const hasGameName = Object.prototype.hasOwnProperty.call(upd, 'gameName');
+              const hasCustomVendor = Object.prototype.hasOwnProperty.call(upd, 'customVendor');
+              const hasVendor = Object.prototype.hasOwnProperty.call(upd, 'vendor');
+
+              const nextCustomName = hasCustomName ? upd.customName || null : g.customName;
+              const nextCustomVendor = hasCustomVendor ? upd.customVendor || null : g.customVendor;
+
+              // 當清除 customName (null) 時，gameName 回退到 originalName
+              const nextGameName = hasGameName
+                ? upd.gameName || g.originalName || g.gameName
+                : hasCustomName
+                  ? upd.customName != null
+                    ? upd.customName
+                    : g.originalName || g.gameName
+                  : g.gameName;
+
+              // 當清除 customVendor (null) 時，vendor 回退到 originalVendor
+              const nextVendor = hasVendor
+                ? upd.vendor || g.originalVendor || g.vendor
+                : hasCustomVendor
+                  ? upd.customVendor != null
+                    ? upd.customVendor
+                    : g.originalVendor || g.vendor
+                  : g.vendor;
+
+              const n = {
+                ...g,
+                customName: nextCustomName,
+                customVendor: nextCustomVendor,
+                gameName: nextGameName,
+                vendor: nextVendor,
+                iconUrl: upd.iconUrl !== undefined ? upd.iconUrl || g.iconUrl : g.iconUrl,
+              };
+              if (n !== g) changed = true;
+              return n;
+            });
+            if (!changed) return prev;
+            // 根據顯示名（customName 優先）排序，與 SQL 重載行為一致
+            next.sort((a, b) => {
+              const an = String(a?.customName || a?.gameName || '');
+              const bn = String(b?.customName || b?.gameName || '');
+              return an.localeCompare(bn);
+            });
+            return next;
+          });
+        });
+      } catch (_) {}
+    });
+    return () => {
+      try {
+        off && off();
+      } catch (_) {}
+    };
+  }, []);
+
   // 獲取當前資料夾ID
   useEffect(() => {
     const getCurrentFolderId = () => {
@@ -483,46 +578,71 @@ const FolderWindowApp = () => {
   // 右鍵選單由 useUnifiedContextMenu 統一處理（folder-window 視圖）
 
   // 載入資料夾內容
-  const loadFolderContents = useCallback(async () => {
-    if (!folderId || !window.electronAPI?.getFolderContents) return;
+  const loadFolderContents = useCallback(
+    async (opts) => {
+      if (!folderId || !window.electronAPI?.getFolderContents) return;
 
-    // 初次載入才顯示 loading，其後刷新不切換 loading，避免整體閃爍
-    if (!hasLoadedRef.current) setIsLoading(true);
-    try {
-      const result = await window.electronAPI.getFolderContents(folderId);
-      setFolder(result.folder);
-      // Load games and clusters（本地狀態，不觸發全域 store 重算）
-      const games = result.games || [];
-      const cs = Array.isArray(result.clusters) ? result.clusters : [];
-      // 僅在鍵集合有變更時更新 clusters
-      if (!listShallowEqualByKeys(prevClustersRef.current, cs, { keyOf: keyOfCluster })) {
-        setClusters(cs);
-        prevClustersRef.current = cs;
-      }
-      // 僅在鍵集合有變更時更新 folderGames
-      if (!listShallowEqualByKeys(prevGamesRef.current, games, { keyOf: keyOfGame })) {
-        setFolderGames(games);
-        prevGamesRef.current = games;
-      }
-      // 重載完成：清空樂觀隱藏，避免殘留
+      // 初次載入才顯示 loading，其後刷新不切換 loading，避免整體閃爍
+      if (!hasLoadedRef.current) setIsLoading(true);
       try {
-        setOptimisticHideSet(new Set());
-      } catch (_) {}
-    } catch (error) {
-      console.error('載入資料夾內容失敗:', error);
-      setFolder(null);
-      setFolderGames([]);
-    } finally {
-      if (!hasLoadedRef.current) {
-        setIsLoading(false);
-        hasLoadedRef.current = true;
+        const result = await window.electronAPI.getFolderContents(folderId);
+        setFolder(result.folder);
+        // Load games and clusters（本地狀態，不觸發全域 store 重算）
+        const games = result.games || [];
+        const cs = Array.isArray(result.clusters) ? result.clusters : [];
+        // 僅在鍵集合有變更時更新 clusters
+        if (
+          (opts && opts.forceReplace) ||
+          !listShallowEqualByKeys(prevClustersRef.current, cs, { keyOf: keyOfCluster })
+        ) {
+          setClusters(cs);
+          prevClustersRef.current = cs;
+        }
+        // 僅在鍵集合有變更時更新 folderGames
+        if (
+          (opts && opts.forceReplace) ||
+          !listShallowEqualByKeys(prevGamesRef.current, games, { keyOf: keyOfGame })
+        ) {
+          setFolderGames(games);
+          prevGamesRef.current = games;
+        }
+        // 重載完成：清空樂觀隱藏，避免殘留
+        try {
+          setOptimisticHideSet(new Set());
+        } catch (_) {}
+      } catch (error) {
+        console.error('載入資料夾內容失敗:', error);
+        setFolder(null);
+        setFolderGames([]);
+      } finally {
+        if (!hasLoadedRef.current) {
+          setIsLoading(false);
+          hasLoadedRef.current = true;
+        }
       }
-    }
-  }, [folderId]);
+    },
+    [folderId]
+  );
 
   useEffect(() => {
     loadFolderContents();
   }, [loadFolderContents]);
+
+  // 監聽：遊戲資料更新（例如自訂名稱變更）— 強制重載當前資料夾內容，確保即時反映
+  useEffect(() => {
+    const api = window.electronAPI;
+    if (!api?.onGamesUpdated) return;
+    const off = api.onGamesUpdated(() => {
+      try {
+        loadFolderContents({ forceReplace: true });
+      } catch (_) {}
+    });
+    return () => {
+      try {
+        off && off();
+      } catch (_) {}
+    };
+  }, [folderId, loadFolderContents]);
 
   // 切換資料夾時重置比較集合
   useEffect(() => {
@@ -544,7 +664,7 @@ const FolderWindowApp = () => {
     refreshFn,
     suppressUntilRef,
     lastUserInputRef,
-    userActiveWindowMs: 1000,
+    userActiveWindowMs: 300,
     idleDelayMs: 0,
     preferImmediate: true,
   });
@@ -626,15 +746,31 @@ const FolderWindowApp = () => {
         window.electronAPI?.onFolderChanged?.((payload) => cb({ type: 'folder-changed', payload })),
     ],
     schedule: (ms) => scheduleGuardedRefresh(ms),
-    debounceMs: 150,
+    debounceMs: 120,
     filter: (evt) => {
       if (!evt) return false;
       // folder-updated 僅更新本地 meta，不重載
       if (evt.type === 'folder-updated') return false;
-      // cluster 相關事件改為本地處理或忽略，不觸發全量重載
-      if (evt.type === 'cluster-changed' || evt.type === 'cluster-deleted') return false;
-      // 僅在資料夾結構級變更時才允許重載
-      return evt.type === 'folder-changed';
+      // folder-changed 直接放行（結構級刷新）
+      if (evt.type === 'folder-changed') return true;
+      // 僅放行與當前資料夾相關的 cluster 事件
+      if (evt.type === 'cluster-changed') {
+        const p = evt.payload || {};
+        const act = p.action;
+        const fid = String(p.folderId || '');
+        const toF = String(p.toFolderId || '');
+        const fromF = String(p.fromFolderId || '');
+        const cur = String(folderId || '');
+        if (!cur) return false;
+        // 重要：簇屬性更新（例如名稱/圖標）也需要刷新當前資料夾檢視
+        if (act === 'updated') return true;
+        if (act === 'linked-folder') return fid === cur;
+        if (act === 'moved-folder') return toF === cur || fromF === cur;
+        if (act === 'unlinked-folder') return fid === cur;
+        return false;
+      }
+      if (evt.type === 'cluster-deleted') return true;
+      return false;
     },
     onEvent: (evt) => {
       try {
@@ -647,15 +783,18 @@ const FolderWindowApp = () => {
         // 本地差分：cluster 變更
         if (evt.type === 'cluster-changed') {
           const p = evt.payload || {};
-          const clusterObj = p && (p.cluster || p.data || null);
-          const cid = String(p?.id ?? clusterObj?.id ?? p?.clusterId ?? '');
-          if (cid) {
-            // 優先以 API 拉取最新簇資料（避免 payload 欄位不全）
+          const act = p.action;
+          const cid = String(p?.id ?? p?.clusterId ?? '');
+          const cur = String(folderId || '');
+          if (!cid || !cur) return;
+
+          const addClusterById = (clusterId) => {
             try {
-              const maybe = window.electronAPI?.getCluster?.(cid);
+              const maybe = window.electronAPI?.getCluster?.(clusterId);
               if (maybe && typeof maybe.then === 'function') {
                 maybe
-                  .then((created) => {
+                  .then((res) => {
+                    const created = res && res.cluster ? res.cluster : null;
                     if (created && created.id != null) {
                       startTransition(() => {
                         setClusters((prev) => {
@@ -672,31 +811,53 @@ const FolderWindowApp = () => {
                   .catch(() => {});
               }
             } catch (_) {}
-          } else if (clusterObj && clusterObj.id != null) {
-            // 次選：payload 已含簇物件，直接套用
-            startTransition(() => {
-              setClusters((prev) => {
-                if (!Array.isArray(prev)) return [clusterObj];
-                const idStr = String(clusterObj.id);
-                const exists = prev.some((c) => String(c?.id) === idStr);
-                return exists
-                  ? prev.map((c) => (String(c?.id) === idStr ? { ...c, ...clusterObj } : c))
-                  : [...prev, clusterObj];
-              });
-            });
-          } else {
-            // 最後降級：重新獲取當前資料夾下簇列表（仍比全量重載輕）
+          };
+
+          if (act === 'linked-folder' && String(p.folderId || '') === cur) {
+            addClusterById(cid);
             try {
-              const maybeList = window.electronAPI?.getClustersByFolder?.(folderId);
-              if (maybeList && typeof maybeList.then === 'function') {
-                maybeList
-                  .then((res) => {
-                    const cs = Array.isArray(res?.clusters) ? res.clusters : [];
-                    startTransition(() => setClusters(cs));
-                  })
-                  .catch(() => {});
-              }
+              setTimeout(() => cancelScheduled && cancelScheduled(), 0);
             } catch (_) {}
+            return;
+          }
+          if (act === 'updated') {
+            // 名稱/圖標等屬性更新：局部刷新該簇
+            addClusterById(cid);
+            try {
+              setTimeout(() => cancelScheduled && cancelScheduled(), 0);
+            } catch (_) {}
+            return;
+          }
+          if (act === 'moved-folder') {
+            if (String(p.toFolderId || '') === cur) {
+              addClusterById(cid);
+              try {
+                setTimeout(() => cancelScheduled && cancelScheduled(), 0);
+              } catch (_) {}
+              return;
+            }
+            if (String(p.fromFolderId || '') === cur) {
+              startTransition(() => {
+                setClusters((prev) =>
+                  Array.isArray(prev) ? prev.filter((c) => String(c?.id) !== cid) : prev
+                );
+              });
+              try {
+                setTimeout(() => cancelScheduled && cancelScheduled(), 0);
+              } catch (_) {}
+              return;
+            }
+          }
+          if (act === 'unlinked-folder' && String(p.folderId || '') === cur) {
+            startTransition(() => {
+              setClusters((prev) =>
+                Array.isArray(prev) ? prev.filter((c) => String(c?.id) !== cid) : prev
+              );
+            });
+            try {
+              setTimeout(() => cancelScheduled && cancelScheduled(), 0);
+            } catch (_) {}
+            return;
           }
           return;
         }
@@ -710,6 +871,12 @@ const FolderWindowApp = () => {
                 Array.isArray(prev) ? prev.filter((c) => String(c?.id) !== cid) : prev
               );
             });
+            try {
+              loadFolderContents({ forceReplace: true });
+            } catch (_) {}
+            try {
+              setTimeout(() => cancelScheduled && cancelScheduled(), 0);
+            } catch (_) {}
           } else {
             // 降級：重新獲取資料夾簇列表
             try {

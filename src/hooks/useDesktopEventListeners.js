@@ -122,11 +122,12 @@ export const useDesktopEventListeners = ({
           if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
             window.requestIdleCallback(() => {
               try {
-                loadDesktopItems && loadDesktopItems();
+                // 強制替換以反映名稱/圖標等非鍵變更
+                loadDesktopItems && loadDesktopItems({ forceReplace: true });
               } catch (_) {}
             });
           } else {
-            loadDesktopItems && loadDesktopItems();
+            loadDesktopItems && loadDesktopItems({ forceReplace: true });
           }
         } finally {
           timer = null;
@@ -151,7 +152,8 @@ export const useDesktopEventListeners = ({
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => {
         try {
-          loadDesktopItems && loadDesktopItems();
+          // 強制替換以反映名稱/主成員圖標等非鍵變更
+          loadDesktopItems && loadDesktopItems({ forceReplace: true });
         } catch (_) {}
         timer = null;
       }, 50);

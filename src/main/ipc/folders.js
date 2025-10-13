@@ -20,6 +20,8 @@ const { getDB } = require('../db');
 const { randomUUID } = require('crypto');
 const { getGameStateCache } = require('../utils/game-state-cache');
 const { getStoreBridge } = require('../store-bridge');
+const { getLogger } = require('../../utils/logger.cjs');
+const log = getLogger('ipc:folders');
 
 function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl }) {
   const path = require('path');
@@ -135,7 +137,7 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
       if (!folderId || arr.length === 0) return { success: true, note: 'empty' };
       const filePaths = resolveManyFilePaths(arr);
       try {
-        console.log(
+        log.info(
           '[folders:add-batch] folderId=',
           folderId,
           'count=',
@@ -155,7 +157,7 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
             const rawCnt =
               db.prepare(`SELECT COUNT(1) as c FROM folder_games WHERE folderId=?`).get(folderId)
                 ?.c || 0;
-            console.log('[folders:add-batch] folder counts after add:', {
+            log.debug('[folders:add-batch] folder counts after add:', {
               id: folderId,
               raw: rawCnt,
               visible: updatedFolder.gameCount,
@@ -168,7 +170,7 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
       }
       return { success: true, count: filePaths.length };
     } catch (error) {
-      console.error('批次添加遊戲到資料夾失敗:', error);
+      log.error('批次添加遊戲到資料夾失敗:', error);
       return { success: false, error: error.message };
     }
   });
@@ -199,7 +201,7 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
       broadcastToAll('folder-updated', folder);
       return { success: true, folder };
     } catch (error) {
-      console.error('創建資料夾失敗:', error);
+      log.error('創建資料夾失敗:', error);
       return { success: false, error: error.message };
     }
   });
@@ -214,7 +216,7 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
       broadcastToAll('folder-updated', updatedFolder);
       return { success: true };
     } catch (error) {
-      console.error('更新資料夾失敗:', error);
+      log.error('更新資料夾失敗:', error);
       return { success: false, error: error.message };
     }
   });
@@ -252,7 +254,7 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
 
       return { success: true };
     } catch (error) {
-      console.error('刪除資料夾失敗:', error);
+      log.error('刪除資料夾失敗:', error);
       return { success: false, error: error.message };
     }
   });
@@ -292,7 +294,7 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
       }));
       return { folder, games: gamesWithUrl, clusters: clustersWithUrl };
     } catch (error) {
-      console.error('獲取資料夾內容失敗:', error);
+      log.error('獲取資料夾內容失敗:', error);
       return { folder: null, games: [], clusters: [] };
     }
   });
@@ -302,7 +304,7 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
     try {
       const filePath = resolveFilePath(gameId);
       try {
-        console.log(
+        log.info(
           '[folders:add-one] folderId=',
           folderId,
           'gameId=',
@@ -319,7 +321,7 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
           const rawCnt =
             db.prepare(`SELECT COUNT(1) as c FROM folder_games WHERE folderId=?`).get(folderId)
               ?.c || 0;
-          console.log('[folders:add-one] folder counts after add:', {
+          log.debug('[folders:add-one] folder counts after add:', {
             id: folderId,
             raw: rawCnt,
             visible: updatedFolder.gameCount,
@@ -330,7 +332,7 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
       // 不再廣播全量 games-updated（資料夾與增量事件足夠同步 UI）
       return { success: true };
     } catch (error) {
-      console.error('添加遊戲到資料夾失敗:', error);
+      log.error('添加遊戲到資料夾失敗:', error);
       return { success: false, error: error.message };
     }
   });
@@ -357,7 +359,7 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
       } catch (_) {}
       return { success: true };
     } catch (error) {
-      console.error('從資料夾移除遊戲失敗:', error);
+      log.error('從資料夾移除遊戲失敗:', error);
       return { success: false, error: error.message };
     }
   });
@@ -370,12 +372,12 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
       try {
         sqlRemoveGameFromFolder(fromFolderId, filePath);
       } catch (e) {
-        console.warn('[SQL write] move remove failed:', e.message);
+        log.warn('[SQL write] move remove failed:', e.message);
       }
       try {
         sqlAddGameToFolder(toFolderId, filePath);
       } catch (e) {
-        console.warn('[SQL write] move add failed:', e.message);
+        log.warn('[SQL write] move add failed:', e.message);
       }
       try {
         const fromFolder = sqlGetFolderById(fromFolderId);
@@ -386,7 +388,7 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
       // 不再廣播全量 games-updated（資料夾與增量事件足夠同步 UI）
       return { success: true };
     } catch (error) {
-      console.error('移動遊戲失敗:', error);
+      log.error('移動遊戲失敗:', error);
       return { success: false, error: error.message };
     }
   });
@@ -397,7 +399,7 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
       const games = sqlGetGamesByFolder(folderId);
       return addUrlToGames(games);
     } catch (error) {
-      console.error('獲取資料夾遊戲失敗:', error);
+      log.error('獲取資料夾遊戲失敗:', error);
       return [];
     }
   });
@@ -408,7 +410,7 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
       const games = sqlGetUncategorizedGames();
       return addUrlToGames(games);
     } catch (error) {
-      console.error('獲取未分類遊戲失敗:', error);
+      log.error('獲取未分類遊戲失敗:', error);
       return [];
     }
   });
@@ -418,7 +420,7 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
     try {
       return sqlGetGamesInAnyFolder();
     } catch (error) {
-      console.error('獲取資料夾成員列表失敗:', error);
+      log.error('獲取資料夾成員列表失敗:', error);
       return [];
     }
   });
@@ -452,7 +454,7 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
 
       return { success: true, count: resolvedPaths.length };
     } catch (error) {
-      console.error('批次移除遊戲失敗:', error);
+      log.error('批次移除遊戲失敗:', error);
       return { success: false, error: error.message };
     }
   });
@@ -486,7 +488,7 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
           sqlAddGameToFolder(folderId, resolveFilePath(filePath), {});
           return { success: true };
         } catch (e) {
-          console.warn('[SQL write] addGameToFolder failed:', e.message);
+          log.warn('[SQL write] addGameToFolder failed:', e.message);
           throw e;
         }
       };
@@ -498,7 +500,7 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
           }
           return { success: true };
         } catch (e) {
-          console.warn('[SQL write] addGamesToFolderBatch failed:', e.message);
+          log.warn('[SQL write] addGamesToFolderBatch failed:', e.message);
           throw e;
         }
       };
@@ -518,7 +520,7 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
 
       return result;
     } catch (error) {
-      console.error('批次加入遊戲到資料夾失敗:', error);
+      log.error('批次加入遊戲到資料夾失敗:', error);
       return { success: false, error: error.message, processed: 0 };
     }
   });

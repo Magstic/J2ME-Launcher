@@ -10,7 +10,6 @@ const { initJarCache, cleanupCacheOnStartup } = require('./utils/jar-cache.js');
 const DataStore = require('./data-store.js');
 // SQLite initialization and one-time migration from legacy JSON
 const { getDB, compact: compactDb, closeDB } = require('./db');
-const { migrateIfNeeded } = require('./migrateFromJson');
 const freej2mePlusAdapter = require('./emulators/freej2mePlus.js');
 const keAdapter = require('./emulators/ke.js');
 const libretroAdapter = require('./emulators/libretro.js');
@@ -614,12 +613,11 @@ app.whenReady().then(async () => {
     });
   });
 
-  // Initialize SQLite and migrate legacy JSON (runs once; non-destructive)
+  // Initialize SQLite (no legacy JSON migration)
   try {
     getDB();
-    await migrateIfNeeded();
   } catch (e) {
-    console.error('[Startup] DB init/migration failed:', e);
+    console.error('[Startup] DB init failed:', e);
   }
 
   // 初始化 StoreBridge 與快取（即使沒有新遊戲，也保證 FULL_SYNC 能運作）

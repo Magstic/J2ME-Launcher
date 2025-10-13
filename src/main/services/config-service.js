@@ -1,6 +1,6 @@
-const { app } = require('electron');
-const path = require('path');
 const fs = require('fs');
+const path = require('path');
+const yamlConfig = require('../config/yaml-config');
 
 /**
  * ConfigService - Centralized configuration management
@@ -10,39 +10,29 @@ const fs = require('fs');
  * Stateless design with intelligent fallback resolution
  */
 class ConfigService {
-  constructor() {
-    this.configPath = path.join(app.getPath('userData'), 'config.json');
-    this.config = this.loadConfig();
-  }
+  constructor() {}
 
   /**
    * Load configuration from disk
    * @returns {Object} Configuration object
    */
   loadConfig() {
+    // Delegate to YAML-backed config
     try {
-      if (fs.existsSync(this.configPath)) {
-        const data = fs.readFileSync(this.configPath, 'utf8');
-        return JSON.parse(data);
-      }
-    } catch (error) {
-      console.warn('Failed to load config:', error.message);
+      return yamlConfig.loadConfig();
+    } catch (_) {
+      return {};
     }
-    return {};
   }
 
   /**
    * Save configuration to disk
    */
-  saveConfig() {
+  saveConfig(partial) {
     try {
-      const dir = path.dirname(this.configPath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-      fs.writeFileSync(this.configPath, JSON.stringify(this.config, null, 2));
+      return yamlConfig.saveConfig(partial || {});
     } catch (error) {
-      console.error('Failed to save config:', error.message);
+      console.error('Failed to save YAML config:', error.message);
     }
   }
 
@@ -53,7 +43,16 @@ class ConfigService {
    * @returns {*} Configuration value
    */
   get(key, defaultValue = null) {
-    return this.config[key] ?? defaultValue;
+    // Map legacy keys to YAML structure
+    if (key === 'javaPath') {
+      try {
+        const conf = this.loadConfig();
+        return conf?.runtime?.javaPath ?? defaultValue;
+      } catch (_) {
+        return defaultValue;
+      }
+    }
+    return defaultValue;
   }
 
   /**
@@ -62,8 +61,11 @@ class ConfigService {
    * @param {*} value - Configuration value
    */
   set(key, value) {
-    this.config[key] = value;
-    this.saveConfig();
+    if (key === 'javaPath') {
+      const v = value || null;
+      this.saveConfig({ runtime: { javaPath: v } });
+      return;
+    }
   }
 
   /**

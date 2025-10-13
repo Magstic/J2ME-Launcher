@@ -24,6 +24,7 @@ function GameCard({
   // 如果 game.iconUrl 不存在，則使用 public 目錄下的主圖標作為備用
   // 這是 Vite 處理靜態資源的正確方式
   const iconSrc = game.iconUrl || '/icon.png';
+  const displayName = game.customName || game.gameName || 'Unknown Game';
 
   // 簡化拖拽狀態管理
   const [isDragging, setIsDragging] = React.useState(false);
@@ -87,11 +88,11 @@ function GameCard({
       draggable={draggable}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
-      title={`${game.gameName}${game.vendor ? ` - ${game.vendor}` : ''}${game.version ? ` v${game.version}` : ''}`}
+      title={`${displayName}${game.vendor ? ` - ${game.vendor}` : ''}${game.version ? ` v${game.version}` : ''}`}
       {...rest}
     >
       <div className="game-icon-container" style={{ position: 'relative' }}>
-        <img src={iconSrc} alt={game.gameName || '遊戲'} className="game-icon" draggable="false" />
+        <img src={iconSrc} alt={displayName || '遊戲'} className="game-icon" draggable="false" />
         {hasFolder ? (
           <div
             className="folder-badge"
@@ -132,8 +133,8 @@ function GameCard({
       </div>
 
       <div className="game-info">
-        <h3 className="game-name" title={game.gameName}>
-          {game.gameName || 'Unknown Game'}
+        <h3 className="game-name" title={displayName}>
+          {displayName}
         </h3>
       </div>
     </div>

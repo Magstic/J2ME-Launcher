@@ -13,6 +13,8 @@ const { parseJarFileYauzl: parseJarFileYauzlReader } = require('./readers/yauzl-
 const { tryRawFileAnalysis: tryRawFileAnalysisReader } = require('./readers/raw-fallback.js');
 const { trySystemExtraction: trySystemExtractionReader } = require('./readers/system-extract.js');
 const { parseJarWithReaders } = require('./readers/factory.js');
+const { getLogger } = require('../utils/logger.cjs');
+const log = getLogger('jar-parser');
 
 // 上述三個函式已抽離到 parsers/，此處僅導入使用
 
@@ -34,7 +36,7 @@ async function parseJarFile(jarPath) {
       size: stats.size,
     };
   } catch (error) {
-    console.error(`[Parse Error] Critical failure parsing ${jarPath}: ${error.message}`);
+    log.error(`[Parse Error] Critical failure parsing ${jarPath}: ${error.message}`);
     // Fallback for critical errors
     const stats = await fs.stat(jarPath).catch(() => ({ mtimeMs: 0, size: 0 }));
     const md5 = await calculateMD5(jarPath).catch(() => null);
@@ -68,7 +70,7 @@ async function parseJarFileYauzl(jarPath) {
 
 // 綜合備用解析函數
 async function tryAlternativeParsing(jarPath) {
-  console.log(`🚀 開始備用解析流程: ${path.basename(jarPath)}`);
+  log.debug(`🚀 開始備用解析流程: ${path.basename(jarPath)}`);
 
   // 方法1: 系統工具解壓
   let result = await trySystemExtraction(jarPath);
@@ -84,7 +86,7 @@ async function tryAlternativeParsing(jarPath) {
   }
 
   // 如果所有方法都失敗，返回最基本的信息
-  console.log(`⚠️  所有解析方法都失敗，返回基本信息`);
+  log.warn(`⚠️  所有解析方法都失敗，返回基本信息`);
   return {
     filePath: jarPath,
     fileName: path.basename(jarPath),
@@ -102,18 +104,18 @@ async function parseSingleJar(jarPath) {
     // 首先嘗試使用 yauzl 標準解析
     yauzl.open(jarPath, { lazyEntries: true, strictFileNames: false }, (err, zipfile) => {
       if (err) {
-        console.error(`打開 ${path.basename(jarPath)} 失敗:`, err);
-        console.log(`嘗試使用備用方法解析...`);
+        log.error(`打開 ${path.basename(jarPath)} 失敗:`, err);
+        log.info(`嘗試使用備用方法解析...`);
         // 如果標準方法失敗，嘗試備用方法
         tryAlternativeParsing(jarPath)
           .then((result) => {
-            console.log(
+            log.info(
               `✅ 備用方法解析完成: ${path.basename(jarPath)} (方法: ${result?._parseMethod || 'unknown'})`
             );
             resolve(result);
           })
           .catch((error) => {
-            console.error(`備用解析失敗:`, error);
+            log.error(`備用解析失敗:`, error);
             resolve(null);
           });
         return;
@@ -123,20 +125,20 @@ async function parseSingleJar(jarPath) {
       const imageContentMap = new Map();
 
       zipfile.on('error', (err) => {
-        console.error(`解析 ${path.basename(jarPath)} 時發生 ZIP 錯誤:`, err);
+        log.error(`解析 ${path.basename(jarPath)} 時發生 ZIP 錯誤:`, err);
         if (zipfile) zipfile.close(); // Ensure cleanup on error
 
-        console.log(`嘗試使用備用方法解析...`);
+        log.info(`嘗試使用備用方法解析...`);
         // ZIP 錯誤時也嘗試備用方法
         tryAlternativeParsing(jarPath)
           .then((result) => {
-            console.log(
+            log.info(
               `✅ 備用方法解析完成: ${path.basename(jarPath)} (方法: ${result?._parseMethod || 'unknown'})`
             );
             resolve(result);
           })
           .catch((error) => {
-            console.error(`備用解析也失敗:`, error);
+            log.error(`備用解析也失敗:`, error);
             resolve(null);
           });
       });
@@ -181,16 +183,14 @@ async function parseSingleJar(jarPath) {
                 const ext = path.extname(key).toLowerCase() || '.png';
                 const cachedIconPath = await cacheIconBuffer(value, ext);
                 gameData.iconPath = cachedIconPath;
-                console.log(
-                  `[Icon Cache] Cached icon for ${gameData.gameName} at ${cachedIconPath}`
-                );
+                log.debug(`[Icon Cache] Cached icon for ${gameData.gameName} at ${cachedIconPath}`);
                 foundIcon = true;
                 break;
               }
             }
 
             if (!foundIcon) {
-              console.log(
+              log.debug(
                 `圖標未找到: 在 ${manifestData.fileName} 中需要 '${rawIconPath}', 但只找到了: [${Array.from(imageContentMap.keys()).join(', ')}]`
               );
             }
@@ -203,7 +203,7 @@ async function parseSingleJar(jarPath) {
             const outPath = await cacheIconBuffer(manifestData.iconBuffer, suggestedExt);
             manifestData.cachedIconPath = outPath;
           } catch (writeErr) {
-            console.error(`寫入圖標快取失敗:`, writeErr);
+            log.error(`寫入圖標快取失敗:`, writeErr);
           } finally {
             delete manifestData.iconBuffer;
             delete manifestData.iconExt;
@@ -231,7 +231,7 @@ async function parseSingleJar(jarPath) {
               processNextEntry();
             })
             .catch((e) => {
-              console.error(`讀取 MANIFEST.MF 失敗 (${path.basename(jarPath)}):`, e);
+              log.error(`讀取 MANIFEST.MF 失敗 (${path.basename(jarPath)}):`, e);
               processNextEntry();
             });
         } else if (upperFileName.match(/\.(PNG|GIF|JPG|JPEG)$/)) {
@@ -242,7 +242,7 @@ async function parseSingleJar(jarPath) {
               processNextEntry();
             })
             .catch((e) => {
-              console.error(`讀取圖片 ${entry.fileName} 失敗 (${path.basename(jarPath)}):`, e);
+              log.error(`讀取圖片 ${entry.fileName} 失敗 (${path.basename(jarPath)}):`, e);
               processNextEntry();
             });
         } else {
@@ -257,7 +257,7 @@ async function parseSingleJar(jarPath) {
 
 // 增量掃描單個目錄
 async function processDirectory(directoryPath, isIncrementalScan = false, opts = {}) {
-  console.log(`🚀 開始${isIncrementalScan ? '增量' : '全量'}處理目錄:`, directoryPath);
+  log.info(`🚀 開始${isIncrementalScan ? '增量' : '全量'}處理目錄:`, directoryPath);
   // Optional progress emitter
   const emit = (payload) => {
     try {
@@ -295,7 +295,7 @@ async function processDirectory(directoryPath, isIncrementalScan = false, opts =
                 .get(fullPath);
               if (existingGame && existingGame.mtimeMs >= stat.mtimeMs) {
                 skippedFiles.push(fullPath);
-                console.log(`⏭️  跳過未變化檔案: ${path.basename(fullPath)}`);
+                log.debug(`⏭️  跳過未變化檔案: ${path.basename(fullPath)}`);
               } else {
                 filesToParse.push({ path: fullPath, stat });
               }
@@ -309,13 +309,13 @@ async function processDirectory(directoryPath, isIncrementalScan = false, opts =
         }
       }
     } catch (error) {
-      console.error(`掃描目錄失敗 ${dir}:`, error.message);
+      log.error(`掃描目錄失敗 ${dir}:`, error.message);
     }
   }
 
   await scan(directoryPath);
 
-  console.log(
+  log.info(
     `📊 掃描結果: 總檔案 ${allFoundFiles.size}, 需解析 ${filesToParse.length}, 跳過 ${skippedFiles.length}`
   );
 
@@ -324,7 +324,7 @@ async function processDirectory(directoryPath, isIncrementalScan = false, opts =
   let parsedCount = 0;
   const totalToParse = filesToParse.length;
   if (filesToParse.length > 0) {
-    console.log(`🔍 開始解析 ${filesToParse.length} 個檔案……`);
+    log.info(`🔍 開始解析 ${filesToParse.length} 個檔案……`);
     // 發出解析階段開始事件
     emit({ phase: 'parsing', done: 0, total: totalToParse });
 
@@ -337,13 +337,13 @@ async function processDirectory(directoryPath, isIncrementalScan = false, opts =
           try {
             upsertGames([gameData]);
             newlyParsedGames.push(gameData);
-            console.log(`✅ 已解析並保存: ${gameData.gameName || path.basename(file.path)}`);
+            log.debug(`✅ 已解析並保存: ${gameData.gameName || path.basename(file.path)}`);
           } catch (sqlError) {
-            console.error(`保存遊戲到數據庫失敗 ${file.path}:`, sqlError.message);
+            log.error(`保存遊戲到數據庫失敗 ${file.path}:`, sqlError.message);
           }
         }
       } catch (error) {
-        console.error(`解析文件失败 ${file.path}:`, error.message);
+        log.error(`解析文件失败 ${file.path}:`, error.message);
       } finally {
         // 無論成功與否，解析進度 +1
         parsedCount += 1;
@@ -361,12 +361,12 @@ async function processDirectory(directoryPath, isIncrementalScan = false, opts =
     try {
       const iso = new Date().toISOString();
       updateDirectoryScanTime(directoryPath, iso);
-      console.log(`🔄 已更新目錄掃描時間: ${directoryPath}`);
+      log.debug(`🔄 已更新目錄掃描時間: ${directoryPath}`);
     } catch (e) {
-      console.warn('[SQL] 更新掃描時間失敗:', e.message);
+      log.warn('[SQL] 更新掃描時間失敗:', e.message);
     }
   } else {
-    console.log(`⏭️ 目錄無變化，不更新掃描時間: ${directoryPath}`);
+    log.debug(`⏭️ 目錄無變化，不更新掃描時間: ${directoryPath}`);
   }
 
   // 3.5 裁剪不存在於磁碟的舊記錄（外部刪除了 JAR 的情況）
@@ -403,25 +403,25 @@ async function processDirectory(directoryPath, isIncrementalScan = false, opts =
           // 檔案確實不存在，安全刪除
           db.prepare('DELETE FROM games WHERE filePath = ?').run(filePath);
           prunedCount++;
-          console.log(`🗑️  已移除缺失的遊戲記錄: ${path.basename(filePath)}`);
+          log.debug(`🗑️  已移除缺失的遊戲記錄: ${path.basename(filePath)}`);
         }
       } catch (fsError) {
         // 檔案系統錯誤，也視為檔案不存在
         db.prepare('DELETE FROM games WHERE filePath = ?').run(filePath);
         prunedCount++;
-        console.log(`🗑️  已移除無法訪問的遊戲記錄: ${path.basename(filePath)}`);
+        log.debug(`🗑️  已移除無法訪問的遊戲記錄: ${path.basename(filePath)}`);
       }
     }
 
     if (prunedCount > 0) {
-      console.log(`🧹 已裁剪 ${prunedCount} 個缺失檔案的遊戲記錄（來源目錄: ${directoryPath}）`);
+      log.info(`🧹 已裁剪 ${prunedCount} 個缺失檔案的遊戲記錄（來源目錄: ${directoryPath}）`);
     }
   } catch (e) {
-    console.warn(`裁剪缺失檔案記錄時發生錯誤: ${e.message}`);
+    log.warn(`裁剪缺失檔案記錄時發生錯誤: ${e.message}`);
   }
 
   // 資料已自動保存至 SQLite，無需手動保存
-  console.log('💾 資料已保存至 SQLite');
+  log.debug('💾 資料已保存至 SQLite');
   // 最終階段：完成
   emit({ phase: 'done', done: parsedCount, total: totalToParse });
 
@@ -435,16 +435,16 @@ async function processDirectory(directoryPath, isIncrementalScan = false, opts =
     isIncremental: isIncrementalScan,
   };
 
-  console.log(`✅ 目錄處理完成: ${directoryPath}`);
-  console.log(`   新解析項目: ${newlyParsedGames.length}`);
-  console.log(`   跳過文件: ${skippedFiles.length}`);
+  log.info(`✅ 目錄處理完成: ${directoryPath}`);
+  log.info(`   新解析項目: ${newlyParsedGames.length}`);
+  log.info(`   跳過文件: ${skippedFiles.length}`);
 
   return result;
 }
 
 // 多目錄增量掃描主函數
 async function processMultipleDirectories(directories = null, forceFullScan = false, opts = {}) {
-  console.log('🌍 開始多路徑掃描...');
+  log.info('🌍 開始多路徑掃描...');
 
   // 如果沒有指定目錄，從數據庫獲取啟用的目錄
   const { getDirectories } = require('./sql/directories');
@@ -455,7 +455,7 @@ async function processMultipleDirectories(directories = null, forceFullScan = fa
       .map((d) => d.path);
 
   if (targetDirectories.length === 0) {
-    console.log('⚠️  沒有配置任何目錄');
+    log.warn('⚠️  沒有配置任何目錄');
     return {
       success: true,
       totalDirectories: 0,
@@ -469,7 +469,7 @@ async function processMultipleDirectories(directories = null, forceFullScan = fa
     };
   }
 
-  console.log(`📁 将扫描 ${targetDirectories.length} 个目录`);
+  log.info(`📁 将扫描 ${targetDirectories.length} 个目录`);
 
   const results = [];
   const summary = {
@@ -486,7 +486,7 @@ async function processMultipleDirectories(directories = null, forceFullScan = fa
     try {
       // 檢查目錄是否存在
       if (!(await fs.pathExists(directoryPath))) {
-        console.warn(`⚠️  目錄不存在，跳過: ${directoryPath}`);
+        log.warn(`⚠️  目錄不存在，跳過: ${directoryPath}`);
         results.push({
           directoryPath,
           success: false,
@@ -514,7 +514,7 @@ async function processMultipleDirectories(directories = null, forceFullScan = fa
       summary.totalNewGames += result.newGames.length;
       summary.totalSkipped += result.skippedFiles;
     } catch (error) {
-      console.error(`處理路徑失敗 ${directoryPath}:`, error.message);
+      log.error(`處理路徑失敗 ${directoryPath}:`, error.message);
       results.push({
         directoryPath,
         success: false,
@@ -528,12 +528,12 @@ async function processMultipleDirectories(directories = null, forceFullScan = fa
     }
   }
 
-  console.log('🎆 多路徑掃描完成!');
-  console.log(`   處理目錄: ${targetDirectories.length}`);
-  console.log(`   總文件數: ${summary.totalFiles}`);
-  console.log(`   新增項目: ${summary.totalNewGames}`);
-  console.log(`   跳過文件: ${summary.totalSkipped}`);
-  console.log(`   錯誤數量: ${summary.totalErrors}`);
+  log.info('🎆 多路徑掃描完成!');
+  log.info(`   處理目錄: ${targetDirectories.length}`);
+  log.info(`   總文件數: ${summary.totalFiles}`);
+  log.info(`   新增項目: ${summary.totalNewGames}`);
+  log.info(`   跳過文件: ${summary.totalSkipped}`);
+  log.info(`   錯誤數量: ${summary.totalErrors}`);
 
   return {
     success: true,
@@ -545,20 +545,20 @@ async function processMultipleDirectories(directories = null, forceFullScan = fa
 
 // 自动增量扫描（应用启动时调用）
 async function performAutoIncrementalScan() {
-  console.log('🔄 開始自動增量掃描……');
+  log.info('🔄 開始自動增量掃描……');
 
   try {
     const result = await processMultipleDirectories(null, false); // 使用增量掃描
 
     if (result.success && result.summary.totalNewGames > 0) {
-      console.log(`🎉 自動掃描發現 ${result.summary.totalNewGames} 個新項目`);
+      log.info(`🎉 自動掃描發現 ${result.summary.totalNewGames} 個新項目`);
     } else if (result.success) {
-      console.log('✅ 自動掃描完成，沒有發現新項目');
+      log.info('✅ 自動掃描完成，沒有發現新項目');
     }
 
     return result;
   } catch (error) {
-    console.error('自動掃描失敗:', error.message);
+    log.error('自動掃描失敗:', error.message);
     return {
       success: false,
       error: error.message,

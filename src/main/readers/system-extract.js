@@ -5,11 +5,13 @@ const { execSync } = require('child_process');
 const { parseManifest, resolveIconPath } = require('../parsers/manifest.js');
 const DataStore = require('../data-store.js');
 const { cacheIconBuffer } = require('../parsers/icon-cache.js');
+const { getLogger } = require('../../utils/logger.cjs');
+const log = getLogger('reader:system-extract');
 
 // 備用函數1：嘗試使用系統工具解壓
 async function trySystemExtraction(jarPath) {
   const fileName = path.basename(jarPath);
-  console.log(`🔧 嘗試使用系統工具解壓: ${fileName}`);
+  log.info(`🔧 嘗試使用系統工具解壓: ${fileName}`);
 
   const tempDir = path.join(path.dirname(jarPath), '.temp_' + Date.now());
 
@@ -28,7 +30,7 @@ async function trySystemExtraction(jarPath) {
       try {
         execSync(cmd, { stdio: 'ignore', timeout: 10000 });
         extracted = true;
-        console.log(`✅ 成功使用命令解壓: ${cmd.split(' ')[0]}`);
+        log.info(`✅ 成功使用命令解壓: ${cmd.split(' ')[0]}`);
         break;
       } catch (cmdError) {
         continue; // 嘗試下一個命令
@@ -36,7 +38,7 @@ async function trySystemExtraction(jarPath) {
     }
 
     if (!extracted) {
-      console.log(`❌ 所有系統解壓工具都失敗`);
+      log.warn(`❌ 所有系統解壓工具都失敗`);
       return null;
     }
 
@@ -71,7 +73,7 @@ async function trySystemExtraction(jarPath) {
 
     return null;
   } catch (error) {
-    console.error(`系統解壓失敗:`, error.message);
+    log.error(`系統解壓失敗:`, error.message);
     return null;
   } finally {
     // 清理臨時目錄
@@ -80,7 +82,7 @@ async function trySystemExtraction(jarPath) {
         await fs.remove(tempDir);
       }
     } catch (cleanupError) {
-      console.warn(`清理臨時目錄失敗: ${cleanupError.message}`);
+      log.warn(`清理臨時目錄失敗: ${cleanupError.message}`);
     }
   }
 }

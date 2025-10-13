@@ -88,20 +88,6 @@ function register({ ipcMain, configService }) {
           versions: sanitize(fromYaml.versions),
         };
       }
-
-      // Backward-compat: migrate legacy JSON config on first read
-      const legacy = configService.get('clusterTagOptions', null);
-      if (legacy && typeof legacy === 'object') {
-        const migrated = {
-          devices: sanitize(legacy.devices),
-          resolutions: sanitize(legacy.resolutions),
-          versions: sanitize(legacy.versions),
-        };
-        try {
-          yamlConfig.saveConfig({ ui: { clusterTagOptions: migrated } });
-        } catch (_) {}
-        return migrated;
-      }
       return null;
     } catch (error) {
       return null;

@@ -10,6 +10,8 @@ const {
   setDirectoryEnabled: sqlSetDirectoryEnabled,
   updateDirectoryScanTime: sqlUpdateDirectoryScanTime,
 } = require('../sql/directories');
+const { getLogger } = require('../../utils/logger.cjs');
+const log = getLogger('ipc:directories');
 
 function register({
   ipcMain,
@@ -60,14 +62,14 @@ function register({
         const existing = sqlGetDirectories().some((d) => d.path === directoryPath);
         if (existing) {
           existingDirectories.push(directoryPath);
-          console.log(`目录已存在: ${directoryPath}`);
+          log.info(`目录已存在: ${directoryPath}`);
         } else {
           sqlAddDirectory(directoryPath);
           addedDirectories.push(directoryPath);
-          console.log(`已添加目录: ${directoryPath}`);
+          log.info(`已添加目录: ${directoryPath}`);
         }
       } catch (e) {
-        console.error(`[IPC] addDirectory failed for ${directoryPath}:`, e.message);
+        log.error(`[IPC] addDirectory failed for ${directoryPath}:`, e.message);
         existingDirectories.push(directoryPath);
       }
     }
@@ -98,10 +100,10 @@ function register({
             .prepare(`DELETE FROM games WHERE filePath LIKE ?`)
             .run(likePrefix + '%');
           if (affected && affected.changes) {
-            console.log('[SQL] removed', affected.changes, 'games under', directoryPath);
+            log.debug('[SQL] removed', affected.changes, 'games under', directoryPath);
           }
         } catch (e) {
-          console.warn('[SQL purge] remove-directory failed to purge games:', e.message);
+          log.warn('[SQL purge] remove-directory failed to purge games:', e.message);
         }
         // 清理目錄刪除後遺留的圖標快取檔案（異步）
         try {
@@ -117,11 +119,11 @@ function register({
         const sqlGames = getAllGamesFromSql();
         broadcastToAll('games-updated', addUrlToGames(sqlGames));
       } catch (e) {
-        console.error('[IPC] Failed to broadcast updated games:', e.message);
+        log.error('[IPC] Failed to broadcast updated games:', e.message);
       }
       return { success: true };
     } catch (e) {
-      console.error('[IPC] remove-directory failed:', e.message);
+      log.error('[IPC] remove-directory failed:', e.message);
       return { success: false, error: e.message };
     }
   });
@@ -130,17 +132,17 @@ function register({
   ipcMain.handle('toggle-directory', async (event, directoryPath, enabled) => {
     try {
       sqlSetDirectoryEnabled(directoryPath, enabled);
-      console.log(`目录 ${directoryPath} ${enabled ? '已启用' : '已禁用'}`);
+      log.info(`目录 ${directoryPath} ${enabled ? '已启用' : '已禁用'}`);
       // Immediately refresh games list with enabled-dir filter
       try {
         const games = getAllGamesFromSql();
         broadcastToAll('games-updated', addUrlToGames(games));
       } catch (e) {
-        console.error('[IPC] Failed to broadcast updated games:', e.message);
+        log.error('[IPC] Failed to broadcast updated games:', e.message);
       }
       return { success: true };
     } catch (e) {
-      console.error('[IPC] toggle-directory failed:', e.message);
+      log.error('[IPC] toggle-directory failed:', e.message);
       return { success: false, error: e.message };
     }
   });
@@ -148,7 +150,7 @@ function register({
   // 手动触发多目录扫描
   ipcMain.handle('scan-directories', async (event, forceFullScan = false) => {
     try {
-      console.log(`🚀 开始${forceFullScan ? '全量' : '增量'}扫描所有目录...`);
+      log.info(`🚀 开始${forceFullScan ? '全量' : '增量'}扫描所有目录...`);
 
       const result = await processMultipleDirectories(null, forceFullScan, {
         emit: (payload) => {
@@ -164,9 +166,9 @@ function register({
           const sqlGames = getAllGamesFromSql();
           const updatedGames = addUrlToGames(sqlGames);
           broadcastToAll('games-updated', updatedGames);
-          console.log(`📡 已廣播 ${updatedGames.length} 個遊戲到前端`);
+          log.info(`📡 已廣播 ${updatedGames.length} 個遊戲到前端`);
         } catch (e) {
-          console.error('[IPC] Failed to broadcast games after scan:', e.message);
+          log.error('[IPC] Failed to broadcast games after scan:', e.message);
         }
         try {
           const iso = new Date().toISOString();
@@ -186,7 +188,7 @@ function register({
         return result;
       }
     } catch (error) {
-      console.error('扫描目录失败:', error);
+      log.error('扫描目录失败:', error);
       return { success: false, error: error.message };
     }
   });

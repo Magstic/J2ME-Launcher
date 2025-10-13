@@ -2,11 +2,13 @@
 const fs = require('fs-extra');
 const path = require('path');
 const yauzl = require('yauzl');
+const { getLogger } = require('../../utils/logger.cjs');
+const log = getLogger('reader:raw-fallback');
 
 // 備用函數2：嘗試原始文件讀取和手動ZIP解析
 async function tryRawFileAnalysis(jarPath) {
   const fileName = path.basename(jarPath);
-  console.log(`🔍 嘗試原始文件分析: ${fileName}`);
+  log.info(`🔍 嘗試原始文件分析: ${fileName}`);
 
   try {
     const fileBuffer = await fs.readFile(jarPath);
@@ -22,7 +24,7 @@ async function tryRawFileAnalysis(jarPath) {
     const isValidZip = validSignatures.some((sig) => zipSignature.equals(sig));
 
     if (!isValidZip) {
-      console.log(`⚠️  文件不是標準ZIP格式，簽名: ${zipSignature.toString('hex')}`);
+      log.warn(`⚠️  文件不是標準ZIP格式，簽名: ${zipSignature.toString('hex')}`);
       // 即使不是標準格式，也嘗試基本信息提取
       return {
         filePath: jarPath,
@@ -47,7 +49,7 @@ async function tryRawFileAnalysis(jarPath) {
         },
         (err, zipfile) => {
           if (err) {
-            console.log(`🔄 寬松模式也失敗，返回基本信息`);
+            log.warn(`🔄 寬松模式也失敗，返回基本信息`);
             resolve({
               filePath: jarPath,
               fileName: path.basename(jarPath),
@@ -61,13 +63,13 @@ async function tryRawFileAnalysis(jarPath) {
           }
 
           // 如果寬松模式成功，繼續正常解析流程
-          console.log(`✅ 寬松模式成功打開文件`);
+          log.info(`✅ 寬松模式成功打開文件`);
           resolve(null); // 返回null表示需要繼續用標準流程
         }
       );
     });
   } catch (error) {
-    console.error(`原始文件分析失敗:`, error.message);
+    log.error(`原始文件分析失敗:`, error.message);
     // 最後的備用方案：返回基本信息
     return {
       filePath: jarPath,

@@ -32,7 +32,9 @@ export default function useUnifiedContextMenu(callbacks = {}) {
       let menuType = null;
       let finalTarget = target;
 
-      if (ctx.view === 'desktop') {
+      if (ctx.kind === 'cluster-member') {
+        menuType = 'cluster-member';
+      } else if (ctx.view === 'desktop') {
         if (ctx.kind === 'blank')
           return; // 停用桌面空白區域右鍵菜單
         else if (ctx.kind === 'folder') menuType = 'folder';

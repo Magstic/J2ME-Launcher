@@ -1,6 +1,6 @@
 import React from 'react';
 import { ModalWithFooter, Select } from '@ui';
-import useContextMenu from '@components/Common/useContextMenu.jsx';
+import useUnifiedContextMenu from '@shared/hooks/useUnifiedContextMenu';
 import { useTranslation } from '@hooks/useTranslation';
 import './ClusterDialog.css';
 import DEFAULT_CLUSTER_TAG_OPTIONS from '@config/clusterTags';
@@ -18,7 +18,7 @@ const ClusterMemberRow = React.memo(
     isPrimary,
     tagOptions,
     onUpdateTag,
-    openContextMenu,
+    openMenu,
     selectSize = 'sm',
   }) {
     const rowGrid = '56px 3fr 2fr 1.6fr 1.4fr 1.4fr';
@@ -47,7 +47,10 @@ const ClusterMemberRow = React.memo(
     return (
       <div
         key={m.filePath}
-        onContextMenu={(e) => openContextMenu(e, { ...m, isPrimary }, 'cluster-member')}
+        onContextMenu={(e) =>
+          openMenu &&
+          openMenu(e, { ...m, isPrimary }, { view: 'folder-window', kind: 'cluster-member' })
+        }
         className={`cluster-member-row${isPrimary ? ' is-primary' : ''}`}
         style={{
           background: 'var(--background-secondary)',
@@ -183,7 +186,7 @@ export default function ClusterDialog({ isOpen, clusterId, onClose }) {
   );
 
   // 右鍵選單（行內操作移至此處），層級需高於彈窗（dialog.css: .modal-overlay z-index=10000）
-  const { ContextMenuElement, openContextMenu } = useContextMenu({
+  const { ContextMenuElement, openMenu } = useUnifiedContextMenu({
     onGameLaunch: (m) => handleLaunch(m.filePath),
     onCreateShortcut: createShortcut,
     onGameConfigure: (m) => handleConfig(m.filePath),
@@ -602,7 +605,7 @@ export default function ClusterDialog({ isOpen, clusterId, onClose }) {
                   isPrimary={!!isPrimary}
                   tagOptions={tagOptions}
                   onUpdateTag={handleUpdateTag}
-                  openContextMenu={openContextMenu}
+                  openMenu={openMenu}
                   selectSize="sm"
                 />
               );

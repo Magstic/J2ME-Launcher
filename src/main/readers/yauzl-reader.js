@@ -7,6 +7,8 @@ const { calculateMD5 } = require('../parsers/md5.js');
 const { readEntryContent } = require('../parsers/zip-entry.js');
 const { parseManifest, resolveIconPath } = require('../parsers/manifest.js');
 const { cacheIconBuffer } = require('../parsers/icon-cache.js');
+const { getLogger } = require('../../utils/logger.cjs');
+const log = getLogger('reader:yauzl');
 
 async function parseJarFileYauzl(jarPath) {
   const stats = await fs.stat(jarPath);
@@ -36,7 +38,7 @@ async function parseJarFileYauzl(jarPath) {
               zipfile.readEntry();
             })
             .catch((e) => {
-              console.error(e);
+              log.error(e);
               zipfile.readEntry();
             });
         } else {
@@ -71,7 +73,7 @@ async function parseJarFileYauzl(jarPath) {
                 resolve();
               })
               .catch((err) => {
-                console.error(err);
+                log.error(err);
                 zipfile.readEntry();
               });
           } else {
@@ -87,7 +89,7 @@ async function parseJarFileYauzl(jarPath) {
   if (iconBuffer) {
     const ext = path.extname(iconPathInJar).toLowerCase() || '.png';
     cachedIconPath = await cacheIconBuffer(iconBuffer, ext);
-    console.log(`[Icon Cache] Cached icon for ${manifest['MIDlet-Name']} at ${cachedIconPath}`);
+    log.debug(`[Icon Cache] Cached icon for ${manifest['MIDlet-Name']} at ${cachedIconPath}`);
   }
 
   return {

@@ -56,67 +56,69 @@ export const useDesktopState = () => {
   }, []);
 
   // 載入桌面資料（遊戲 + 資料夾）
-  const loadDesktopItems = useCallback(async () => {
-    try {
-      if (desktopItemsSupported) {
-        const items = await window.electronAPI.getDesktopItems();
-        // 快速路徑：若新舊清單等效，則跳過 setDesktopItems 以避免不必要的重算
-        const isSameList = (a, b) => {
-          if (!Array.isArray(a) || !Array.isArray(b)) return false;
-          if (a.length !== b.length) return false;
-          // 檢查前 512 個元素（足夠覆蓋可視區域與少量 overscan）
-          const n = Math.min(512, a.length);
-          for (let i = 0; i < n; i++) {
-            const x = a[i];
-            const y = b[i];
-            const xid = x?.type === 'cluster' ? `C:${x?.id}` : `G:${x?.filePath}`;
-            const yid = y?.type === 'cluster' ? `C:${y?.id}` : `G:${y?.filePath}`;
-            if (xid !== yid) return false;
-          }
-          // 若前 512 個一致，再抽查尾部 4 個元素
-          for (let k = 1; k <= 4; k++) {
-            const i = a.length - k;
-            if (i < 0) break;
-            const x = a[i];
-            const y = b[i];
-            const xid = x?.type === 'cluster' ? `C:${x?.id}` : `G:${x?.filePath}`;
-            const yid = y?.type === 'cluster' ? `C:${y?.id}` : `G:${y?.filePath}`;
-            if (xid !== yid) return false;
-          }
-          return true;
-        };
-
-        const apply = () =>
-          startTransition(() => {
-            // 僅在內容變更時才替換，避免觸發 Grid 大量重繪
-            if (!isSameList(desktopItems, items || [])) {
-              setDesktopItems(items || []);
+  const loadDesktopItems = useCallback(
+    async (opts) => {
+      try {
+        if (desktopItemsSupported) {
+          const items = await window.electronAPI.getDesktopItems();
+          // 快速路徑：若新舊清單等效，則跳過 setDesktopItems 以避免不必要的重算
+          const isSameList = (a, b) => {
+            if (!Array.isArray(a) || !Array.isArray(b)) return false;
+            if (a.length !== b.length) return false;
+            // 檢查前 512 個元素（足夠覆蓋可視區域與少量 overscan）
+            const n = Math.min(512, a.length);
+            for (let i = 0; i < n; i++) {
+              const x = a[i];
+              const y = b[i];
+              const xid = x?.type === 'cluster' ? `C:${x?.id}` : `G:${x?.filePath}`;
+              const yid = y?.type === 'cluster' ? `C:${y?.id}` : `G:${y?.filePath}`;
+              if (xid !== yid) return false;
             }
-            setDesktopItemsLoaded(true);
-          });
-        // 若使用者仍在互動中，延後套用狀態
-        const remain = Date.now() - (lastUserInputRef.current || 0) < 1000;
-        if (remain) {
-          setTimeout(apply, 240);
+            // 若前 512 個一致，再抽查尾部 4 個元素
+            for (let k = 1; k <= 4; k++) {
+              const i = a.length - k;
+              if (i < 0) break;
+              const x = a[i];
+              const y = b[i];
+              const xid = x?.type === 'cluster' ? `C:${x?.id}` : `G:${x?.filePath}`;
+              const yid = y?.type === 'cluster' ? `C:${y?.id}` : `G:${y?.filePath}`;
+              if (xid !== yid) return false;
+            }
+            return true;
+          };
+
+          const apply = (forceReplace) =>
+            startTransition(() => {
+              if (forceReplace || !isSameList(desktopItems, items || [])) {
+                setDesktopItems(items || []);
+              }
+              setDesktopItemsLoaded(true);
+            });
+          // 若使用者仍在互動中，延後套用狀態
+          const remain = Date.now() - (lastUserInputRef.current || 0) < 1000;
+          if (remain) {
+            setTimeout(() => apply(!!(opts && opts.forceReplace)), 240);
+          } else {
+            apply(!!(opts && opts.forceReplace));
+          }
         } else {
-          apply();
+          // 舊版或不支援：標記未載入以便上層能使用回退
+          startTransition(() => {
+            setDesktopItems([]);
+            setDesktopItemsLoaded(false);
+          });
         }
-      } else {
-        // 舊版或不支援：標記未載入以便上層能使用回退
+      } catch (error) {
+        console.error('載入桌面資料失敗:', error);
+        // 失敗時保持回退邏輯（標記為未載入）
         startTransition(() => {
           setDesktopItems([]);
           setDesktopItemsLoaded(false);
         });
       }
-    } catch (error) {
-      console.error('載入桌面資料失敗:', error);
-      // 失敗時保持回退邏輯（標記為未載入）
-      startTransition(() => {
-        setDesktopItems([]);
-        setDesktopItemsLoaded(false);
-      });
-    }
-  }, [desktopItemsSupported, desktopItems]);
+    },
+    [desktopItemsSupported, desktopItems]
+  );
 
   // 初始化資料
   useEffect(() => {

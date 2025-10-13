@@ -77,3 +77,35 @@ if (process.env.NODE_ENV === 'development') {
 
 // 導出配置
 module.exports = { LOG_CONFIG, originalConsole };
+function shouldLog(level) {
+  return level === 'error' || (LOG_CONFIG.enabled && !!LOG_CONFIG.levels[level]);
+}
+function makeLoggerFor(scope) {
+  const prefixArgs = scope ? [`[${scope}]`] : null;
+  return {
+    log: (...args) => {
+      if (shouldLog('log')) originalConsole.log(...(prefixArgs ? [...prefixArgs, ...args] : args));
+    },
+    info: (...args) => {
+      if (shouldLog('info'))
+        originalConsole.info(...(prefixArgs ? [...prefixArgs, ...args] : args));
+    },
+    warn: (...args) => {
+      if (shouldLog('warn'))
+        originalConsole.warn(...(prefixArgs ? [...prefixArgs, ...args] : args));
+    },
+    error: (...args) => {
+      originalConsole.error(...(prefixArgs ? [...prefixArgs, ...args] : args));
+    },
+    debug: (...args) => {
+      if (shouldLog('debug'))
+        originalConsole.debug(...(prefixArgs ? [...prefixArgs, ...args] : args));
+    },
+  };
+}
+const logger = makeLoggerFor('');
+function getLogger(scope) {
+  return makeLoggerFor(scope || '');
+}
+module.exports.logger = logger;
+module.exports.getLogger = getLogger;
