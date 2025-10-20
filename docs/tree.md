@@ -22,6 +22,7 @@
 │          webdav.svg
 │
 ├─components
+│  │  ClusterCard.jsx
 │  │  DirectoryManager.css
 │  │  DirectoryManager.jsx
 │  │  EmulatorConfigDialog.jsx
@@ -55,19 +56,26 @@
 │  ├─FolderDrawer
 │  │      FolderDrawer.css
 │  │      FolderDrawer.jsx
-│  │      NeonStrip.jsx
 │  │
 │  ├─shared
 │  │  │  VirtualizedUnifiedGrid.jsx
 │  │  │
-│  │  └─hooks
-│  │          index.js
-│  │          useCreateShortcut.js
-│  │          useDragSession.js
-│  │          useOutsideClick.js
-│  │          useSelectionBox.js
-│  │          useUnifiedContextMenu.js
-│  │          useWheelTouchLock.js
+│  │  ├─hooks
+│  │  │      index.js
+│  │  │      useCreateShortcut.js
+│  │  │      useDragSession.js
+│  │  │      useGuardedRefresh.js
+│  │  │      useMergedEventRefresh.js
+│  │  │      useOutsideClick.js
+│  │  │      useSelectionBox.js
+│  │  │      useUnifiedContextMenu.js
+│  │  │      useUserInputActivityRef.js
+│  │  │      useWheelTouchLock.js
+│  │  │
+│  │  └─utils
+│  │          itemsMemo.js
+│  │          listEquality.js
+│  │          reloadLogger.js
 │  │
 │  └─ui
 │      │  AboutNetworkCard.jsx
@@ -78,6 +86,7 @@
 │      │  ModalWithFooter.jsx
 │      │  NotificationBubble.css
 │      │  NotificationBubble.jsx
+│      │  ProgressPanel.jsx
 │      │  RomCacheSwitch.jsx
 │      │  Select.css
 │      │  Select.jsx
@@ -86,16 +95,21 @@
 │      └─dialogs
 │              AboutDialog.jsx
 │              BackupDialog.jsx
+│              ClusterDialog.css
+│              ClusterDialog.jsx
+│              ClusterSelectDialog.jsx
 │              ConflictResolveDialog.jsx
 │              EmulatorNotConfiguredDialog.jsx
 │              FolderSelectDialog.css
 │              FolderSelectDialog.jsx
 │              GameLaunchDialog.jsx
+│              RenameDialog.jsx
 │              SettingsDialog.css
 │              SettingsDialog.jsx
 │              WelcomeGuideDialog.jsx
 │
 ├─config
+│      clusterTags.js
 │      perf.js
 │
 ├─contexts
@@ -130,7 +144,6 @@
 │  │  db.js
 │  │  jar-parser.js
 │  │  main.js
-│  │  migrateFromJson.js
 │  │  preload.js
 │  │  shortcuts.js
 │  │  store-bridge.js
@@ -153,6 +166,7 @@
 │  │
 │  ├─ipc
 │  │      backup.js
+│  │      clusters.js
 │  │      config.js
 │  │      custom-names.js
 │  │      desktop.js
@@ -186,6 +200,8 @@
 │  │      emulator-service.js
 │  │
 │  ├─sql
+│  │      clusters-read.js
+│  │      clusters-write.js
 │  │      custom-names.js
 │  │      directories.js
 │  │      emulator-configs.js
@@ -227,6 +243,9 @@
 │      tokens.css
 │      utility.css
 │
+├─types
+│      electron-api.d.ts
+│
 └─utils
     │  i18n.js
     │  logger.cjs
@@ -241,7 +260,7 @@
 以下為每個目錄與關鍵檔案的用途簡述，方便後續維護與導覽。
 
 > **重要提醒**：該附註說明會定期更新以反映當前專案狀態，但仍可能存在滯後，請以實際程式碼為準。  
-> **最後更新**：2025-09-09（Hook 化整合至 App.jsx、統一虛擬化網格、UI barrel 更新）
+> **最後更新**：2025-10-20（自訂名稱增量事件、資料夾清單按顯示名排序、ICON 清理機制修正、安全協議映射）
 
 - **根目錄（src/）**
   - `App.jsx`：Renderer 主頁（桌面視圖）入口，掛載應用、註冊全域樣式並整合狀態 hooks。
@@ -257,8 +276,8 @@
   - `App.jsx` 中的 `DesktopManagerHooks` 與 `DesktopViewDirect`：整合 `useDesktopManager` 等 hooks，協調桌面/資料夾對話框與全域操作，並使用 `@shared/VirtualizedUnifiedGrid` 進行渲染。
   - `DirectoryManager.jsx` / `DirectoryManager.css`：資料夾來源管理 UI 與樣式。
   - `EmulatorConfigDialog.jsx`：模擬器設定對話框，使用 `@ui/Collapsible`，讀取 schema/IPC。
-  - `FolderWindowApp.jsx` / `FolderWindowApp.css`：資料夾窗口頁面（獨立 BrowserWindow 渲染端）。
-  - `GameCard.jsx`：遊戲卡片元件（桌面/資料夾共用樣式與選取覆蓋）。
+  - `FolderWindowApp.jsx` / `FolderWindowApp.css`：資料夾窗口頁面（獨立 BrowserWindow 渲染端）。監聽 `onGamesIncrementalUpdate` 就地修補 `customName/customVendor`，同步覆寫 `gameName/vendor` 並依顯示名重新排序；`onGamesUpdated` 進行強制重載以保證一致性。
+  - `GameCard.jsx`：遊戲卡片元件（桌面/資料夾共用樣式與選取覆蓋）。顯示名稱遵循 `customName || gameName`，與增量補丁策略一致。
   - `SearchBar.jsx`：搜尋列元件。
   - `TitleBar.jsx`：視窗標題列（最小化/關閉等）。
   - `index.js`：`@components` barrel 匯出。
@@ -276,13 +295,12 @@
     - 接受從桌面拖拽的遊戲放入資料夾，支援跨視窗拖拽會話（`electronAPI.dropDragSession`）。
     - 放入成功會觸發輕微抖動動畫；已移除「放置到這裡」文字提示。
     - 抽屜把手與抽屜寬度參數由 `hooks/useDrawerPositioning.js` 與 `App.jsx` 統一管理。
-    - `NeonStrip.jsx`：抽屜視覺裝飾（霓虹條）。
 
   - `emulators/FreeJ2MEPlusConfig.jsx`：FreeJ2ME-Plus 特定設定 UI。
   - `emulators/KEmulator.jsx`：KEmulator 相關 UI。
   - `emulators/LibretroFJPlus.jsx`：Libretro（FJPlus）相關 UI/整合元件。
 
-  - `shared/VirtualizedUnifiedGrid.jsx`：統一的虛擬化網格元件（智能虛擬化、選取框、右鍵、拖拽整合）。採用單一布局系統，非虛擬化模式使用絕對定位模擬 react-window 行為，消除雙重布局架構。最近調整：拖拽結束不再立刻關閉會話，依賴 `drop` IPC 完成（含 800ms 安全超時），`dragend` 進行資料夾命中測試並呼叫 `dropDragSession`，且含 IPC 重試以降低競態失敗。
+  - `shared/VirtualizedUnifiedGrid.jsx`：統一的虛擬化網格元件（智能虛擬化、選取框、右鍵、拖拽整合）。採用單一布局系統，非虛擬化模式使用絕對定位模擬 react-window 行為，消除雙重布局架構。互動相關：`dragend` 會立即呼叫 `endDragSession()`；主進程 `drag-session:end` 具 200ms 寬限（grace）避免競態；`drag-session:drop` 若會話尚未建立則最多等待約 200ms，否則在 2 秒內容忍使用快照回退；來源/目標資料夾的統計廣播延遲約 700ms（降低阻塞）。
   - `shared/hooks/`：共享 hooks（提供 `@shared/hooks` 彙總匯出）：
     - `index.js`：hooks 彙總匯出檔案。
     - `useCreateShortcut.js`：建立捷徑的共享邏輯（批次處理、錯誤收斂）。
@@ -354,10 +372,9 @@
 - **`main/`（Electron 主進程）**
   - `main.js`：主進程入口，建立窗口、註冊 IPC。
   - `preload.js`：Preload 腳本，暴露 IPC API 給 Renderer（包含完整的資料夾管理、自訂名稱、雲端備份等 API）。
-  - `data-store.js`：資料存取門面（SQL-first，委派至 `sql/` 與 `db.js`）。
+  - `data-store.js`：資料存取門面（SQL-first，委派至 `sql/` 與 `db.js`）。`cleanupOrphanIcons()` 改為直接查詢 SQL 全量 `games` 的 `iconPath/cachedIconPath` 作為引用來源，不受目錄啟用過濾影響，避免在停用目錄時誤刪 ICON。
   - `db.js`：SQLite 初始化與索引（如 `folder_games`），包含自動清理與壓縮功能。
-  - `migrateFromJson.js`：舊 JSON 遷移工具（只在遷移期使用）。
-  - `jar-parser.js`：JAR 解析（透過 `readers/factory.js` 決定解讀路徑：yauzl → system-extract → raw-fallback）。
+  - `jar-parser.js`：JAR 解析（透過 `readers/factory.js` 決定解讀路徑：yauzl → system-extract → raw-fallback），圖標資料透過 `parsers/icon-cache.js` 以內容 MD5 緩存至 `userData/icons/`。
   - `shortcuts.js`：桌面捷徑與圖示處理（支援中文檔名、PNG 轉 ICO、hash-based 啟動參數）。
   - `store-bridge.js`：主進程與渲染進程狀態同步橋接。
 
@@ -367,10 +384,12 @@
 
   - `ipc/*.js`：各功能域 IPC handler：
     - `desktop.js`、`directories.js`、`drag-session.js`、`emulator.js`、`folder-windows.js`、`folders.js`、`sql-games.js`、`stats.js`、`window-controls.js`、`shortcuts.js`。
-    - `custom-names.js`：自訂遊戲名稱與開發商管理。
+    - `custom-names.js`：自訂遊戲名稱與開發商管理。更新成功後先廣播 `games-incremental-update`（payload 同步攜帶 `customName/customVendor` 與 `gameName/vendor`），再廣播 `games-updated` 作為後備一致化。
     - `incremental-updates.js`：增量更新機制（Linus-style 最小化更新）。
     - `backup.js`：備份/還原與 Dropbox OAuth（PKCE）流程之 IPC 端點。
     - `README.md`：IPC 說明文件。
+    - `folders.js`：`get-folder-contents` 聚合資料夾資訊與其內 `games/clusters`，自動隱藏屬於該資料夾簇的成員遊戲，並為條目添加 `iconUrl`。
+    - `directories.js`：`toggle-directory` 變更後立即廣播 `games-updated`；`remove-directory` 會清除該目錄下的遊戲（SQL）並觸發 `cleanupOrphanIcons()` 清理孤立圖標。
 
   - `parsers/`：匯入資源解析：`icon-cache.js`、`manifest.js`、`md5.js`、`zip-entry.js`。
 
@@ -378,15 +397,16 @@
 
   - `services/emulator-service.js`：啟動模擬器服務（依 adapter 組裝指令，spawn Java 等）。
 
-  - `sql/`：SQL 存取層：
-    - `read.js`、`sync.js`、`settings.js`、`directories.js`、`folders-read.js`、`folders-write.js`、`emulator-configs.js`。
-    - `custom-names.js`：自訂名稱 SQL 操作。
-    - `optimized-read.js`：優化的讀取查詢（支援分頁與批次操作）。
+  - **`sql/`：SQL 存取層：**
+  - `read.js`、`sync.js`、`settings.js`、`directories.js`、`folders-read.js`、`folders-write.js`、`emulator-configs.js`。
+  - `custom-names.js`：自訂名稱 SQL 操作。
+  - `optimized-read.js`：優化的讀取查詢（支援分頁與批次操作）。
+  - `folders-read.js`：資料夾/未分類/桌面清單統一按顯示名排序：`ORDER BY COALESCE(customName, gameName)`。
 
   - `utils/`：主進程工具集合：
     - `game-conf.js`：遊戲配置檔案處理。
     - `hash.js`：檔案雜湊計算工具。
-    - `icon-url.js`：註冊並使用 `safe-file://` 協議，將本地圖示暴露給渲染端。
+    - `icon-url.js`：註冊並使用 `safe-file://` 協議，將本地圖示暴露給渲染端。`safe-file://default-ico.svg` 會映射到 `assets/icons/icon.svg`；其他 `safe-file://<檔名>` 會在 `userData/icons/` 查找同名檔案；`toIconUrl(iconPath)` 會返回對應 `safe-file://` URL。當檔案不存在時，主進程會回退到 `src/main/image/ico.svg`；請在打包流程確保該資源存在。
     - `jar-cache.js`：JAR 檔案快取管理。
     - `jar-manifest.js`：JAR manifest 解析。
     - `java.js`：Java 環境檢測與工具。

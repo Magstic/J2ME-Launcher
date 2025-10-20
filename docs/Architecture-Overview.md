@@ -23,23 +23,37 @@
 
 ```
 src/main/
-├── main.js              # 應用入口，窗口管理，IPC 序列化
-├── preload.js           # IPC API 暴露層
-├── data-store.js        # 資料存取門面
-├── db.js               # SQLite 資料庫初始化
-├── ipc/                # IPC 處理器集合
-│   ├── folders.js       # 資料夾管理 IPC
-│   ├── custom-names.js  # 自訂名稱管理 IPC
-│   ├── drag-session.js  # 跨窗口拖拽 IPC
-│   ├── incremental-updates.js # 增量更新機制
-│   └── unified-events.js # 事件批次處理
-├── sql/                # SQL 存取層
-├── emulators/          # 模擬器適配層
-├── services/           # 業務服務層
-└── utils/              # 工具函式集
-    ├── icon-url.js      # 圖示 URL 與序列化
-    ├── batch-operations.js # 批次操作工具
-    └── memory-pool.js   # 記憶體池管理
+├── main.js                    # 應用入口，窗口/協定管理，統一事件廣播
+├── preload.js                 # IPC API 暴露層
+├── data-store.js              # 資料存取門面
+├── db.js                      # SQLite 初始化與關閉/壓縮
+├── store-bridge.js            # 跨窗口狀態同步（與 UnifiedEventSystem 協同）
+├── ipc/                       # IPC 處理器集合（功能域分組）
+│   ├── directories.js         # 目錄與掃描（含 'scan:progress' 廣播）
+│   ├── folders.js             # 資料夾管理與關聯
+│   ├── custom-names.js        # 自訂名稱（含增量更新）
+│   ├── drag-session.js        # 跨窗口拖拽會話
+│   ├── desktop.js             # 桌面資料（遊戲/簇彙總）
+│   ├── folder-windows.js      # 獨立資料夾窗口生命週期/控制
+│   ├── window-controls.js     # 主窗口控制
+│   ├── emulator.js            # 模擬器設定/啟動
+│   ├── clusters.js            # 簇 CRUD/查詢/關係/事件
+│   ├── config.js              # 設定（Java/Cluster Tag Options）
+│   ├── backup.js              # 備份/還原 + Dropbox OAuth
+│   ├── shortcuts.js           # Windows 捷徑建立
+│   ├── stats.js               # 統計/診斷（可選）
+│   ├── sql-games.js           # SQL 輔助（可選）
+│   ├── incremental-updates.js # 增量更新（工具類）
+│   └── unified-events.js      # 統一事件系統（分批/合併/重試）
+├── sql/                       # SQL 存取層
+├── emulators/                 # 模擬器適配層
+├── services/                  # 業務服務層（例：config-service.js）
+└── utils/                     # 工具函式集
+    ├── icon-url.js            # safe-file 圖示 URL 與序列化（addUrlToGames）
+    ├── batch-operations.js    # 批次操作工具
+    ├── game-state-cache.js    # 遊戲狀態快取（folder membership 等）
+    ├── jar-cache.js           # JAR 圖示/資源快取
+    └── hash.js                # 遊戲啟動所用哈希工具
 ```
 
 **職責**：
@@ -58,7 +72,6 @@ src/
 ├── folder-main.jsx     # 資料夾窗口入口
 ├── App.jsx             # 主應用組件
 ├── components/         # UI 組件集合
-│   ├── DesktopManager.jsx # 桌面管理器
 │   ├── FolderWindowApp.jsx # 資料夾窗口
 │   └── shared/         # 共享組件
 │       └── VirtualizedUnifiedGrid.jsx # 統一虛擬化網格
@@ -97,14 +110,13 @@ src/
 ```javascript
 // 狀態結構
 {
-  games: [],              // 遊戲陣列
-  gamesById: {},          // filePath -> game 索引
-  folderMembership: {},   // filePath -> folderIds 映射
+  games: [],              // 遊戲陣列（供 React 渲染）
+  gamesById: {},          // filePath -> game（O(1) 查詢）
+  folderMembership: {},   // filePath -> folderIds[]
   folders: {},            // folderId -> folder 物件
   ui: {                   // UI 狀態
     selectedGames: [],
-    dragState: {},
-    viewMode: 'desktop',
+    dragState: { isDragging: false, draggedItems: [] },
     searchTerm: '',
     loading: false
   }
@@ -126,7 +138,7 @@ src/
 - 廣播機制：`broadcastToAll` 同步多窗口
 - 錯誤處理：重試機制與降級策略
 - 序列化安全：所有 payload 經過序列化檢查
-- 批次處理：`unified-events.js` 事件合併與分發
+- 批次處理：`unified-events.js` 事件合併與分發；配合 `store-bridge.js` 進行跨窗口狀態同步
 
 ### 3. 虛擬化渲染系統
 
@@ -135,7 +147,7 @@ src/
 - **智能虛擬化**：根據項目數量自動切換虛擬化/非虛擬化模式
 - **統一定位系統**：非虛擬化模式使用絕對定位模擬 react-window 行為
 - **單一組件實現**：VirtualizedUnifiedGrid 消除雙重布局架構
-- **記憶體池**：URL 物件生命週期管理
+- **圖示協定**：透過 `safe-file://` 暴露圖示；由 `icon-url.js` 的 `addUrlToGames()` 注入 `iconUrl` 並確保序列化安全
 - **無效過濾**：Hook 層面過濾無效遊戲物件
 - **靜默處理**：避免不必要的控制台警告
 
@@ -185,17 +197,16 @@ src/
 
 ### 2. 資料庫優化
 
-- **索引策略**：複合索引覆蓋查詢
-- **查詢優化**：避免 SELECT \*，使用 GLOB
-- **事務管理**：批次操作減少 I/O
-- **連接池**：SQLite 連接重用
+- **索引策略**：合理的索引覆蓋查詢
+- **查詢優化**：避免 SELECT \*，使用預編譯語句與精確欄位
+- **事務管理**：批次操作減少 I/O 次數
+- **連線重用**：`better-sqlite3` 單一連線重用（非連接池）
 
 ### 3. 記憶體管理
 
-- **物件池**：URL 物件重用
-- **垃圾回收**：及時釋放大物件
-- **快取策略**：LRU 快取熱點資料
-- **洩漏檢測**：開發模式下的記憶體監控
+- **遊戲狀態快取**：`src/main/utils/game-state-cache.js`
+- **JAR 快取清理**：啟動與運行期的 `jar-cache.js` 清理策略
+- **圖示 URL 安全**：`icon-url.js` 僅傳可序列化欄位（避免傳遞非可克隆物件）
 
 ## 錯誤處理策略
 
@@ -205,7 +216,7 @@ src/
 - **IPC 層**：重試機制 + 降級策略 + 序列化檢查
 - **資料層**：事務回滾 + 資料修復
 - **系統層**：崩潰恢復 + 狀態持久化
-- **序列化層**：`broadcastToAll` 自動清理不可序列化屬性
+- **序列化層**：主進程在構建 payload 時使用 `addUrlToGames()` 保證可序列化；`UnifiedEventSystem` 僅負責分批/合併/重試
 
 ### 2. 容錯設計
 

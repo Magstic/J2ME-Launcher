@@ -30,6 +30,11 @@
   - 涵蓋所有 `src/` 目錄下的 CSS 和 SCSS 檔案
   - 主要樣式檔案位於 `src/styles/` 與各元件目錄中
 
+#### SCSS 現況
+
+- 目前專案未使用 `.scss` 檔（保留 `scss` 擴充僅為未來擴展方便）。
+- 若未來導入 SCSS，建議考慮 `stylelint-config-standard-scss` 以獲得更完整的 SCSS 規則集。
+
 ## 樣式編寫最佳實踐
 
 ### 設計代幣系統
@@ -118,6 +123,33 @@
 - **手動執行**：
   - `npx stylelint "src/**/*.{css,scss}"`
   - `npx stylelint "src/**/*.{css,scss}" --fix`
+
+## 開發環境整合
+
+### VSCode 設定建議
+
+- 安裝擴充：`stylelint.vscode-stylelint`、`esbenp.prettier-vscode`
+- 建議在工作區 `.vscode/settings.json` 增加（示例）：
+
+```json
+{
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.stylelint": true,
+    "source.fixAll.eslint": true
+  }
+}
+```
+
+### 與 Prettier 的搭配
+
+- 先由 Prettier 做格式化，再由 Stylelint 檢查/修復規則（避免互相覆寫）。
+- 專案已透過 `lint-staged` 對 `*.css,*.scss` 執行 Prettier（見 `package.json` 的 `lint-staged`）。
+- 推薦在提交前執行：
+
+```bash
+npm run format:check && npm run stylelint
+```
 
 ## 專案樣式結構
 

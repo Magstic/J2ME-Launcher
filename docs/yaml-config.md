@@ -18,6 +18,8 @@
 
 ```yaml
 version: 1
+runtime:
+  javaPath: null
 emulators:
   freej2mePlus:
     jarPath: ''
@@ -59,7 +61,17 @@ ui:
     versions: ['MIDP-1.0', 'MIDP-2.0']
 ```
 
----
+-## runtime 區塊
+
+- 來源檔：
+  - `src/main/services/config-service.js`（`get/set('javaPath')`、`resolveJavaPath()`、`isValidJavaPath()`）
+  - `src/main/ipc/config.js`（`get-java-path` / `set-java-path` / `validate-java-path` / `browse-java-executable`）
+- 結構：
+  - `runtime.javaPath: string | null`
+- 行為：
+  - 若 `javaPath` 為 `null` 或未設定，將自動解析：自訂路徑 → `JAVA_HOME/JDK_HOME` → 系統 `java`（`PATH`）。
+  - 設定時會檢查存在性與可執行權限（非 Windows 亦檢查 `+x`）。
+  - UI 可透過 `browse-java-executable` 讓使用者挑選 Java 可執行檔，並用 `validate-java-path` 驗證。
 
 ## emulators 區塊
 

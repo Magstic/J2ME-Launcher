@@ -39,6 +39,7 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
   - 事件：
     - `onGamesUpdated(callback)` → channel: `'games-updated'`，回傳 unsubscribe 函式
     - `onGamesIncrementalUpdate(callback)` → channel: `'games-incremental-update'`，回傳 unsubscribe 函式
+    - `onScanProgress(callback)` → channel: `'scan:progress'`，回傳 unsubscribe 函式
     - `onAutoScanCompleted(callback)` → channel: `'auto-scan-completed'`
   - 其他：
     - `removeAllListeners(channel)`
@@ -64,6 +65,8 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
 - **桌面/資料夾數據**
   - `getDesktopItems()`
   - `getFolderContents(folderId)`
+  - 事件：
+    - `onDesktopRemoveItems(callback)` → channel: `'desktop:remove-items'`，回傳 unsubscribe 函式
 
 - **自訂名稱管理**
   - `updateCustomName(filePath, customName)`
@@ -87,6 +90,14 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
   - FreeJ2ME-Plus 資產：
     - `pickFreej2meAsset(type)`
     - `importFreej2meAsset(type, sourcePath)`
+
+- **簇（Clusters）**
+  - CRUD：`createCluster(payload)`、`updateCluster(payload)`、`deleteCluster(id)`
+  - 成員：`addGamesToCluster(clusterId, filePaths)`、`removeGameFromCluster(clusterId, filePath)`、`updateClusterMemberTags(clusterId, filePath, tags)`、`setClusterPrimary(clusterId, filePath)`、`getClusterMembers(id)`
+  - 集合與讀取：`getDesktopClusters()`、`getClustersByFolder(folderId)`、`getCluster(id)`
+  - 關係：`addClusterToFolder(clusterId, folderId)`、`removeClusterFromFolder(clusterId, folderId)`、`mergeClusters(fromId, toId)`
+  - 維護：`cleanupOrphanClusters()`
+  - 事件：`onClusterChanged(callback)`、`onClusterDeleted(callback)`
 
 - **資料夾事件監聽**
   - `onFolderUpdated(callback)` → channel: `'folder-updated'`（回傳 unsubscribe）
@@ -142,6 +153,10 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
   - `validateJavaPath(javaPath)`
   - `browseJavaExecutable()`
 
+- **設定：Cluster Tag Options**
+  - `getClusterTagOptions()`
+  - `setClusterTagOptions(options)`
+
 ## 附錄：API 與 IPC 通道對照表
 
 以下對照表以 `src/main/preload.js` 為準，標明每個 API 對應的 IPC 通道與型態（invoke/send）及事件通道。
@@ -160,6 +175,7 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
   - `removeDirectory` → `'remove-directory'`（invoke）
   - `toggleDirectory` → `'toggle-directory'`（invoke）
   - `scanDirectories` → `'scan-directories'`（invoke）
+  - `onScanProgress` → `'scan:progress'`（event，return unsubscribe）
   - `onGamesUpdated` → `'games-updated'`（event，return unsubscribe）
   - `onGamesIncrementalUpdate` → `'games-incremental-update'`（event，return unsubscribe）
   - `onAutoScanCompleted` → `'auto-scan-completed'`（event）
@@ -196,8 +212,17 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
   - `getDesktopItems` → `'get-desktop-items'`（invoke）
   - `getFolderContents` → `'get-folder-contents'`（invoke）
 
+- **桌面事件**
+  - `onDesktopRemoveItems` → `'desktop:remove-items'`（event，return unsubscribe）
+
 - **遊戲啟動**
   - `launchGame` → `'launch-game'`（invoke）
+
+- **Java 設定**
+  - `getJavaPath` → `'get-java-path'`（invoke）
+  - `setJavaPath` → `'set-java-path'`（invoke）
+  - `validateJavaPath` → `'validate-java-path'`（invoke）
+  - `browseJavaExecutable` → `'browse-java-executable'`（invoke）
 
 - **模擬器設定與資產**
   - `getEmulatorConfig` → `'get-emulator-config'`（invoke）
@@ -211,6 +236,26 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
   - `updateFreej2meGameConf` → `'update-freej2me-game-conf'`（invoke）
   - `pickFreej2meAsset` → `'freej2me:pick-asset'`（invoke）
   - `importFreej2meAsset` → `'freej2me:import-asset'`（invoke）
+
+- **簇（Clusters）**
+  - `createCluster` → `'clusters:create'`（invoke）
+  - `addGamesToCluster` → `'clusters:add-games'`（invoke）
+  - `removeGameFromCluster` → `'clusters:remove-game'`（invoke）
+  - `updateCluster` → `'clusters:update'`（invoke）
+  - `deleteCluster` → `'clusters:delete'`（invoke）
+  - `getCluster` → `'clusters:get'`（invoke）
+  - `getClusterMembers` → `'clusters:get-members'`（invoke）
+  - `getDesktopClusters` → `'clusters:get-desktop'`（invoke）
+  - `getClustersByFolder` → `'clusters:get-by-folder'`（invoke）
+  - `addClusterToFolder` → `'clusters:add-to-folder'`（invoke）
+  - `removeClusterFromFolder` → `'clusters:remove-from-folder'`（invoke）
+  - `updateClusterMemberTags` → `'clusters:update-member-tags'`（invoke）
+  - `setClusterPrimary` → `'clusters:set-primary'`（invoke）
+  - `mergeClusters` → `'clusters:merge'`（invoke）
+  - `cleanupOrphanClusters` → `'clusters:cleanup-orphans'`（invoke）
+  - 事件：
+    - `onClusterChanged` → `'cluster:changed'`（event，return unsubscribe）
+    - `onClusterDeleted` → `'cluster:deleted'`（event，return unsubscribe）
 
 - **資料夾事件監聽**
   - `onFolderUpdated` → `'folder-updated'`（event，return unsubscribe）
@@ -262,6 +307,10 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
 - **Windows 捷徑**
   - `createShortcut` → `'create-shortcut'`（invoke）
   - `onShortcutLaunch` → `'shortcut-launch'`（event，return unsubscribe）
+
+- **設定：Cluster Tag Options**
+  - `getClusterTagOptions` → `'get-cluster-tag-options'`（invoke）
+  - `setClusterTagOptions` → `'set-cluster-tag-options'`（invoke）
 
 ## 序列化安全最佳實踐
 
@@ -331,7 +380,7 @@ class EventManager {
 
 ## 注意事項
 
-- **退訂管理**: 所有 `on*` 方法都會返回 unsubscribe 函數，必須適時調用以避免記憶體洩漏
+- **退訂管理**: 多數 `on*` 方法會返回 unsubscribe（例如 `onGamesUpdated`、`onFolderUpdated`）；少數不返回（如 `onAutoScanCompleted`）。對於不返回的事件，可使用 `removeAllListeners(channel)` 或控制組件生命週期確保釋放。
 - **通道命名**: IPC 通道名與 API 方法名一一對應
 - **錯誤處理**: 所有 IPC 調用都應該包裝在 try-catch 中
 - **性能考量**: 使用批量 API 處理大量資料，避免頻繁的單一調用

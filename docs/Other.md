@@ -16,20 +16,19 @@ desktop-manager
     │       └── DesktopViewDirect
     │           └── div.desktop-view (overflow: hidden)
     │               └── VirtualizedUnifiedGrid
-    │                   └── div.desktop-grid (overflow: hidden auto, scrollbar-gutter: stable)
-    │                       └── div (marginLeft: gridDimensions.leftOffset)
-    │                           └── react-window Grid
+    │                   └── div.desktop-grid (overflow: hidden；滾動由內部 react-window Grid 處理)
+    │                       └── react-window Grid (style: overflowY: auto; marginLeft: gridDimensions.leftOffset)
     └── FolderDrawer (position: absolute, 與 content-area 同級)
 ```
 
 ### CSS 職責分工
 
-| 層級                 | 檔案位置                   | 主要職責           | 關鍵樣式                                          |
-| -------------------- | -------------------------- | ------------------ | ------------------------------------------------- |
-| `content-area`       | App.css                    | 純容器，無邊距干擾 | `padding: 0, overflow: hidden`                    |
-| `content-area-inner` | App.jsx (inline)           | 負責視覺間距       | `padding: 10px 6px 6px 6px`                       |
-| `desktop-view`       | Desktop.css                | 背景和基礎布局     | `overflow: hidden, flex: 1`                       |
-| `desktop-grid`       | VirtualizedUnifiedGrid.jsx | 滾動容器           | `overflow: hidden auto, scrollbar-gutter: stable` |
+| 層級                 | 檔案位置                   | 主要職責           | 關鍵樣式                                                            |
+| -------------------- | -------------------------- | ------------------ | ------------------------------------------------------------------- |
+| `content-area`       | App.css                    | 純容器，無邊距干擾 | `padding: 0, overflow: hidden`                                      |
+| `content-area-inner` | App.jsx (inline)           | 負責視覺間距       | `padding: 10px 6px 6px 6px`                                         |
+| `desktop-view`       | Desktop.css                | 背景和基礎布局     | `overflow: hidden, flex: 1`                                         |
+| `desktop-grid`       | VirtualizedUnifiedGrid.jsx | 滾動容器外層       | `overflow: hidden`（實際滾動由內部 Grid 以 `overflowY: auto` 控制） |
 
 ## 歷史問題與修復
 
@@ -117,9 +116,10 @@ const leftOffset = Math.floor((availableWidth - actualGridWidth) / 2);
 ```css
 /* ✅ 正確：單一滾動責任 */
 .desktop-grid {
-  overflow: hidden auto;
-  scrollbar-gutter: stable;
+  /* 外層容器隱藏自身滾動，由內部 react-window Grid 處理 */
+  overflow: hidden;
 }
+/* 內部 react-window Grid 使用內聯 style 設置：overflow-y: auto; overflow-x: hidden; */
 
 /* ❌ 錯誤：多層滾動處理 */
 .desktop-view {

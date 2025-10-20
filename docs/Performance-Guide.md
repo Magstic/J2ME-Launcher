@@ -53,6 +53,34 @@ const VirtualizedUnifiedGrid = ({ games, folders, ...props }) => {
 };
 ```
 
+#### 虛擬化落地細節與常見陷阱
+
+- **容器必須可滾動**：避免 `overflow: visible`。否則容器高度會撐到內容總高，導致 `scrollHeight === clientHeight`，虛擬化偵測失效而全量渲染。
+- **正確的滾動容器**：由 `react-window` 的 Grid 外層（`outerRef`）負責滾動；其 `style` 必須啟用 `overflowY: 'auto'`：
+
+```jsx
+<Grid
+  columnCount={gridDimensions.columnCount}
+  columnWidth={gridDimensions.itemWidth}
+  height={gridDimensions.height}
+  rowCount={rowCount}
+  rowHeight={ITEM_HEIGHT}
+  width={gridDimensions.width}
+  outerRef={gridOuterRef}
+  style={{ overflowX: 'hidden', overflowY: 'auto' }}
+>
+  {GridCell}
+</Grid>
+```
+
+- 外層容器（例如 `.desktop-view .desktop-grid`）維持 `overflow: hidden`，由 Grid 外層管理滾動；切勿設為 `overflow: visible`。
+
+- **檢查清單（Debug Checklist）**：
+  - 檢查容器：`el.scrollHeight > el.clientHeight` 應為 true。
+  - 檢查可見範圍：`visibleStart/visibleEnd` 應只覆蓋當前視窗附近的項目（約數百，而非全量）。
+  - 檢查布局：避免其他 CSS 導致容器高度被動放大（例如父層 `height: auto` 並把內容撐滿）。
+  - 非虛擬化分支應使用單一絕對定位系統，避免雙重布局帶來回流/重繪成本。
+
 ### 2. 拖拽操作性能問題
 
 **問題**：每次拖拽觸發全量遊戲重新載入
@@ -224,6 +252,15 @@ const calculateAbsolutePosition = (index, gridDimensions) => {
   };
 ```
 
+### 3. 框選（Selection Box）最佳化
+
+- **事件節流**：在 `pointermove`/`mousemove` 中以 `requestAnimationFrame` 包裹更新，避免高頻 `getBoundingClientRect()` 觸發同步樣式計算。
+- **快取計算**：
+  - 初次顯示框選時建立可見卡片的邊界快取；移動過程僅對位移區域做增量檢查。
+  - 視窗尺寸或捲動改變時再失效快取。
+- **查詢域縮小**：只對「實際渲染在 DOM 中」的卡片元素進行命中測試（與虛擬化策略一致）。
+- **避免強制同步佈局**：將讀（量測）與寫（樣式變更）分離，同一幀內批量更新。
+
 ## 記憶體管理
 
 ### 1. URL 物件管理
@@ -328,7 +365,13 @@ function addUrlToGames(games) {
 }
 ```
 
-### 2. 批次處理
+### 2. 統一事件系統（UnifiedEventSystem）
+
+- **事件分批**：主進程以 ~16ms（約 60fps）節拍批次處理事件，減少 UI 壅塞（`src/main/ipc/unified-events.js#queueEvent()` → `processBatch()`）。
+- **類型合併與去重**：例如高頻 `drag-session:updated` 僅取最後一次；`folder-updated`/`folder-changed` 智能協同，避免重複刷新。
+- **關鍵事件重試**：`games-incremental-update` 等關鍵事件在發送失敗時會重新入列，提升可靠性。
+
+### 3. 批次處理
 
 **合併 IPC 調用**：
 
@@ -354,7 +397,7 @@ ipcMain.handle('batch-remove-games-from-folder', async (event, filePaths, folder
 });
 ```
 
-### 3. 錯誤處理與重試
+### 4. 錯誤處理與重試
 
 **重試機制**：
 

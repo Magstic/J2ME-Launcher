@@ -40,7 +40,7 @@ JS 路徑提示（`jsconfig.json`）：
 注意：
 
 - `@shared` 指向 UI 層的共享元件資料夾 `src/components/shared`。
-- 專案頂層的 `src/shared`（例如 `src/shared/backup/spec.js`、`src/shared/backup/indexTSV.js`）沒有設定 alias，以避免命名混淆。請在 `src/main` 或渲染端以相對路徑匯入（例如：在 `src/main/ipc/backup.js` 以 `require('../shared/backup/spec')` 匯入）。
+- 專案頂層的 `src/shared`（例如 `src/shared/backup/spec.js`、`src/shared/backup/indexTSV.js`）沒有設定 alias，以避免命名混淆。請在 `src/main` 或渲染端以相對路徑匯入（例如：在 `src/main/ipc/backup.js` 以 `require('../../shared/backup/spec')` 匯入）。
 
 ## 使用規範與最佳實踐
 
@@ -129,6 +129,10 @@ const handleAddToFolder = async (games, folderId) => {
     - `EmulatorNotConfiguredDialog`
     - `SettingsDialog`
     - `WelcomeGuideDialog`
+    - `ProgressPanel`
+    - `ClusterDialog`
+    - `ClusterSelectDialog`
+    - `RenameDialog`
   - 用法：
     ```js
     import { ModalWithFooter, Collapsible } from '@ui';
@@ -182,6 +186,9 @@ const handleAddToFolder = async (games, folderId) => {
     - `useSelectionBox`
     - `useUnifiedContextMenu`
     - `useWheelTouchLock`
+    - `useGuardedRefresh`
+    - `useMergedEventRefresh`
+    - `useUserInputActivityRef`
   - 用法：
     ```js
     import { useSelectionBox, useDragSession } from '@shared/hooks';
