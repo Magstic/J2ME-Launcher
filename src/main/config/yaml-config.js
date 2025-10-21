@@ -47,6 +47,7 @@ const DEFAULTS = Object.freeze({
     },
     ke: { jarPath: '', romCache: true },
     libretro: { retroarchPath: '', corePath: '', romCache: false },
+    squirreljme: { jarPath: '', romCache: true },
   },
   ui: {
     defaultView: 'desktop',
@@ -77,6 +78,8 @@ function validate(config) {
   if (typeof merged.emulators?.ke?.romCache !== 'boolean') merged.emulators.ke.romCache = true;
   if (typeof merged.emulators?.libretro?.romCache !== 'boolean')
     merged.emulators.libretro.romCache = false;
+  if (typeof merged.emulators?.squirreljme?.romCache !== 'boolean')
+    merged.emulators.squirreljme = { ...(merged.emulators.squirreljme || {}), romCache: true };
   // Clamp some numeric defaults to sane ranges
   const d = merged.emulators.freej2mePlus?.defaults || {};
   if (typeof d.width !== 'number' || !Number.isFinite(d.width))

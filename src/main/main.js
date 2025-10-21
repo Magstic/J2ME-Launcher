@@ -13,6 +13,7 @@ const { getDB, compact: compactDb, closeDB } = require('./db');
 const freej2mePlusAdapter = require('./emulators/freej2mePlus.js');
 const keAdapter = require('./emulators/ke.js');
 const libretroAdapter = require('./emulators/libretro.js');
+const squirreljmeAdapter = require('./emulators/squirreljme.js');
 // Extracted utils
 const { getConfigGameName } = require('./utils/jar-manifest.js');
 // Unified event broadcast (replace legacy local implementation)
@@ -71,6 +72,7 @@ registerEmulatorIpc({
   configService,
   getConfigGameName,
   app,
+  adapters: [freej2mePlusAdapter, keAdapter, libretroAdapter, squirreljmeAdapter],
 });
 
 // Register configuration IPC handlers

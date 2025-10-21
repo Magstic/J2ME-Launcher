@@ -3,7 +3,7 @@ import { ModalWithFooter, Select } from '@ui';
 import useUnifiedContextMenu from '@shared/hooks/useUnifiedContextMenu';
 import { useTranslation } from '@hooks/useTranslation';
 import './ClusterDialog.css';
-import DEFAULT_CLUSTER_TAG_OPTIONS from '@config/clusterTags';
+import DEFAULT_CLUSTER_TAG_OPTIONS, { VERSION_I18N_KEYS } from '@config/clusterTags';
 import useCreateShortcut from '@shared/hooks/useCreateShortcut';
 
 // 簇詳情對話框（列表樣式，固定尺寸）
@@ -13,36 +13,8 @@ import useCreateShortcut from '@shared/hooks/useCreateShortcut';
 // 單行成員列（高度自適應），以 filePath 為 key；
 // 使用 React.memo 避免非必要重渲染：除非該行的 tags/name/vendor/icon 或 isPrimary 改變
 const ClusterMemberRow = React.memo(
-  function ClusterMemberRow({
-    m,
-    isPrimary,
-    tagOptions,
-    onUpdateTag,
-    openMenu,
-    selectSize = 'sm',
-  }) {
+  function ClusterMemberRow({ m, isPrimary, opt, onUpdateTag, openMenu, selectSize = 'sm' }) {
     const rowGrid = '56px 3fr 2fr 1.6fr 1.4fr 1.4fr';
-    const opt = React.useMemo(() => {
-      const uniq = (arr) =>
-        Array.from(new Set((arr || []).filter((x) => typeof x === 'string' && x.trim())));
-      const mergedDevices = uniq([
-        ...(DEFAULT_CLUSTER_TAG_OPTIONS.devices || []),
-        ...(tagOptions.devices || []),
-      ]);
-      const mergedRes = uniq([
-        ...(DEFAULT_CLUSTER_TAG_OPTIONS.resolutions || []),
-        ...(tagOptions.resolutions || []),
-      ]);
-      const mergedVer = uniq([
-        ...(DEFAULT_CLUSTER_TAG_OPTIONS.versions || []),
-        ...(tagOptions.versions || []),
-      ]);
-      return {
-        devices: mergedDevices.map((v) => ({ value: v, label: v })),
-        resolutions: mergedRes.map((v) => ({ value: v, label: v })),
-        versions: mergedVer.map((v) => ({ value: v, label: v })),
-      };
-    }, [tagOptions]);
     const tags = m.tags || {};
     return (
       <div
@@ -146,12 +118,8 @@ const ClusterMemberRow = React.memo(
       const t1 = JSON.stringify(a.tags || null);
       const t2 = JSON.stringify(b.tags || null);
       if (t1 !== t2) return false;
-      // 粗略比較選項長度，若選項變更（通常很少），允許重渲染
-      const lenEq =
-        (prev.tagOptions.devices?.length || 0) === (next.tagOptions.devices?.length || 0) &&
-        (prev.tagOptions.resolutions?.length || 0) === (next.tagOptions.resolutions?.length || 0) &&
-        (prev.tagOptions.versions?.length || 0) === (next.tagOptions.versions?.length || 0);
-      if (!lenEq) return false;
+      // 若父層重建了選項（語言或設定變更），允許重渲染
+      if (prev.opt !== next.opt) return false;
       return true;
     } catch (_) {
       return false;
@@ -175,6 +143,31 @@ export default function ClusterDialog({ isOpen, clusterId, onClose }) {
   const lastLocalPrimaryUpdateAtRef = React.useRef(0);
   const lastLocalRemovalUpdateAtRef = React.useRef(0);
   const { t } = useTranslation();
+  const opt = React.useMemo(() => {
+    const uniq = (arr) =>
+      Array.from(new Set((arr || []).filter((x) => typeof x === 'string' && x.trim())));
+    const mergedDevices = uniq([
+      ...(DEFAULT_CLUSTER_TAG_OPTIONS.devices || []),
+      ...(tagOptions.devices || []),
+    ]);
+    const mergedRes = uniq([
+      ...(DEFAULT_CLUSTER_TAG_OPTIONS.resolutions || []),
+      ...(tagOptions.resolutions || []),
+    ]);
+    const mergedVer = uniq([
+      ...(DEFAULT_CLUSTER_TAG_OPTIONS.versions || []),
+      ...(tagOptions.versions || []),
+    ]);
+    const mapVersion = (v) => {
+      const key = VERSION_I18N_KEYS[v];
+      return { value: v, label: key ? t(key) : v };
+    };
+    return {
+      devices: mergedDevices.map((v) => ({ value: v, label: v })),
+      resolutions: mergedRes.map((v) => ({ value: v, label: v })),
+      versions: mergedVer.map(mapVersion),
+    };
+  }, [tagOptions, t]);
   // 共享的捷徑建立邏輯（對單一或多選成員均適用）
   const emptySelected = React.useMemo(() => [], []);
   const noopSetSelected = React.useCallback(() => {}, []);
@@ -603,7 +596,7 @@ export default function ClusterDialog({ isOpen, clusterId, onClose }) {
                   key={m.filePath}
                   m={m}
                   isPrimary={!!isPrimary}
-                  tagOptions={tagOptions}
+                  opt={opt}
                   onUpdateTag={handleUpdateTag}
                   openMenu={openMenu}
                   selectSize="sm"

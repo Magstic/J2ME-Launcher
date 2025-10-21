@@ -18,7 +18,14 @@ function register({
   configService,
   getConfigGameName,
   app,
+  // 可選：動態傳入適配器清單（陣列），若未提供則回退到三個內建適配器
+  adapters,
 }) {
+  // 建立動態適配器清單與對應表（回退到既有三個適配器）
+  const adapterList = Array.isArray(adapters)
+    ? adapters.filter(Boolean)
+    : [freej2mePlusAdapter, keAdapter, libretroAdapter].filter(Boolean);
+  const adapterMap = new Map(adapterList.map((adp) => [adp.id, adp]));
   // ==================== 模擬器設定 IPC ====================
   // 取得模擬器設定
   ipcMain.handle('get-emulator-config', () => {
@@ -33,7 +40,7 @@ function register({
   // 列出可用模擬器（提供 UI 動態渲染）
   ipcMain.handle('list-emulators', () => {
     try {
-      const list = [freej2mePlusAdapter, keAdapter, libretroAdapter].map((adp) => ({
+      const list = adapterList.map((adp) => ({
         id: adp.id,
         name: adp.name,
         capabilities: adp.capabilities || {},
@@ -48,14 +55,7 @@ function register({
   // 取得特定模擬器能力（若需要細分）
   ipcMain.handle('get-emulator-capabilities', (event, emulatorId) => {
     try {
-      const adp =
-        emulatorId === 'ke'
-          ? keAdapter
-          : emulatorId === 'freej2mePlus'
-            ? freej2mePlusAdapter
-            : emulatorId === 'libretro'
-              ? libretroAdapter
-              : null;
+      const adp = adapterMap.get(emulatorId) || null;
       if (!adp) return null;
       return { id: adp.id, name: adp.name, capabilities: adp.capabilities || {} };
     } catch (error) {
@@ -67,14 +67,7 @@ function register({
   // 取得特定模擬器的設定 Schema（若該 adapter 提供）
   ipcMain.handle('get-emulator-schema', (event, emulatorId) => {
     try {
-      const adp =
-        emulatorId === 'ke'
-          ? keAdapter
-          : emulatorId === 'freej2mePlus'
-            ? freej2mePlusAdapter
-            : emulatorId === 'libretro'
-              ? libretroAdapter
-              : null;
+      const adp = adapterMap.get(emulatorId) || null;
       if (!adp || typeof adp.getConfigSchema !== 'function') return null;
       const schema = adp.getConfigSchema();
       return schema || null;
@@ -105,6 +98,14 @@ function register({
         filter = { name: 'Libretro Core (DLL)', extensions: ['dll'] };
       } else {
         filter = { name: 'Java Archive', extensions: ['jar'] };
+        // 動態適配器可選提供自定義挑選器：若傳入的是 adapter id，且提供 getPickFilters
+        const dyn = adapterMap.get(emulatorId);
+        if (dyn && typeof dyn.getPickFilters === 'function') {
+          try {
+            const pf = dyn.getPickFilters('binary');
+            if (pf && pf.name && Array.isArray(pf.extensions)) filter = pf;
+          } catch (_) {}
+        }
       }
       const { canceled, filePaths } = await dialog.showOpenDialog({
         properties: ['openFile'],
@@ -436,7 +437,7 @@ function register({
   // 構建服務並精簡啟動處理器（行為保持不變）
   const emulatorService = createEmulatorService({
     DataStore,
-    adapters: { freej2mePlus: freej2mePlusAdapter, ke: keAdapter, libretro: libretroAdapter },
+    adapters: Object.fromEntries(adapterMap),
     ensureCachedJar,
     configService,
     getConfigGameName,

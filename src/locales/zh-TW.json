@@ -165,7 +165,17 @@
   },
   "cluster": {
     "untitled": "簇",
-    "empty": "無成員"
+    "empty": "無成員",
+    "versionTag": {
+      "original": "原版",
+      "fixed": "修復版",
+      "cracked": "破解版",
+      "boxed": "箱子版",
+      "preview": "預覽版",
+      "ported": "移植版",
+      "chinese": "漢化版",
+      "english": "英化版"
+    }
   },
   "contextMenu": {
     "launch": "啟動",
@@ -277,7 +287,7 @@
     "emuParams": "參數",
     "saveHint": "保存後，未來啟動該遊戲時將自動套用此配置。",
     "freej2mePlus": {
-      "name": "FreeJ2ME-Plus(AWT)",
+      "name": "FreeJ2ME-Plus",
       "jarPath": "執行檔（freej2me.jar）",
       "placeholder": "尚未設定，請選擇 freej2me.jar",
       "hint": "預設啟動參數。首次啟動某款遊戲時，可自訂並覆蓋該參數（字體和音源除外）。",
@@ -314,6 +324,12 @@
       "jarPath": "執行檔（KEmulator.jar）",
       "placeholder": "尚未設定，請選擇 KEmulator.jar",
       "hint": "Kemnnx 暫不支援自訂參數啟動，請在其 GUI 内設定。"
+    },
+    "squirreljme": {
+      "name": "SquirrelJME",
+      "jarPath": "執行檔（squirreljme.jar）",
+      "placeholder": "尚未設定，請選擇 squirreljme-standalone.jar",
+      "hint": "SquirrelJME 暫不支援自訂參數啟動。"
     },
     "libretroFJP": {
       "name": "Libretro(FreeJ2ME-Plus)",

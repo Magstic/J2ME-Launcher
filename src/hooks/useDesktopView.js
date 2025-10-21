@@ -282,6 +282,29 @@ export const useDesktopView = ({ games, onGameSelect, onAddToFolder, onRefresh, 
     };
   }, [refreshMemberSet]);
 
+  // 監聽：主進程合併廣播的『folder-membership-changed』事件
+  // 作用：即時維護桌面徽章的 memberSet（無需依賴拖拽或全量刷新）
+  useEffect(() => {
+    const api = window.electronAPI;
+    if (!api?.onFolderMembershipChanged) return;
+    const off = api.onFolderMembershipChanged((payload) => {
+      try {
+        const list = Array.isArray(payload) ? payload : payload ? [payload] : [];
+        for (const ch of list) {
+          const op = ch && ch.operation;
+          const fps = Array.isArray(ch?.filePaths) ? ch.filePaths : [];
+          if (!op || fps.length === 0) continue;
+          enqueueMemberSetUpdate(op === 'add' ? 'add' : 'remove', fps);
+        }
+      } catch (_) {}
+    });
+    return () => {
+      try {
+        off && off();
+      } catch (_) {}
+    };
+  }, [enqueueMemberSetUpdate]);
+
   // 監聽跨窗口拖拽會話開始/結束
   useEffect(() => {
     const api = window.electronAPI;

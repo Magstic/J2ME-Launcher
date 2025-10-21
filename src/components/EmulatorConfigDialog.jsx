@@ -16,14 +16,16 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
     },
     ke: { jarPath: '', romCache: true },
     libretro: { retroarchPath: '', corePath: '', romCache: false },
+    squirreljme: { jarPath: '', romCache: true },
   });
   const [dirty, setDirty] = useState(false);
   const [freeOpen, setFreeOpen] = useState(false);
   const [keOpen, setKeOpen] = useState(false);
   const [libretroOpen, setLibretroOpen] = useState(false);
+  const [squirrelOpen, setSquirrelOpen] = useState(false);
   const [showPathChangeWarn, setShowPathChangeWarn] = useState(false);
   const warnFlagsRef = useRef({ rmsOn: false, emuCfgOn: false });
-  const originalPathsRef = useRef({ freeJar: '', keJar: '', retroarch: '' });
+  const originalPathsRef = useRef({ freeJar: '', keJar: '', retroarch: '', squirrelJar: '' });
   const freeDefaults = useMemo(() => emulators.freej2mePlus?.defaults || {}, [emulators]);
   const freeAdapter = useMemo(
     () => (emulatorList || []).find((e) => e?.id === 'freej2mePlus') || null,
@@ -72,6 +74,7 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
           freeJar: (emu && emu.freej2mePlus && emu.freej2mePlus.jarPath) || '',
           keJar: (emu && emu.ke && emu.ke.jarPath) || '',
           retroarch: (emu && emu.libretro && emu.libretro.retroarchPath) || '',
+          squirrelJar: (emu && emu.squirreljme && emu.squirreljme.jarPath) || '',
         };
         setEmulators((prev) => ({
           ...prev,
@@ -111,6 +114,18 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
                   ? prev.libretro.romCache
                   : false,
           },
+          squirreljme: {
+            jarPath:
+              (emu && emu.squirreljme && emu.squirreljme.jarPath) ||
+              prev.squirreljme?.jarPath ||
+              '',
+            romCache:
+              emu && emu.squirreljme && typeof emu.squirreljme.romCache === 'boolean'
+                ? emu.squirreljme.romCache
+                : typeof prev.squirreljme?.romCache === 'boolean'
+                  ? prev.squirreljme.romCache
+                  : true,
+          },
         }));
         setDirty(false);
       } catch (_) {
@@ -138,6 +153,7 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
             freeJar: (cfg && cfg.freej2mePlus && cfg.freej2mePlus.jarPath) || '',
             keJar: (cfg && cfg.ke && cfg.ke.jarPath) || '',
             retroarch: (cfg && cfg.libretro && cfg.libretro.retroarchPath) || '',
+            squirrelJar: (cfg && cfg.squirreljme && cfg.squirreljme.jarPath) || '',
           };
           setEmulators(cfg);
         }
@@ -199,6 +215,13 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
           romCache:
             typeof emulators.libretro?.romCache === 'boolean' ? emulators.libretro.romCache : false,
         },
+        squirreljme: {
+          jarPath: emulators.squirreljme?.jarPath || '',
+          romCache:
+            typeof emulators.squirreljme?.romCache === 'boolean'
+              ? emulators.squirreljme.romCache
+              : true,
+        },
       };
 
       // 更新指定的配置項
@@ -208,6 +231,8 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
         currentConfig.ke[field] = value;
       } else if (emulatorType === 'libretro') {
         currentConfig.libretro[field] = value;
+      } else if (emulatorType === 'squirreljme') {
+        currentConfig.squirreljme[field] = value;
       }
 
       await window.electronAPI.setEmulatorConfig(currentConfig);
@@ -222,6 +247,18 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
     if (path) {
       updateFreeField('jarPath', path);
       await autoSaveConfig('freej2mePlus', 'jarPath', path);
+    }
+  };
+
+  const handlePickSquirrelJar = async () => {
+    const p = await window.electronAPI.pickEmulatorBinary('squirreljme');
+    if (p) {
+      setEmulators((prev) => ({
+        ...prev,
+        squirreljme: { ...(prev.squirreljme || {}), jarPath: p },
+      }));
+      setDirty(true);
+      await autoSaveConfig('squirreljme', 'jarPath', p);
     }
   };
 
@@ -247,12 +284,20 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
           romCache:
             typeof emulators.libretro?.romCache === 'boolean' ? emulators.libretro.romCache : false,
         },
+        squirreljme: {
+          jarPath: emulators.squirreljme?.jarPath || '',
+          romCache:
+            typeof emulators.squirreljme?.romCache === 'boolean'
+              ? emulators.squirreljme.romCache
+              : true,
+        },
       });
       // 保存成功後，同步原始路徑基準
       originalPathsRef.current = {
         freeJar: emulators.freej2mePlus?.jarPath || '',
         keJar: emulators.ke?.jarPath || '',
         retroarch: emulators.libretro?.retroarchPath || '',
+        squirrelJar: emulators.squirreljme?.jarPath || '',
       };
       setDirty(false);
       // 關閉動效交由容器處理（在調用端透過 requestCloseRef）
@@ -283,7 +328,9 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
       const keChanged = (emulators.ke?.jarPath || '') !== (originalPathsRef.current.keJar || '');
       const retroChanged =
         (emulators.libretro?.retroarchPath || '') !== (originalPathsRef.current.retroarch || '');
-      const pathsChanged = freeChanged || keChanged || retroChanged;
+      const squirrelChanged =
+        (emulators.squirreljme?.jarPath || '') !== (originalPathsRef.current.squirrelJar || '');
+      const pathsChanged = freeChanged || keChanged || retroChanged || squirrelChanged;
 
       if (pathsChanged && (rmsOn || emuCfgOn)) {
         warnFlagsRef.current = { rmsOn, emuCfgOn };
@@ -437,6 +484,46 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
               </div>
             </Collapsible>
           )}
+
+          {/* SquirrelJME 區塊（可折疊） */}
+          {(emulatorList.some((e) => e?.id === 'squirreljme') || !emulatorList.length) && (
+            <Collapsible
+              className="mb-12"
+              title={emulatorList.find((e) => e?.id === 'squirreljme')?.name || 'SquirrelJME'}
+              open={squirrelOpen}
+              onToggle={() => setSquirrelOpen((o) => !o)}
+            >
+              <div className="form-row">
+                <label className="form-label">{t('emulatorConfig.squirreljme.jarPath')}</label>
+                <div className="flex gap-8 items-center" style={{ width: '100%' }}>
+                  <input
+                    className="form-input"
+                    type="text"
+                    readOnly
+                    value={emulators.squirreljme?.jarPath || ''}
+                    placeholder={t('emulatorConfig.squirreljme.placeholder')}
+                  />
+                  <button className="btn btn-secondary" onClick={handlePickSquirrelJar}>
+                    {t('app.select')}
+                  </button>
+                </div>
+              </div>
+              <RomCacheSwitch
+                checked={emulators.squirreljme?.romCache ?? true}
+                onChange={(v) => {
+                  setEmulators((prev) => ({
+                    ...prev,
+                    squirreljme: { ...(prev.squirreljme || {}), romCache: v },
+                  }));
+                  setDirty(true);
+                }}
+              />
+              <div className="hint text-12 text-secondary">
+                {t('emulatorConfig.squirreljme.hint')}
+              </div>
+            </Collapsible>
+          )}
+
           {/* Libretro 區塊（可折疊） */}
           {(emulatorList.some((e) => e?.id === 'libretro') || !emulatorList.length) && (
             <Collapsible

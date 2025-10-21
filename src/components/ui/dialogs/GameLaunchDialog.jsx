@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import '../../DirectoryManager.css';
-import { Card, Collapsible, ModalWithFooter, Select } from '@ui';
+import { Card, Collapsible, ModalWithFooter, Select, RomCacheSwitch } from '@ui';
 import { FreeJ2MEPlusConfig, KEmulator, LibretroFJPlus } from '@components';
 import { useTranslation } from '@hooks/useTranslation';
 
@@ -49,9 +49,11 @@ function GameLaunchDialog({
   const [freeRomCache, setFreeRomCache] = useState(true);
   const [keRomCache, setKeRomCache] = useState(true);
   const [libretroRomCache, setLibretroRomCache] = useState(false);
-  // Collapsible states for KE and Libretro
+  const [squirrelRomCache, setSquirrelRomCache] = useState(true);
+  // Collapsible states for KE / Libretro / SquirrelJME
   const [keOpen, setKeOpen] = useState(true);
   const [libretroOpen, setLibretroOpen] = useState(true);
+  const [squirrelOpen, setSquirrelOpen] = useState(true);
   const requestCloseRef = React.useRef(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const focusablesRef = useRef([]);
@@ -66,9 +68,10 @@ function GameLaunchDialog({
       (emulatorList && emulatorList.length
         ? emulatorList
         : [
-            { id: 'freej2mePlus', name: 'FreeJ2ME-Plus(AWT)' },
+            { id: 'freej2mePlus', name: 'FreeJ2ME-Plus' },
             { id: 'ke', name: 'KEmulator nnmod' },
-            { id: 'libretro', name: 'Libretro Core(FreeJ2ME-Plus)' },
+            { id: 'squirreljme', name: 'SquirrelJME' },
+            { id: 'libretro', name: 'Libretro Core (FreeJ2ME-Plus)' },
           ]
       ).map((opt) => ({ value: opt.id, label: opt.name })),
     [emulatorList]
@@ -228,6 +231,10 @@ function GameLaunchDialog({
             emu && emu.libretro && typeof emu.libretro.romCache === 'boolean'
               ? emu.libretro.romCache
               : false;
+          const globalSquirrelRom =
+            emu && emu.squirreljme && typeof emu.squirreljme.romCache === 'boolean'
+              ? emu.squirreljme.romCache
+              : true;
 
           // 嘗試讀取該遊戲的已保存模擬器配置
           let selectedEmulator = 'freej2mePlus';
@@ -250,6 +257,8 @@ function GameLaunchDialog({
                   setKeRomCache(perGame.ke.romCache);
                 if (perGame.libretro && typeof perGame.libretro.romCache === 'boolean')
                   setLibretroRomCache(perGame.libretro.romCache);
+                if (perGame.squirreljme && typeof perGame.squirreljme.romCache === 'boolean')
+                  setSquirrelRomCache(perGame.squirreljme.romCache);
               }
             } catch (_) {}
           }
@@ -257,6 +266,7 @@ function GameLaunchDialog({
           if (typeof freeRomCache !== 'boolean') setFreeRomCache(globalFreeRom);
           if (typeof keRomCache !== 'boolean') setKeRomCache(globalKeRom);
           if (typeof libretroRomCache !== 'boolean') setLibretroRomCache(globalLibretroRom);
+          if (typeof squirrelRomCache !== 'boolean') setSquirrelRomCache(globalSquirrelRom);
 
           // 若所選模擬器不在清單中，回退到第一個可用者
           if (Array.isArray(listed) && listed.length) {
@@ -416,6 +426,7 @@ function GameLaunchDialog({
         },
         ke: { romCache: keRomCache },
         libretro: { romCache: libretroRomCache },
+        squirreljme: { romCache: squirrelRomCache },
       };
       await window.electronAPI.setGameEmulatorConfig(game.filePath, cfg);
       // 需要在「配置」時立即更新 game.conf 的分辨率（首次啟動不寫入）
@@ -562,6 +573,22 @@ function GameLaunchDialog({
             onToggle={() => setKeOpen((o) => !o)}
           >
             <KEmulator romCache={keRomCache} onRomCacheChange={setKeRomCache} disabled={false} />
+          </Collapsible>
+        )}
+
+        {/* SquirrelJME per-game section */}
+        {emulator === 'squirreljme' && (
+          <Collapsible
+            className="mb-12"
+            title={`SquirrelJME ${t('emulatorConfig.emuParams')}`}
+            open={squirrelOpen}
+            onToggle={() => setSquirrelOpen((o) => !o)}
+          >
+            <RomCacheSwitch
+              checked={squirrelRomCache}
+              onChange={setSquirrelRomCache}
+              disabled={false}
+            />
           </Collapsible>
         )}
 

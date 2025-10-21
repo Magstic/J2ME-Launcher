@@ -165,7 +165,17 @@
   },
   "cluster": {
     "untitled": "Cluster",
-    "empty": "No members"
+    "empty": "No members",
+    "versionTag": {
+      "original": "Original",
+      "fixed": "Fixed",
+      "cracked": "Cracked",
+      "boxed": "Boxed",
+      "preview": "Preview",
+      "ported": "Ported",
+      "chinese": "Chinese",
+      "english": "English"
+    }
   },
   "contextMenu": {
     "launch": "Launch",
@@ -277,7 +287,7 @@
     "emuParams": "Parameters",
     "saveHint": "After saving, this configuration will auto-apply for future game launches.",
     "freej2mePlus": {
-      "name": "FreeJ2ME-Plus (AWT)",
+      "name": "FreeJ2ME-Plus",
       "jarPath": "Executable (freej2me.jar)",
       "placeholder": "Not configured yet. Please select freej2me.jar",
       "hint": "Default launch parameters. Each game can override them on first launch (except font and sound)",
@@ -314,6 +324,12 @@
       "jarPath": "Executable (KEmulator.jar)",
       "placeholder": "Not configured yet. Please select KEmulator.jar",
       "hint": "Kemnnx currently doesn't support custom launch parameters. Configure them in its GUI."
+    },
+    "squirreljme": {
+      "name": "SquirrelJME",
+      "jarPath": "Executable (squirreljme.jar)",
+      "placeholder": "Not configured yet. Please select squirreljme-standalone.jar",
+      "hint": "SquirrelJME currently doesn't support custom launch parameters."
     },
     "libretroFJP": {
       "name": "Libretro (FreeJ2ME-Plus)",

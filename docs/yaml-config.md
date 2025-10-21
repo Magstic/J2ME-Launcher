@@ -51,6 +51,9 @@ emulators:
     retroarchPath: ''
     corePath: ''
     romCache: false
+  squirreljme:
+    jarPath: ''
+    romCache: true
 ui:
   defaultView: 'desktop'
   showUncategorized: true
@@ -96,6 +99,12 @@ ui:
 ### libretro
 
 - `retroarchPath`、`corePath`、`romCache`
+
+### squirreljme
+
+- `jarPath`、`romCache`
+- 啟動命令（參考程式）：`java -jar <squirreljme-standalone.jar> -jar <game.jar>`（`src/main/emulators/squirreljme.js#buildCommand()`）
+- 目前不提供自訂啟動參數（per-game params 不適用）
 
 ### 寫入與自我修復
 
@@ -183,9 +192,10 @@ ui:
   - FreeJ2ME-Plus：預設開啟（可 per-game 覆寫）
   - KEmulator（`ke`）：預設開啟（可 per-game 覆寫）
   - Libretro：預設關閉（可 per-game 覆寫）
+  - SquirrelJME：預設開啟（可 per-game 覆寫）
 
 - **選用模擬器**
-  - 每遊戲可存 `emulator` 或 `selectedEmulator`（`ke`、`freej2mePlus`、`libretro`），未指定時預設為 `freej2mePlus`。額外相容：舊值 `kemulator` 會在運行時映射為 `ke`。
+  - 每遊戲可存 `emulator` 或 `selectedEmulator`（`ke`、`freej2mePlus`、`squirreljme`、`libretro`），未指定時預設為 `freej2mePlus`。額外相容：舊值 `kemulator` 會在運行時映射為 `ke`。
 
 ---
 
@@ -245,11 +255,14 @@ ui:
   - `config`：`j2me-launcher/config.yml`
   - `database`：`j2me-launcher/data.db`（備份時會先生成一致性快照 `data.backup.db`）
   - `rms`：依模擬器配置動態解析，例如：
-    - FreeJ2ME-Plus（AWT）：`<FJ-jar-dir>/rms` → `external/freej2mePlus/rms/*`
+    - FreeJ2ME-Plus：`<FJ-jar-dir>/rms` → `external/freej2mePlus/rms/*`
     - KEmulator：`<KE-jar-dir>/rms` → `external/kemulator/rms/*`
     - Libretro：`<RetroArch>/saves/FreeJ2ME-Plus/freej2me/rms` → `external/libretro/freej2me/rms/*`
+    - SquirrelJME：
+      - Windows：`%LOCALAPPDATA%/squirreljme/data` → `external/squirreljme/*`
+      - Linux：`$XDG_STATE_HOME/squirreljme` 或 `~/.local/state/squirreljme` → `external/squirreljme/*`
   - `emuConfig`：依模擬器配置動態解析，例如：
-    - FreeJ2ME-Plus（AWT）：`<FJ-jar-dir>/config` → `external/freej2mePlus/config/*`
+    - FreeJ2ME-Plus：`<FJ-jar-dir>/config` → `external/freej2mePlus/config/*`
     - Libretro：`<RetroArch>/saves/FreeJ2ME-Plus/freej2me/config` → `external/libretro/freej2me/config/*`
 
 - 提供者（Providers）：S3、Dropbox、WebDAV（參見 `providers/*.js`）。
@@ -323,6 +336,9 @@ emulators:
       soundfont: 'Default'
   ke:
     jarPath: "C:\\Emus\\KEmulator\\KEmulator.jar"
+    romCache: true
+  squirreljme:
+    jarPath: "C:\\Emus\\SquirrelJME\\squirreljme-standalone.jar"
     romCache: true
   libretro:
     retroarchPath: "C:\\RetroArch\\retroarch.exe"

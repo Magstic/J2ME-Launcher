@@ -169,6 +169,18 @@ function resolveItems(app, groups) {
             'external/libretro/freej2me/config'
           );
       }
+      // SquirrelJME cloud saves
+      let sjBase = '';
+      if (process.platform === 'win32') {
+        const la = process.env.LOCALAPPDATA;
+        if (la) sjBase = path.join(la, 'squirreljme', 'data');
+      } else if (process.platform === 'linux') {
+        const xdg = process.env.XDG_STATE_HOME || path.join(app.getPath('home'), '.local', 'state');
+        sjBase = path.join(xdg, 'squirreljme');
+      }
+      if (sjBase && needRms) {
+        walk(sjBase, 'external/squirreljme');
+      }
       for (const it of dyn) {
         try {
           console.log('[backup:core] add dynamic', { rel: it.rel, abs: it.abs });
@@ -760,6 +772,17 @@ async function runRestore({
           base: path.join(raBase, 'saves', 'FreeJ2ME-Plus', 'freej2me', 'config'),
         });
     }
+    // SquirrelJME
+    let sjBase = '';
+    if (process.platform === 'win32') {
+      const la = process.env.LOCALAPPDATA;
+      if (la) sjBase = path.join(la, 'squirreljme', 'data');
+    } else if (process.platform === 'linux') {
+      const xdg = process.env.XDG_STATE_HOME || path.join(app.getPath('home'), '.local', 'state');
+      sjBase = path.join(xdg, 'squirreljme');
+    }
+    if (sjBase && groupSet.has('rms'))
+      mapping.push({ prefix: 'external/squirreljme/', base: sjBase });
     // For each remote row that matches any prefix, download back to base+relative
     for (const row of remoteRows) {
       const rel = row.path || row.rel || '';

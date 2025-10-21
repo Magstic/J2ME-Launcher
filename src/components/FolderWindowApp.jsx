@@ -33,7 +33,6 @@ const FolderWindowApp = () => {
   const [folderId, setFolderId] = useState(null);
   // 用於增量 membership 與事件合併去抖
   const lastFileSetRef = useRef(null);
-  const pendingUpdatedFolderRef = useRef(null);
   const suppressUntilRef = useRef(0);
   const [gameLaunchDialog, setGameLaunchDialog] = useState({
     isOpen: false,
@@ -651,14 +650,8 @@ const FolderWindowApp = () => {
 
   // 受控刷新：整合 pendingUpdatedFolder，並交由 guarded 門閘執行
   const refreshFn = useCallback(async () => {
-    try {
-      if (pendingUpdatedFolderRef.current && pendingUpdatedFolderRef.current.id === folderId) {
-        setFolder(pendingUpdatedFolderRef.current);
-      }
-    } catch (_) {}
-    pendingUpdatedFolderRef.current = null;
     await loadFolderContents();
-  }, [folderId, loadFolderContents]);
+  }, [loadFolderContents]);
 
   const { guardedRefresh, scheduleGuardedRefresh, cancelScheduled } = useGuardedRefresh({
     refreshFn,
@@ -668,6 +661,53 @@ const FolderWindowApp = () => {
     idleDelayMs: 0,
     preferImmediate: true,
   });
+
+  // 監聽：資料夾成員變更，對當前資料夾做局部補丁（避免等待 full reload）
+  useEffect(() => {
+    const api = window.electronAPI;
+    if (!api?.onFolderMembershipChanged || !folderId) return;
+    const off = api.onFolderMembershipChanged((payload) => {
+      try {
+        const list = Array.isArray(payload) ? payload : payload ? [payload] : [];
+        if (list.length === 0) return;
+        const fid = String(folderId);
+        // 統一合併當前資料夾相關的移除/加入
+        const removeSet = new Set();
+        let hasAddForThisFolder = false;
+        for (const ch of list) {
+          const op = ch && ch.operation;
+          const cid = ch && String(ch.folderId || '');
+          const fps = Array.isArray(ch?.filePaths) ? ch.filePaths : [];
+          if (!op || !cid || fps.length === 0) continue;
+          if (cid !== fid) continue;
+          if (op === 'remove') {
+            for (const fp of fps) removeSet.add(String(fp));
+          } else if (op === 'add') {
+            hasAddForThisFolder = true;
+          }
+        }
+        if (removeSet.size > 0) {
+          // 局部移除：立即自本地列表移除這些項目
+          startTransition(() => {
+            setFolderGames((prev) =>
+              Array.isArray(prev) ? prev.filter((g) => !removeSet.has(String(g?.filePath))) : prev
+            );
+          });
+        }
+        if (hasAddForThisFolder) {
+          // 為避免與簇去重規則衝突，加入改由受控刷新統一重算
+          try {
+            scheduleGuardedRefresh(120);
+          } catch (_) {}
+        }
+      } catch (_) {}
+    });
+    return () => {
+      try {
+        off && off();
+      } catch (_) {}
+    };
+  }, [folderId, scheduleGuardedRefresh]);
 
   // 監聽簇詳情事件（Folder 窗口自帶版本）
   useEffect(() => {

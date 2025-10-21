@@ -48,5 +48,18 @@ export const DEFAULT_CLUSTER_TAG_OPTIONS = {
   ],
   versions: ['原版', '修復版', '破解版', '箱子版', '預覽版', '移植版', '漢化版', '英化版'],
 };
+export const VERSION_I18N_KEYS = {
+  原版: 'cluster.versionTag.original',
+  修復版: 'cluster.versionTag.fixed',
+  修复版: 'cluster.versionTag.fixed',
+  破解版: 'cluster.versionTag.cracked',
+  箱子版: 'cluster.versionTag.boxed',
+  預覽版: 'cluster.versionTag.preview',
+  预览版: 'cluster.versionTag.preview',
+  移植版: 'cluster.versionTag.ported',
+  漢化版: 'cluster.versionTag.chinese',
+  汉化版: 'cluster.versionTag.chinese',
+  英化版: 'cluster.versionTag.english',
+};
 
 export default DEFAULT_CLUSTER_TAG_OPTIONS;

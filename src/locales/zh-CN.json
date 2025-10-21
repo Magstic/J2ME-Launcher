@@ -165,7 +165,17 @@
   },
   "cluster": {
     "untitled": "簇",
-    "empty": "无成员"
+    "empty": "无成员",
+    "versionTag": {
+      "original": "原版",
+      "fixed": "修复版",
+      "cracked": "破解版",
+      "boxed": "箱子版",
+      "preview": "预览版",
+      "ported": "移植版",
+      "chinese": "汉化版",
+      "english": "英化版"
+    }
   },
   "contextMenu": {
     "launch": "启动",
@@ -277,7 +287,7 @@
     "emuParams": "参数",
     "saveHint": "保存后，未来启动该游戏时将自动套用此配置。",
     "freej2mePlus": {
-      "name": "FreeJ2ME-Plus(AWT)",
+      "name": "FreeJ2ME-Plus",
       "jarPath": "执行文件（freej2me.jar）",
       "placeholder": "尚未配置，请选择 freej2me.jar",
       "hint": "默认启动参数。首次启动某款游戏时，可自定义并覆盖该参数（字体和音源除外）",
@@ -311,13 +321,19 @@
     },
     "kemulator": {
       "name": "KEmulator nnmod",
-      "jarPath": "可执行文件（KEmulator.jar）",
+      "jarPath": "执行文件（KEmulator.jar）",
       "placeholder": "尚未配置，请选择 KEmulator.jar",
       "hint": "Kemnnx 暂不支持自定义参数启动，请在其 GUI 内设置。"
     },
+    "squirreljme": {
+      "name": "SquirrelJME",
+      "jarPath": "执行文件（squirreljme.jar）",
+      "placeholder": "尚未配置，请选择 squirreljme-standalone.jar",
+      "hint": "SquirrelJME 暂不支持自定义参数启动。"
+    },
     "libretroFJP": {
       "name": "Libretro(FreeJ2ME-Plus)",
-      "retroarchPath": "可执行文件（retroarch.exe）",
+      "retroarchPath": "执行文件（retroarch.exe）",
       "retroarchPlaceholder": "尚未配置，请选择 retroarch.exe",
       "corePath": "核心（freej2me_libretro.dll）",
       "corePlaceholder": "尚未配置，请选择 freej2me_libretro.dll",

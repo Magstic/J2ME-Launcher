@@ -3,7 +3,7 @@
 const path = require('path');
 
 const id = 'freej2mePlus';
-const name = 'FreeJ2ME-Plus (AWT)';
+const name = 'FreeJ2ME-Plus';
 const capabilities = {
   perGameParams: true,
   requiresGameConf: true,

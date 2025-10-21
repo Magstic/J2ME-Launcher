@@ -214,6 +214,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener(ch, handler);
   },
 
+  // 資料夾成員關係變更事件（用於桌面徽章即時更新）
+  onFolderMembershipChanged: (callback) => {
+    const ch = 'folder-membership-changed';
+    const handler = (_e, payload) => callback && callback(payload);
+    ipcRenderer.on(ch, handler);
+    return () => ipcRenderer.removeListener(ch, handler);
+  },
+
   // ==================== 跨窗口拖拽會話 API ====================
   // 開始拖拽會話（支持多選）
   startDragSession: (items, source) => ipcRenderer.invoke('drag-session:start', { items, source }),

@@ -41,12 +41,18 @@ export default function useMergedEventRefresh({
     if (!Array.isArray(sources) || sources.length === 0) return;
     const offList = [];
     const handler = (payload) => {
-      try {
-        if (filter && !filter(payload)) return;
-      } catch (_) {}
+      // 1) 先執行副作用（例如：folder-updated 僅更新 meta），不受 filter 影響
       try {
         onEvent && onEvent(payload);
       } catch (_) {}
+
+      // 2) 再依據 filter 決定是否排程刷新
+      let shouldSchedule = true;
+      try {
+        if (typeof filter === 'function' && !filter(payload)) shouldSchedule = false;
+      } catch (_) {}
+      if (!shouldSchedule) return;
+
       try {
         typeof schedule === 'function' && schedule(debounceMs);
       } catch (_) {}

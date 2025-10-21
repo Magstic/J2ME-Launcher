@@ -166,7 +166,15 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
           }
         } catch (_) {}
         // 僅廣播資料夾與通用事件，避免渲染端全量重載
-        broadcastToAll('folder-changed');
+        // 注意：與 folder-updated 同批次時，unified-events 可能抑制 folder-changed
+        // 因此延後到下一批次再送出
+        try {
+          setTimeout(() => {
+            try {
+              broadcastToAll('folder-changed');
+            } catch (_) {}
+          }, 25);
+        } catch (_) {}
       }
       return { success: true, count: filePaths.length };
     } catch (error) {
@@ -329,6 +337,14 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
           broadcastToAll('folder-updated', updatedFolder);
         }
       } catch (_) {}
+      // 廣播 membership 變更：新增
+      try {
+        broadcastToAll('folder-membership-changed', {
+          filePaths: [filePath],
+          folderId,
+          operation: 'add',
+        });
+      } catch (_) {}
       // 不再廣播全量 games-updated（資料夾與增量事件足夠同步 UI）
       return { success: true };
     } catch (error) {
@@ -357,6 +373,23 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
           operation: 'remove',
         });
       } catch (_) {}
+      // 廣播 membership 變更：移除
+      try {
+        broadcastToAll('folder-membership-changed', {
+          filePaths: [filePath],
+          folderId,
+          operation: 'remove',
+        });
+      } catch (_) {}
+      // 結構級廣播：通知資料夾/桌面視圖刷新（與拖拽移除保持一致）
+      // 延後到下一批次，避免與 folder-updated 同批次被抑制
+      try {
+        setTimeout(() => {
+          try {
+            broadcastToAll('folder-changed');
+          } catch (_) {}
+        }, 25);
+      } catch (_) {}
       return { success: true };
     } catch (error) {
       log.error('從資料夾移除遊戲失敗:', error);
@@ -384,6 +417,43 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
         if (fromFolder) broadcastToAll('folder-updated', fromFolder);
         const toFolder = sqlGetFolderById(toFolderId);
         if (toFolder) broadcastToAll('folder-updated', toFolder);
+      } catch (_) {}
+      // 更新快取與渲染端 store：先 remove 再 add，保持與拖拽一致
+      try {
+        const cache = getGameStateCache();
+        const bridge = getStoreBridge();
+        cache.moveGamesBetweenFolders([filePath], fromFolderId, toFolderId);
+        bridge.onCacheUpdate('folder-membership-changed', {
+          filePaths: [filePath],
+          folderId: fromFolderId,
+          operation: 'remove',
+        });
+        bridge.onCacheUpdate('folder-membership-changed', {
+          filePaths: [filePath],
+          folderId: toFolderId,
+          operation: 'add',
+        });
+      } catch (_) {}
+      // 廣播 membership 變更：移動（拆為 remove + add）
+      try {
+        broadcastToAll('folder-membership-changed', {
+          filePaths: [filePath],
+          folderId: fromFolderId,
+          operation: 'remove',
+        });
+        broadcastToAll('folder-membership-changed', {
+          filePaths: [filePath],
+          folderId: toFolderId,
+          operation: 'add',
+        });
+      } catch (_) {}
+      // 結構級廣播：通知資料夾/桌面刷新（延後送出避免同批被抑制）
+      try {
+        setTimeout(() => {
+          try {
+            broadcastToAll('folder-changed');
+          } catch (_) {}
+        }, 25);
       } catch (_) {}
       // 不再廣播全量 games-updated（資料夾與增量事件足夠同步 UI）
       return { success: true };
@@ -436,7 +506,7 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
       // 更新快取狀態
       const cache = getGameStateCache();
       const bridge = getStoreBridge();
-      const changes = cache.updateFolderMembership(resolvedPaths, folderId, 'remove');
+      cache.updateFolderMembership(resolvedPaths, folderId, 'remove');
 
       // Use unified store bridge instead of direct broadcast
       bridge.onCacheUpdate('folder-membership-changed', {
@@ -448,6 +518,21 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
       try {
         const updatedFolder = sqlGetFolderById(folderId);
         if (updatedFolder) broadcastToAll('folder-updated', updatedFolder);
+      } catch (_) {}
+      // 廣播 membership 變更（批次）：移除
+      try {
+        broadcastToAll('folder-membership-changed', {
+          filePaths: resolvedPaths,
+          folderId,
+          operation: 'remove',
+        });
+      } catch (_) {}
+      try {
+        setTimeout(() => {
+          try {
+            broadcastToAll('folder-changed');
+          } catch (_) {}
+        }, 25);
       } catch (_) {}
 
       // 不再廣播全量 games-updated（資料夾與增量事件足夠同步 UI）
