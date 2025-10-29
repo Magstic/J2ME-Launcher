@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './DirectoryManager.css';
 import { Collapsible, ModalWithFooter, RomCacheSwitch } from '@ui';
-import { FreeJ2MEPlusConfig } from '@components';
+import { FreeJ2MEPlusConfig, FreeJ2MEZb3Config } from '@components';
 import { useTranslation } from '@hooks/useTranslation';
 
 function EmulatorConfigDialog({ isOpen, onClose }) {
@@ -17,19 +17,37 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
     ke: { jarPath: '', romCache: true },
     libretro: { retroarchPath: '', corePath: '', romCache: false },
     squirreljme: { jarPath: '', romCache: true },
+    freej2meZb3: {
+      jarPath: '',
+      romCache: true,
+      defaults: { width: 240, height: 320, fps: 0, rotate: 'off', phone: 'Nokia', sound: 'on' },
+    },
   });
   const [dirty, setDirty] = useState(false);
   const [freeOpen, setFreeOpen] = useState(false);
   const [keOpen, setKeOpen] = useState(false);
   const [libretroOpen, setLibretroOpen] = useState(false);
   const [squirrelOpen, setSquirrelOpen] = useState(false);
+  const [zb3Open, setZb3Open] = useState(false);
   const [showPathChangeWarn, setShowPathChangeWarn] = useState(false);
   const warnFlagsRef = useRef({ rmsOn: false, emuCfgOn: false });
-  const originalPathsRef = useRef({ freeJar: '', keJar: '', retroarch: '', squirrelJar: '' });
+  const originalPathsRef = useRef({
+    freeJar: '',
+    keJar: '',
+    retroarch: '',
+    squirrelJar: '',
+    zb3Jar: '',
+  });
   const freeDefaults = useMemo(() => emulators.freej2mePlus?.defaults || {}, [emulators]);
   const freeAdapter = useMemo(
     () => (emulatorList || []).find((e) => e?.id === 'freej2mePlus') || null,
     [emulatorList]
+  );
+
+  // ZB3 內建基線（與 GameLaunchDialog 的 zb3Defaults 初始值一致）
+  const ZB3_BASE_DEFAULTS = useMemo(
+    () => ({ width: 240, height: 320, fps: 0, rotate: 'off', phone: 'Nokia', sound: 'on' }),
+    []
   );
   const freeCaps = freeAdapter?.capabilities || {};
   //（已改用 FreeJ2MEPlusConfig 統一渲染選項，移除本地常數）
@@ -69,12 +87,18 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
         const emu = await window.electronAPI.getEmulatorConfig();
         const saved = (emu && emu.freej2mePlus) || {};
         const mergedDefaults = { ...BASE_DEFAULTS, ...((saved && saved.defaults) || {}) };
+        const zbSaved = (emu && emu.freej2meZb3) || {};
+        const mergedZb3Defaults = {
+          ...ZB3_BASE_DEFAULTS,
+          ...((zbSaved && zbSaved.defaults) || {}),
+        };
         // 記錄原始路徑以便保存前比較
         originalPathsRef.current = {
           freeJar: (emu && emu.freej2mePlus && emu.freej2mePlus.jarPath) || '',
           keJar: (emu && emu.ke && emu.ke.jarPath) || '',
           retroarch: (emu && emu.libretro && emu.libretro.retroarchPath) || '',
           squirrelJar: (emu && emu.squirreljme && emu.squirreljme.jarPath) || '',
+          zb3Jar: (emu && emu.freej2meZb3 && emu.freej2meZb3.jarPath) || '',
         };
         setEmulators((prev) => ({
           ...prev,
@@ -89,7 +113,7 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
                 : typeof prev.freej2mePlus?.romCache === 'boolean'
                   ? prev.freej2mePlus.romCache
                   : true,
-            defaults: prev.freej2mePlus?.defaults || BASE_DEFAULTS,
+            defaults: prev.freej2mePlus?.defaults || mergedDefaults,
           },
           ke: {
             jarPath: (emu && emu.ke && emu.ke.jarPath) || prev.ke?.jarPath || '',
@@ -126,6 +150,19 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
                   ? prev.squirreljme.romCache
                   : true,
           },
+          freej2meZb3: {
+            jarPath:
+              (emu && emu.freej2meZb3 && emu.freej2meZb3.jarPath) ||
+              prev.freej2meZb3?.jarPath ||
+              '',
+            romCache:
+              emu && emu.freej2meZb3 && typeof emu.freej2meZb3.romCache === 'boolean'
+                ? emu.freej2meZb3.romCache
+                : typeof prev.freej2meZb3?.romCache === 'boolean'
+                  ? prev.freej2meZb3.romCache
+                  : true,
+            defaults: prev.freej2meZb3?.defaults || mergedZb3Defaults,
+          },
         }));
         setDirty(false);
       } catch (_) {
@@ -134,7 +171,7 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
         setLoading(false);
       }
     })();
-  }, [isOpen, BASE_DEFAULTS]);
+  }, [isOpen, BASE_DEFAULTS, ZB3_BASE_DEFAULTS]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -154,14 +191,22 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
             keJar: (cfg && cfg.ke && cfg.ke.jarPath) || '',
             retroarch: (cfg && cfg.libretro && cfg.libretro.retroarchPath) || '',
             squirrelJar: (cfg && cfg.squirreljme && cfg.squirreljme.jarPath) || '',
+            zb3Jar: (cfg && cfg.freej2meZb3 && cfg.freej2meZb3.jarPath) || '',
           };
-          setEmulators(cfg);
+          // 僅覆寫非 defaults 欄位，避免覆蓋上一個 effect 已合併好的 defaults
+          setEmulators((prev) => ({
+            ...prev,
+            freej2mePlus: { ...(prev.freej2mePlus || {}), ...(cfg.freej2mePlus || {}) },
+            ke: { ...(prev.ke || {}), ...(cfg.ke || {}) },
+            libretro: { ...(prev.libretro || {}), ...(cfg.libretro || {}) },
+            squirreljme: { ...(prev.squirreljme || {}), ...(cfg.squirreljme || {}) },
+            freej2meZb3: { ...(prev.freej2meZb3 || {}), ...(cfg.freej2meZb3 || {}) },
+          }));
         }
       } catch (e) {
         console.error('載入模擬器設定失敗:', e);
       } finally {
         setLoading(false);
-        setDirty(false);
       }
     })();
   }, [isOpen]);
@@ -222,6 +267,13 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
               ? emulators.squirreljme.romCache
               : true,
         },
+        freej2meZb3: {
+          jarPath: emulators.freej2meZb3?.jarPath || '',
+          romCache:
+            typeof emulators.freej2meZb3?.romCache === 'boolean'
+              ? emulators.freej2meZb3.romCache
+              : true,
+        },
       };
 
       // 更新指定的配置項
@@ -233,6 +285,8 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
         currentConfig.libretro[field] = value;
       } else if (emulatorType === 'squirreljme') {
         currentConfig.squirreljme[field] = value;
+      } else if (emulatorType === 'freej2meZb3') {
+        currentConfig.freej2meZb3[field] = value;
       }
 
       await window.electronAPI.setEmulatorConfig(currentConfig);
@@ -259,6 +313,18 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
       }));
       setDirty(true);
       await autoSaveConfig('squirreljme', 'jarPath', p);
+    }
+  };
+
+  const handlePickZb3Jar = async () => {
+    const p = await window.electronAPI.pickEmulatorBinary('freej2meZb3');
+    if (p) {
+      setEmulators((prev) => ({
+        ...prev,
+        freej2meZb3: { ...(prev.freej2meZb3 || {}), jarPath: p },
+      }));
+      setDirty(true);
+      await autoSaveConfig('freej2meZb3', 'jarPath', p);
     }
   };
 
@@ -291,6 +357,14 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
               ? emulators.squirreljme.romCache
               : true,
         },
+        freej2meZb3: {
+          jarPath: emulators.freej2meZb3?.jarPath || '',
+          romCache:
+            typeof emulators.freej2meZb3?.romCache === 'boolean'
+              ? emulators.freej2meZb3.romCache
+              : true,
+          defaults: emulators.freej2meZb3?.defaults || ZB3_BASE_DEFAULTS,
+        },
       });
       // 保存成功後，同步原始路徑基準
       originalPathsRef.current = {
@@ -298,6 +372,7 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
         keJar: emulators.ke?.jarPath || '',
         retroarch: emulators.libretro?.retroarchPath || '',
         squirrelJar: emulators.squirreljme?.jarPath || '',
+        zb3Jar: emulators.freej2meZb3?.jarPath || '',
       };
       setDirty(false);
       // 關閉動效交由容器處理（在調用端透過 requestCloseRef）
@@ -330,7 +405,10 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
         (emulators.libretro?.retroarchPath || '') !== (originalPathsRef.current.retroarch || '');
       const squirrelChanged =
         (emulators.squirreljme?.jarPath || '') !== (originalPathsRef.current.squirrelJar || '');
-      const pathsChanged = freeChanged || keChanged || retroChanged || squirrelChanged;
+      const zb3Changed =
+        (emulators.freej2meZb3?.jarPath || '') !== (originalPathsRef.current.zb3Jar || '');
+      const pathsChanged =
+        freeChanged || keChanged || retroChanged || squirrelChanged || zb3Changed;
 
       if (pathsChanged && (rmsOn || emuCfgOn)) {
         warnFlagsRef.current = { rmsOn, emuCfgOn };
@@ -520,6 +598,81 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
               />
               <div className="hint text-12 text-secondary">
                 {t('emulatorConfig.squirreljme.hint')}
+              </div>
+            </Collapsible>
+          )}
+
+          {/* FreeJ2ME-ZB3 區塊（可折疊） */}
+          {(emulatorList.some((e) => e?.id === 'freej2meZb3') || !emulatorList.length) && (
+            <Collapsible
+              className="mb-12"
+              title={emulatorList.find((e) => e?.id === 'freej2meZb3')?.name || 'FreeJ2ME-ZB3'}
+              open={zb3Open}
+              onToggle={() => setZb3Open((o) => !o)}
+            >
+              <div className="form-row">
+                <label className="form-label">{t('emulatorConfig.freej2meZb3.jarPath')}</label>
+                <div className="flex gap-8 items-center" style={{ width: '100%' }}>
+                  <input
+                    className="form-input"
+                    type="text"
+                    readOnly
+                    value={emulators.freej2meZb3?.jarPath || ''}
+                    placeholder={t('emulatorConfig.freej2meZb3.placeholder')}
+                  />
+                  <button className="btn btn-secondary" onClick={handlePickZb3Jar}>
+                    {t('app.select')}
+                  </button>
+                </div>
+              </div>
+              <FreeJ2MEZb3Config
+                values={emulators.freej2meZb3?.defaults || ZB3_BASE_DEFAULTS}
+                onChange={(partial) => {
+                  if (partial && typeof partial === 'object') {
+                    setEmulators((prev) => ({
+                      ...prev,
+                      freej2meZb3: {
+                        ...(prev.freej2meZb3 || {}),
+                        defaults: {
+                          ...((prev.freej2meZb3 && prev.freej2meZb3.defaults) || ZB3_BASE_DEFAULTS),
+                          ...partial,
+                        },
+                      },
+                    }));
+                    setDirty(true);
+                  }
+                }}
+                disabled={false}
+                hideRomCache
+                resOptions={[
+                  '128x128',
+                  '128x160',
+                  '132x176',
+                  '176x208',
+                  '176x220',
+                  '208x208',
+                  '240x320',
+                  '320x240',
+                  '352x416',
+                  '360x640',
+                  '640x360',
+                  '640x480',
+                  '480x800',
+                  '800x480',
+                ]}
+              />
+              <RomCacheSwitch
+                checked={emulators.freej2meZb3?.romCache ?? true}
+                onChange={(v) => {
+                  setEmulators((prev) => ({
+                    ...prev,
+                    freej2meZb3: { ...(prev.freej2meZb3 || {}), romCache: v },
+                  }));
+                  setDirty(true);
+                }}
+              />
+              <div className="hint text-12 text-secondary">
+                {t('emulatorConfig.freej2meZb3.hint')}
               </div>
             </Collapsible>
           )}

@@ -86,7 +86,7 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
   - `pickEmulatorBinary(emulatorId)`
   - `getGameEmulatorConfig(filePath)`
   - `setGameEmulatorConfig(filePath, emulatorConfig)`
-  - `updateFreej2meGameConf(filePath, effectiveParams)`
+  - `prepareGameConf(filePath)`
   - FreeJ2ME-Plus 資產：
     - `pickFreej2meAsset(type)`
     - `importFreej2meAsset(type, sourcePath)`
@@ -217,6 +217,7 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
 
 - **遊戲啟動**
   - `launchGame` → `'launch-game'`（invoke）
+  - `prepareGameConf` → `'prepare-game-conf'`（invoke）
 
 - **Java 設定**
   - `getJavaPath` → `'get-java-path'`（invoke）
@@ -233,7 +234,7 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
   - `pickEmulatorBinary` → `'pick-emulator-binary'`（invoke）
   - `getGameEmulatorConfig` → `'get-game-emulator-config'`（invoke）
   - `setGameEmulatorConfig` → `'set-game-emulator-config'`（invoke）
-  - `updateFreej2meGameConf` → `'update-freej2me-game-conf'`（invoke）
+  - `prepareGameConf` → `'prepare-game-conf'`（invoke）
   - `pickFreej2meAsset` → `'freej2me:pick-asset'`（invoke）
   - `importFreej2meAsset` → `'freej2me:import-asset'`（invoke）
 

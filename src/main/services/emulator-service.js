@@ -2,9 +2,8 @@
 // Phase 1: Preserve existing behavior while moving logic here.
 
 const fs = require('fs');
-const path = require('path');
 const { spawn } = require('child_process');
-const { updateGameConf } = require('../utils/game-conf.js');
+const { updateGameConf, updateZb3GameConf } = require('../utils/game-conf.js');
 const { buildCommandLine } = require('../utils/java.js');
 
 function createEmulatorService({
@@ -113,6 +112,16 @@ function createEmulatorService({
           return { success: false, error: 'EMULATOR_NOT_CONFIGURED', message: '尚未配置模擬器' };
         if (!fs.existsSync(jarPath))
           return { success: false, error: `模擬器 JAR 不存在: ${jarPath}` };
+      } else if (selectedEmulator === 'freej2meZb3') {
+        const zbJarPath = globalConf.jarPath || '';
+        if (!zbJarPath)
+          return {
+            success: false,
+            error: 'EMULATOR_NOT_CONFIGURED',
+            message: '尚未配置 FreeJ2ME-ZB3 JAR 路徑',
+          };
+        if (!fs.existsSync(zbJarPath))
+          return { success: false, error: `FreeJ2ME-ZB3 JAR 不存在: ${zbJarPath}` };
       }
 
       // FreeJ2ME-Plus 參數合併規則（保留既有行為），其他適配器如有 params 則直接沿用 perGameConf.params
@@ -148,6 +157,25 @@ function createEmulatorService({
           ? globalConf.defaults || {}
           : perGame?.freej2mePlus?.params || {};
         params = { ...extendedDefaults, ...baseParams };
+      } else if (selectedEmulator === 'freej2meZb3') {
+        // Defaults/custom model for ZB3
+        const extendedDefaults = {
+          width: 240,
+          height: 320,
+          fps: 0,
+          rotate: 'off',
+          phone: 'Nokia',
+          sound: 'on',
+        };
+        const useGlobal = !(
+          perGame &&
+          perGame.freej2meZb3 &&
+          perGame.freej2meZb3.useGlobal === false
+        );
+        const baseParams = useGlobal
+          ? globalConf?.defaults || {}
+          : perGame?.freej2meZb3?.params || {};
+        params = { ...extendedDefaults, ...baseParams };
       } else if (perGameConf && perGameConf.params) {
         params = perGameConf.params;
       }
@@ -166,11 +194,15 @@ function createEmulatorService({
       const corePath = globalConf.corePath || '';
 
       const utils = {
-        ...(romCache ? { ensureCachedJar } : {}),
+        // 啟動流程：若啟用 ROM 快取，傳入 ensureCachedJar
         updateGameConf,
+        updateZb3GameConf,
         DataStore,
         getConfigGameName,
       };
+      if (romCache && typeof ensureCachedJar === 'function') {
+        utils.ensureCachedJar = ensureCachedJar;
+      }
 
       const prep = await (typeof adapter.prepareGame === 'function'
         ? adapter.prepareGame({ jarPath, retroarchPath, corePath, gameFilePath, params, utils })
@@ -208,7 +240,141 @@ function createEmulatorService({
     }
   }
 
-  return { launchGame };
+  // 僅準備 game.conf（不啟動），用於「僅配置」流程
+  async function prepareGameConf(gameFilePath) {
+    try {
+      if (!fs.existsSync(gameFilePath)) {
+        return { success: false, error: `遊戲文件不存在: ${gameFilePath}` };
+      }
+
+      const emus = DataStore.getEmulatorConfig() || {};
+      const perGame = DataStore.getGameEmulatorConfig(gameFilePath) || null;
+
+      const rawSel = (perGame && (perGame.emulator || perGame.selectedEmulator)) || 'freej2mePlus';
+      let selectedEmulator = rawSel === 'kemulator' ? 'ke' : rawSel;
+
+      let adapter = adapters && adapters[selectedEmulator];
+      if (!adapter) {
+        selectedEmulator =
+          adapters && adapters.freej2mePlus ? 'freej2mePlus' : Object.keys(adapters || {})[0];
+        adapter = selectedEmulator ? adapters[selectedEmulator] : null;
+      }
+      if (!adapter) return { success: false, error: 'NO_ADAPTER' };
+
+      const globalConf = (emus && emus[selectedEmulator]) || {};
+      const perGameConf = (perGame && perGame[selectedEmulator]) || {};
+
+      // 基本校驗（僅針對需要的）
+      if (selectedEmulator === 'ke') {
+        const keJarPath = globalConf.jarPath || '';
+        if (!keJarPath) return { success: false, error: '尚未配置 KEmulator.jar 路徑' };
+        if (!fs.existsSync(keJarPath))
+          return { success: false, error: `KEmulator.jar 不存在: ${keJarPath}` };
+      } else if (selectedEmulator === 'squirreljme') {
+        const sqJarPath = globalConf.jarPath || '';
+        if (!sqJarPath)
+          return { success: false, error: '尚未配置 SquirrelJME Standalone JAR 路徑' };
+        if (!fs.existsSync(sqJarPath))
+          return { success: false, error: `SquirrelJME JAR 不存在: ${sqJarPath}` };
+      } else if (selectedEmulator === 'freej2mePlus') {
+        const jarPath = globalConf.jarPath || '';
+        if (!jarPath) return { success: false, error: '尚未配置模擬器' };
+        if (!fs.existsSync(jarPath))
+          return { success: false, error: `模擬器 JAR 不存在: ${jarPath}` };
+      } else if (selectedEmulator === 'freej2meZb3') {
+        const zbJarPath = globalConf.jarPath || '';
+        if (!zbJarPath) return { success: false, error: '尚未配置 FreeJ2ME-ZB3 JAR 路徑' };
+        if (!fs.existsSync(zbJarPath))
+          return { success: false, error: `FreeJ2ME-ZB3 JAR 不存在: ${zbJarPath}` };
+      }
+
+      // 參數合併（與 launchGame 一致）
+      let params = undefined;
+      if (selectedEmulator === 'freej2mePlus') {
+        const extendedDefaults = {
+          fullscreen: 0,
+          width: 240,
+          height: 320,
+          scale: 2,
+          keyLayout: 0,
+          framerate: 60,
+          compatfantasyzonefix: 'off',
+          compatimmediaterepaints: 'off',
+          compatoverrideplatchecks: 'on',
+          compatsiemensfriendlydrawing: 'off',
+          compattranstooriginonreset: 'off',
+          backlightcolor: 'Disabled',
+          fontoffset: '-2',
+          rotate: '0',
+          fpshack: 'Disabled',
+          sound: 'on',
+          spdhacknoalpha: 'off',
+        };
+        const useGlobal = !(
+          perGame &&
+          perGame.freej2mePlus &&
+          perGame.freej2mePlus.useGlobal === false
+        );
+        const baseParams = useGlobal
+          ? globalConf.defaults || {}
+          : perGame?.freej2mePlus?.params || {};
+        params = { ...extendedDefaults, ...baseParams };
+        // 全局資源
+        const d = globalConf?.defaults || {};
+        const globalTextfont = d.textfont || 'Default';
+        const globalSoundfont = d.soundfont || 'Default';
+        params = { ...(params || {}), textfont: globalTextfont, soundfont: globalSoundfont };
+      } else if (selectedEmulator === 'freej2meZb3') {
+        const extendedDefaults = {
+          width: 240,
+          height: 320,
+          fps: 0,
+          rotate: 'off',
+          phone: 'Nokia',
+          sound: 'on',
+        };
+        const useGlobal = !(
+          perGame &&
+          perGame.freej2meZb3 &&
+          perGame.freej2meZb3.useGlobal === false
+        );
+        const baseParams = useGlobal
+          ? globalConf?.defaults || {}
+          : perGame?.freej2meZb3?.params || {};
+        params = { ...extendedDefaults, ...baseParams };
+      } else if (perGameConf && perGameConf.params) {
+        params = perGameConf.params;
+      }
+
+      const jarPath = globalConf.jarPath || '';
+      const retroarchPath = globalConf.retroarchPath || '';
+      const corePath = globalConf.corePath || '';
+
+      const utils = {
+        // configure-only: 僅寫 conf，不做 JAR 快取
+        updateGameConf,
+        updateZb3GameConf,
+        DataStore,
+        getConfigGameName,
+      };
+
+      if (typeof adapter.prepareGame === 'function') {
+        await adapter.prepareGame({
+          jarPath,
+          retroarchPath,
+          corePath,
+          gameFilePath,
+          params,
+          utils,
+        });
+      }
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error?.message || String(error) };
+    }
+  }
+
+  return { launchGame, prepareGameConf };
 }
 
 module.exports = { createEmulatorService };

@@ -331,6 +331,12 @@
       "placeholder": "尚未配置，请选择 squirreljme-standalone.jar",
       "hint": "SquirrelJME 暂不支持自定义参数启动。"
     },
+    "freej2meZb3": {
+      "name": "FreeJ2ME-ZB3",
+      "jarPath": "执行文件（emulator.jar）",
+      "placeholder": "尚未配置，请选择模拟器 JAR",
+      "hint": "FreeJ2ME-ZB3 暂不支持自定义参数启动。"
+    },
     "libretroFJP": {
       "name": "Libretro(FreeJ2ME-Plus)",
       "retroarchPath": "执行文件（retroarch.exe）",

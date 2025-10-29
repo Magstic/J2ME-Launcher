@@ -179,6 +179,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('get-emulator-capabilities', emulatorId),
   // 取得特定模擬器設定 Schema（若提供）
   getEmulatorSchema: (emulatorId) => ipcRenderer.invoke('get-emulator-schema', emulatorId),
+  // 取得特定模擬器的有效全局預設（主進程合併後）
+  getEmulatorDefaults: (emulatorId) => ipcRenderer.invoke('get-emulator-defaults', emulatorId),
   // 設置（合併）模擬器設定
   setEmulatorConfig: (partial) => ipcRenderer.invoke('set-emulator-config', partial),
   // 選擇模擬器執行檔（JAR）
@@ -188,8 +190,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 設置指定遊戲的模擬器配置
   setGameEmulatorConfig: (filePath, emulatorConfig) =>
     ipcRenderer.invoke('set-game-emulator-config', filePath, emulatorConfig),
-  updateFreej2meGameConf: (filePath, effectiveParams) =>
-    ipcRenderer.invoke('update-freej2me-game-conf', filePath, effectiveParams),
+  // 僅準備 conf（不啟動），供配置模式使用
+  prepareGameConf: (filePath) => ipcRenderer.invoke('prepare-game-conf', filePath),
 
   // FreeJ2ME-Plus 自訂資源導入
   pickFreej2meAsset: (type) => ipcRenderer.invoke('freej2me:pick-asset', type),

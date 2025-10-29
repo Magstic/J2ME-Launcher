@@ -331,6 +331,12 @@
       "placeholder": "Not configured yet. Please select squirreljme-standalone.jar",
       "hint": "SquirrelJME currently doesn't support custom launch parameters."
     },
+    "freej2meZb3": {
+      "name": "FreeJ2ME-ZB3",
+      "jarPath": "Executable (emulator.jar)",
+      "placeholder": "Not configured yet. Please select the emulator JAR",
+      "hint": "FreeJ2ME-ZB3 currently doesn't support custom launch parameters."
+    },
     "libretroFJP": {
       "name": "Libretro (FreeJ2ME-Plus)",
       "retroarchPath": "Executable (retroarch.exe)",

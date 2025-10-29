@@ -294,7 +294,7 @@ module.exports = {
 - **未找到適配器**：
   - 確認 `main.js` 的 `registerEmulatorIpc({ adapters: [...] })` 有包含新適配器。
 - **缺少必填路徑**：
-  - 針對 `ke`/`libretro`/`freej2mePlus`/`squirreljme` 已有友好提示；新適配器建議在 `buildCommand()` 前自行檢查並丟出明確錯誤。
+  - 針對 `ke`/`libretro`/`freej2mePlus`/`squirreljme`/`freej2meZb3` 已有友好提示；新適配器建議在 `buildCommand()` 前自行檢查並丟出明確錯誤。
 - **Java 問題**：
   - 若 `buildCommand().command === 'java'`，會使用 `ConfigService.resolveJavaPath()`；請確保系統環境或設定正確。
 
@@ -308,5 +308,6 @@ module.exports = {
 - `src/main/emulators/ke.js`
 - `src/main/emulators/libretro.js`
 - `src/main/emulators/squirreljme.js`
+- `src/main/emulators/freej2meZb3.js`
 - `src/main/config/yaml-config.js`
 - `src/main/preload.js`

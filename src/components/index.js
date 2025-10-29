@@ -17,6 +17,7 @@ export * as ui from './ui/index.js';
 export { default as FreeJ2MEPlusConfig } from './emulators/FreeJ2MEPlusConfig.jsx';
 export { default as KEmulator } from './emulators/KEmulator.jsx';
 export { default as LibretroFJPlus } from './emulators/LibretroFJPlus.jsx';
+export { default as FreeJ2MEZb3Config } from './emulators/FreeJ2MEZb3Config.jsx';
 
 // Common dialogs for app
 export { default as GameLaunchDialog } from './ui/dialogs/GameLaunchDialog';

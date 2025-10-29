@@ -188,10 +188,7 @@ interface ElectronAPI {
   pickEmulatorBinary(emulatorId: string): Promise<string | null>;
   getGameEmulatorConfig(filePath: string): Promise<any>;
   setGameEmulatorConfig(filePath: string, emulatorConfig: any): Promise<any>;
-  updateFreej2meGameConf(
-    filePath: string,
-    effectiveParams: any
-  ): Promise<{ success: boolean; path?: string; error?: string }>;
+  prepareGameConf(filePath: string): Promise<{ success: boolean; error?: string }>;
 
   // FreeJ2ME-Plus assets
   pickFreej2meAsset(type: 'soundfont' | 'textfont' | string): Promise<string | null>;

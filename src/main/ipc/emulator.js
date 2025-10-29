@@ -222,215 +222,54 @@ function register({
     }
   });
 
-  // 立即更新 FreeJ2ME-Plus 的 game.conf（覆寫 scrwidth/scrheight 與相容性旗標）
-  ipcMain.handle('update-freej2me-game-conf', async (event, gameFilePath, effectiveParams) => {
+  ipcMain.handle('get-emulator-defaults', (event, emulatorId) => {
     try {
-      const emus = DataStore.getEmulatorConfig();
-      const globalFree = emus?.freej2mePlus || { jarPath: '' };
-      const jarPath = globalFree.jarPath || '';
-      if (!jarPath) return { success: false, error: '尚未配置 FreeJ2ME-Plus jarPath' };
-      if (!fs.existsSync(jarPath))
-        return { success: false, error: `模擬器 JAR 不存在: ${jarPath}` };
-      if (!fs.existsSync(gameFilePath))
-        return { success: false, error: `ROM 不存在: ${gameFilePath}` };
-
-      const dsGame = DataStore.getGame(gameFilePath);
-      const fallback =
-        dsGame && dsGame.gameName
-          ? dsGame.gameName
-          : path.basename(gameFilePath, path.extname(gameFilePath));
-      const gameName = await getConfigGameName(gameFilePath, fallback);
-      const confDir = path.join(path.dirname(jarPath), 'config', gameName);
-      const confPath = path.join(confDir, 'game.conf');
-
-      const ensureInt = (v, def) => {
-        const n = parseInt(v, 10);
-        return Number.isFinite(n) ? n : def;
-      };
-      const width = ensureInt(effectiveParams?.width, 240);
-      const height = ensureInt(effectiveParams?.height, 320);
-      const fpsValue = ensureInt(effectiveParams?.framerate, 60);
-
-      let lines = [];
-      if (fs.existsSync(confPath)) {
-        const text = fs.readFileSync(confPath, 'utf8');
-        lines = text.split(/\r?\n/);
+      const emus = DataStore.getEmulatorConfig() || {};
+      if (emulatorId === 'freej2mePlus') {
+        const base = {
+          fullscreen: 0,
+          width: 240,
+          height: 320,
+          scale: 2,
+          keyLayout: 0,
+          framerate: 60,
+          compatfantasyzonefix: 'off',
+          compatimmediaterepaints: 'off',
+          compatoverrideplatchecks: 'on',
+          compatsiemensfriendlydrawing: 'off',
+          compattranstooriginonreset: 'off',
+          backlightcolor: 'Disabled',
+          fontoffset: '-2',
+          rotate: '0',
+          fpshack: 'Disabled',
+          sound: 'on',
+          spdhacknoalpha: 'off',
+        };
+        const merged = {
+          ...base,
+          ...((emus && emus.freej2mePlus && emus.freej2mePlus.defaults) || {}),
+        };
+        return { defaults: merged };
       }
-      let hasW = false,
-        hasH = false,
-        hasPhone = false,
-        hasTextfont = false,
-        hasSoundfont = false,
-        hasFps = false;
-      // 需要寫入的相容性旗標（值為 'on' / 'off'）
-      const compatKeys = [
-        'compatfantasyzonefix',
-        'compatimmediaterepaints',
-        'compatoverrideplatchecks',
-        'compatsiemensfriendlydrawing',
-        'compattranstooriginonreset',
-      ];
-      // 其他參數（直接寫入字串值）
-      const extraKeys = [
-        'backlightcolor',
-        'fontoffset',
-        'rotate',
-        'fpshack',
-        'sound',
-        'spdhacknoalpha',
-      ];
-      const mapFpshack = (v) => {
-        const s = String(v).trim();
-        if (['Disabled', 'Safe', 'Extended', 'Aggressive'].includes(s)) return s;
-        const m = { 0: 'Disabled', 1: 'Safe', 2: 'Extended', 3: 'Aggressive' };
-        return m[s] ?? s;
-      };
-      // 字體/音色：優先使用每遊戲設定，缺省時回退到全局
-      const globalSoundfont = (globalFree?.defaults && globalFree.defaults.soundfont) || 'Default';
-      const globalTextfont = (globalFree?.defaults && globalFree.defaults.textfont) || 'Default';
-      const desiredTextfont =
-        effectiveParams?.textfont && String(effectiveParams.textfont).length > 0
-          ? String(effectiveParams.textfont)
-          : globalTextfont;
-      const desiredSoundfont =
-        effectiveParams?.soundfont && String(effectiveParams.soundfont).length > 0
-          ? String(effectiveParams.soundfont)
-          : globalSoundfont;
-      // keyLayout -> game.conf 的 phone: 文字映射（與啟動流程一致）
-      const phoneMap = [
-        'Standard',
-        'LG',
-        'Motorola/SoftBank',
-        'Motorola Triplets',
-        'Motorola V8',
-        'Nokia Full Keyboard',
-        'Sagem',
-        'Siemens',
-        'Sharp',
-        'SKT',
-        'KDDI',
-      ];
-      const phoneIdx = ensureInt(effectiveParams?.keyLayout, 0);
-      const phoneName = phoneMap[phoneIdx] || 'Standard';
-      const compatValues = Object.fromEntries(
-        compatKeys.map((k) => {
-          const v = (effectiveParams && effectiveParams[k]) || '';
-          const norm =
-            String(v).toLowerCase() === 'on'
-              ? 'on'
-              : String(v).toLowerCase() === 'off'
-                ? 'off'
-                : undefined;
-          return [k, norm];
-        })
-      );
-      lines = lines.map((ln) => {
-        const idx = ln.indexOf(':');
-        if (idx > 0) {
-          const key = ln.slice(0, idx).trim();
-          if (key === 'scrwidth') {
-            hasW = true;
-            return `scrwidth:${width}`;
-          }
-          if (key === 'scrheight') {
-            hasH = true;
-            return `scrheight:${height}`;
-          }
-          if (key === 'fps') {
-            hasFps = true;
-            return `fps:${fpsValue}`;
-          }
-          if (key === 'textfont') {
-            hasTextfont = true;
-            return `textfont:${desiredTextfont}`;
-          }
-          if (key === 'soundfont') {
-            hasSoundfont = true;
-            return `soundfont:${desiredSoundfont}`;
-          }
-          if (compatKeys.includes(key)) {
-            const val = compatValues[key];
-            if (val === 'on' || val === 'off') return `${key}:${val}`;
-          }
-          if (key === 'phone') {
-            hasPhone = true;
-            return `phone:${phoneName}`;
-          }
-          if (extraKeys.includes(key)) {
-            let val = effectiveParams?.[key];
-            if (val !== undefined && val !== null && String(val).length > 0) {
-              if (key === 'fpshack') val = mapFpshack(val);
-              return `${key}:${val}`;
-            }
-          }
-        }
-        return ln;
-      });
-      if (!hasW) lines.push(`scrwidth:${width}`);
-      if (!hasH) lines.push(`scrheight:${height}`);
-      if (!hasPhone) lines.push(`phone:${phoneName}`);
-      if (!hasFps) lines.push(`fps:${fpsValue}`);
-      if (!hasTextfont) lines.push(`textfont:${desiredTextfont}`);
-      if (!hasSoundfont) lines.push(`soundfont:${desiredSoundfont}`);
-      for (const k of compatKeys) {
-        const val = compatValues[k];
-        if (val === 'on' || val === 'off') {
-          if (!lines.some((ln) => ln.trim().startsWith(`${k}:`))) lines.push(`${k}:${val}`);
-        }
+      if (emulatorId === 'freej2meZb3') {
+        const base = {
+          width: 240,
+          height: 320,
+          fps: 0,
+          rotate: 'off',
+          phone: 'Nokia',
+          sound: 'on',
+        };
+        const merged = {
+          ...base,
+          ...((emus && emus.freej2meZb3 && emus.freej2meZb3.defaults) || {}),
+        };
+        return { defaults: merged };
       }
-      for (const k of extraKeys) {
-        let val = effectiveParams?.[k];
-        if (val !== undefined && val !== null && String(val).length > 0) {
-          if (k === 'fpshack') val = mapFpshack(val);
-          if (!lines.some((ln) => ln.trim().startsWith(`${k}:`))) lines.push(`${k}:${val}`);
-        }
-      }
-
-      // Reorder target keys into a fixed order
-      const orderedKeys = [
-        'backlightcolor',
-        'compatfantasyzonefix',
-        'compatimmediaterepaints',
-        'compatoverrideplatchecks',
-        'compatsiemensfriendlydrawing',
-        'compattranstooriginonreset',
-        'fontoffset',
-        'fps',
-        'fpshack',
-        'phone',
-        'rotate',
-        'scrheight',
-        'scrwidth',
-        'sound',
-        'soundfont',
-        'spdhacknoalpha',
-        'textfont',
-      ];
-      const isTarget = (ln) => {
-        const idx = ln.indexOf(':');
-        if (idx <= 0) return false;
-        const k = ln.slice(0, idx).trim();
-        return orderedKeys.includes(k);
-      };
-      const presentMap = new Map();
-      for (const ln of lines) {
-        const idx = ln.indexOf(':');
-        if (idx <= 0) continue;
-        const k = ln.slice(0, idx).trim();
-        const v = ln.slice(idx + 1).trim();
-        presentMap.set(k, v);
-      }
-      const others = lines.filter((ln) => !isTarget(ln));
-      const orderedOut = [
-        ...others,
-        ...orderedKeys.filter((k) => presentMap.has(k)).map((k) => `${k}:${presentMap.get(k)}`),
-      ];
-
-      fs.mkdirSync(confDir, { recursive: true });
-      fs.writeFileSync(confPath, orderedOut.join('\n'), 'utf8');
-      return { success: true, path: confPath };
+      return null;
     } catch (error) {
-      return { success: false, error: error.message };
+      console.error('取得模擬器預設失敗:', error);
+      return null;
     }
   });
 
@@ -447,6 +286,11 @@ function register({
   // 遊戲啟動 IPC 處理器（委派到服務）
   ipcMain.handle('launch-game', async (event, gameFilePath) => {
     return emulatorService.launchGame(gameFilePath);
+  });
+
+  // 僅準備 conf（不啟動），供配置模式使用
+  ipcMain.handle('prepare-game-conf', async (event, gameFilePath) => {
+    return emulatorService.prepareGameConf(gameFilePath);
   });
 }
 

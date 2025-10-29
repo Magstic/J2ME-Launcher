@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import '../../DirectoryManager.css';
 import { Card, Collapsible, ModalWithFooter, Select, RomCacheSwitch } from '@ui';
-import { FreeJ2MEPlusConfig, KEmulator, LibretroFJPlus } from '@components';
+import { FreeJ2MEPlusConfig, KEmulator, LibretroFJPlus, FreeJ2MEZb3Config } from '@components';
 import { useTranslation } from '@hooks/useTranslation';
+import { useModalFocus } from '@hooks/useModalFocus';
 
 // 首次啟動彈窗：選擇使用全局預設或自訂當前遊戲參數
 function GameLaunchDialog({
@@ -18,8 +19,7 @@ function GameLaunchDialog({
   // 自訂名稱狀態
   const [customName, setCustomName] = useState('');
   const [customVendor, setCustomVendor] = useState('');
-  const [useGlobal, setUseGlobal] = useState(true);
-  const [params, setParams] = useState({
+  const plusBaseDefaults = {
     fullscreen: 0,
     width: 240,
     height: 320,
@@ -39,24 +39,40 @@ function GameLaunchDialog({
     fpshack: 'Disabled',
     sound: 'on',
     spdhacknoalpha: 'off',
+  };
+  const [globalDefaults, setGlobalDefaults] = useState(plusBaseDefaults);
+  const [perEmu, setPerEmu] = useState({
+    freej2mePlus: { useGlobal: true, params: plusBaseDefaults, romCache: true },
+    ke: { romCache: true },
+    libretro: { romCache: false },
+    squirreljme: { romCache: true },
+    freej2meZb3: { useGlobal: true, params: { width: 240, height: 320 }, romCache: true },
   });
-  const [globalDefaults, setGlobalDefaults] = useState(params);
+  const [zb3Defaults, setZb3Defaults] = useState({
+    width: 240,
+    height: 320,
+    fps: 0,
+    rotate: 'off',
+  });
   const [freeOpen, setFreeOpen] = useState(true);
   const [emulator, setEmulator] = useState('freej2mePlus'); // 預設 FreeJ2ME-Plus
   const [emulatorList, setEmulatorList] = useState([]);
   const modalRef = useRef(null);
-  // Per-emulator ROM cache toggles (per-game override). Defaults: Free/KE ON, Libretro OFF
-  const [freeRomCache, setFreeRomCache] = useState(true);
-  const [keRomCache, setKeRomCache] = useState(true);
-  const [libretroRomCache, setLibretroRomCache] = useState(false);
-  const [squirrelRomCache, setSquirrelRomCache] = useState(true);
+  // Per-emulator ROM cache toggles now managed in perEmu mapping
   // Collapsible states for KE / Libretro / SquirrelJME
   const [keOpen, setKeOpen] = useState(true);
   const [libretroOpen, setLibretroOpen] = useState(true);
   const [squirrelOpen, setSquirrelOpen] = useState(true);
+  const [zb3Open, setZb3Open] = useState(true);
   const requestCloseRef = React.useRef(null);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const focusablesRef = useRef([]);
+  const {
+    activeIndex,
+    setActiveIndex,
+    focusablesRef,
+    rebuildFocusables,
+    focusAt,
+    focusFirstPreferred,
+  } = useModalFocus(modalRef);
   const selectedEmu = useMemo(
     () => (emulatorList || []).find((e) => e?.id === emulator) || null,
     [emulatorList, emulator]
@@ -71,6 +87,7 @@ function GameLaunchDialog({
             { id: 'freej2mePlus', name: 'FreeJ2ME-Plus' },
             { id: 'ke', name: 'KEmulator nnmod' },
             { id: 'squirreljme', name: 'SquirrelJME' },
+            { id: 'freej2meZb3', name: 'FreeJ2ME-ZB3' },
             { id: 'libretro', name: 'Libretro Core (FreeJ2ME-Plus)' },
           ]
       ).map((opt) => ({ value: opt.id, label: opt.name })),
@@ -135,50 +152,11 @@ function GameLaunchDialog({
   const SCALE_OPTIONS = [1, 2, 3, 4, 5];
   const FPS_OPTIONS = [60, 55, 50, 45, 40, 35, 30, 25, 20, 15, 10];
 
-  const rebuildFocusables = () => {
-    try {
-      const root = modalRef.current;
-      if (!root) return;
-      const raw = [
-        ...Array.from(root.querySelectorAll('.modal-header .modal-close-btn')),
-        ...Array.from(root.querySelectorAll('.modal-body .form-row select')),
-        ...Array.from(root.querySelectorAll('.modal-body .form-row input')),
-        ...Array.from(root.querySelectorAll('.modal-body .form-row button')),
-        ...Array.from(root.querySelectorAll('.modal-body .radio-group label')),
-        ...Array.from(root.querySelectorAll('.modal-body label.toggle-switch')),
-        ...Array.from(root.querySelectorAll('.modal-body .section-header')),
-        ...Array.from(root.querySelectorAll('.modal-footer button')),
-      ];
-      const list = raw.filter((el) => {
-        const style = window.getComputedStyle(el);
-        if (style.display === 'none' || style.visibility === 'hidden') return false;
-        if (el.tagName.toLowerCase() === 'input') {
-          const type = el.getAttribute('type') || 'text';
-          if (type === 'hidden') return false;
-        }
-        return true;
-      });
-      // 去重並保留原始順序
-      const seen = new Set();
-      const dedup = [];
-      for (const el of list) {
-        if (!seen.has(el)) {
-          seen.add(el);
-          dedup.push(el);
-        }
-      }
-      focusablesRef.current = dedup;
-      if (dedup.length) {
-        if (activeIndex >= dedup.length) setActiveIndex(dedup.length - 1);
-      }
-    } catch {}
-  };
-
   // 狀態變更時重建可聚焦元素（影響可見/可用項目）
   useEffect(() => {
     if (!isOpen) return;
     rebuildFocusables();
-  }, [isOpen, freeOpen, useGlobal, emulator]);
+  }, [isOpen, freeOpen, emulator, perEmu]);
 
   // 初始化自訂名稱
   useEffect(() => {
@@ -213,13 +191,28 @@ function GameLaunchDialog({
           const listed = await window.electronAPI.listEmulators();
           setEmulatorList(Array.isArray(listed) ? listed : []);
 
-          const emu = await window.electronAPI.getEmulatorConfig();
-          // 與內建基線合併，避免舊版全局預設缺少新欄位導致 UI 退回到第一個選項（如 -4/off）
-          const defaults = {
-            ...params,
-            ...((emu && emu.freej2mePlus && emu.freej2mePlus.defaults) || {}),
+          // 由主進程提供已合併的有效預設
+          const respPlus = await window.electronAPI.getEmulatorDefaults('freej2mePlus');
+          const effPlusDefaults = {
+            ...plusBaseDefaults,
+            ...((respPlus && respPlus.defaults) || {}),
           };
-          setGlobalDefaults(defaults);
+          setGlobalDefaults(effPlusDefaults);
+          const respZb3 = await window.electronAPI.getEmulatorDefaults('freej2meZb3');
+          const zb3Base = {
+            width: 240,
+            height: 320,
+            fps: 0,
+            rotate: 'off',
+            phone: 'Nokia',
+            sound: 'on',
+          };
+          const effZb3Defaults = {
+            ...zb3Base,
+            ...((respZb3 && respZb3.defaults) || {}),
+          };
+          setZb3Defaults(effZb3Defaults);
+          const emu = await window.electronAPI.getEmulatorConfig();
           // Initialize ROM cache defaults from global config
           const globalFreeRom =
             emu && emu.freej2mePlus && typeof emu.freej2mePlus.romCache === 'boolean'
@@ -235,47 +228,69 @@ function GameLaunchDialog({
             emu && emu.squirreljme && typeof emu.squirreljme.romCache === 'boolean'
               ? emu.squirreljme.romCache
               : true;
+          const globalZb3Rom =
+            emu && emu.freej2meZb3 && typeof emu.freej2meZb3.romCache === 'boolean'
+              ? emu.freej2meZb3.romCache
+              : true;
 
           // 嘗試讀取該遊戲的已保存模擬器配置
           let selectedEmulator = 'freej2mePlus';
-          let nextUseGlobal = true;
-          let nextParams = defaults;
+          // 初始化每模擬器映射（先填入全局/預設）
+          let nextPerEmu = {
+            freej2mePlus: { useGlobal: true, params: effPlusDefaults, romCache: globalFreeRom },
+            ke: { romCache: globalKeRom },
+            libretro: { romCache: globalLibretroRom },
+            squirreljme: { romCache: globalSquirrelRom },
+            freej2meZb3: {
+              useGlobal: true,
+              params: { width: effZb3Defaults.width, height: effZb3Defaults.height },
+              romCache: globalZb3Rom,
+            },
+          };
           if (game?.filePath) {
             try {
               const perGame = await window.electronAPI.getGameEmulatorConfig(game.filePath);
               if (perGame) {
                 const sel = perGame.emulator || perGame.selectedEmulator || 'freej2mePlus';
                 selectedEmulator = sel === 'kemulator' ? 'ke' : sel;
+                // FreeJ2ME-Plus 覆寫（預設/自訂 + romCache）
                 const pgFree = perGame.freej2mePlus || {};
-                const useGlob = !(pgFree && pgFree.useGlobal === false);
-                nextUseGlobal = useGlob;
-                nextParams = useGlob ? defaults : { ...defaults, ...(pgFree.params || {}) };
-                // per-game ROM cache overrides
-                if (pgFree && typeof pgFree.romCache === 'boolean')
-                  setFreeRomCache(pgFree.romCache);
+                const useGlobFree = !(pgFree && pgFree.useGlobal === false);
+                nextPerEmu.freej2mePlus.useGlobal = useGlobFree;
+                nextPerEmu.freej2mePlus.params = useGlobFree
+                  ? effPlusDefaults
+                  : { ...effPlusDefaults, ...(pgFree.params || {}) };
+                if (typeof pgFree.romCache === 'boolean')
+                  nextPerEmu.freej2mePlus.romCache = pgFree.romCache;
+
+                // ZB3 覆寫（預設/自訂 + romCache）
+                const pgZb3 = perGame.freej2meZb3 || {};
+                const useGlobZ = !(pgZb3 && pgZb3.useGlobal === false);
+                nextPerEmu.freej2meZb3.useGlobal = useGlobZ;
+                nextPerEmu.freej2meZb3.params = useGlobZ
+                  ? effZb3Defaults
+                  : { ...effZb3Defaults, ...(pgZb3.params || {}) };
+                if (typeof pgZb3.romCache === 'boolean')
+                  nextPerEmu.freej2meZb3.romCache = pgZb3.romCache;
+
+                // 其他模擬器 romCache 覆寫
                 if (perGame.ke && typeof perGame.ke.romCache === 'boolean')
-                  setKeRomCache(perGame.ke.romCache);
+                  nextPerEmu.ke.romCache = perGame.ke.romCache;
                 if (perGame.libretro && typeof perGame.libretro.romCache === 'boolean')
-                  setLibretroRomCache(perGame.libretro.romCache);
+                  nextPerEmu.libretro.romCache = perGame.libretro.romCache;
                 if (perGame.squirreljme && typeof perGame.squirreljme.romCache === 'boolean')
-                  setSquirrelRomCache(perGame.squirreljme.romCache);
+                  nextPerEmu.squirreljme.romCache = perGame.squirreljme.romCache;
               }
             } catch (_) {}
           }
-          // If no per-game overrides, fall back to globals
-          if (typeof freeRomCache !== 'boolean') setFreeRomCache(globalFreeRom);
-          if (typeof keRomCache !== 'boolean') setKeRomCache(globalKeRom);
-          if (typeof libretroRomCache !== 'boolean') setLibretroRomCache(globalLibretroRom);
-          if (typeof squirrelRomCache !== 'boolean') setSquirrelRomCache(globalSquirrelRom);
+          // 套用初始化映射
+          setPerEmu(nextPerEmu);
 
           // 若所選模擬器不在清單中，回退到第一個可用者
           if (Array.isArray(listed) && listed.length) {
             const exists = listed.some((e) => e?.id === selectedEmulator);
             if (!exists) selectedEmulator = listed[0].id;
           }
-
-          setParams(nextParams);
-          setUseGlobal(nextUseGlobal);
           setEmulator(selectedEmulator);
         } catch (_) {}
       })();
@@ -288,22 +303,9 @@ function GameLaunchDialog({
     setTimeout(() => {
       rebuildFocusables();
     }, 0);
-  }, [freeOpen, useGlobal, emulator, isOpen, activeIndex]);
+  }, [freeOpen, emulator, isOpen, activeIndex, perEmu]);
 
   if (!isOpen) return null;
-
-  const focusAt = (idx) => {
-    const list = focusablesRef.current;
-    if (!list || !list.length) return;
-    const clamped = Math.max(0, Math.min(idx, list.length - 1));
-    setActiveIndex(clamped);
-    try {
-      const el = list[clamped];
-      el.focus();
-      // 讓目標在模態視窗中可見
-      el.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
-    } catch {}
-  };
 
   // 簡化版：不做左右調整，僅上下移動與 A 互動
 
@@ -420,22 +422,40 @@ function GameLaunchDialog({
         emulator,
         selectedEmulator: emulator, // for backward compatibility
         freej2mePlus: {
-          useGlobal: !!useGlobal,
-          params: useGlobal ? {} : params,
-          romCache: freeRomCache,
+          useGlobal: !!(perEmu.freej2mePlus?.useGlobal ?? true),
+          params: (perEmu.freej2mePlus?.useGlobal ?? true) ? {} : perEmu.freej2mePlus?.params || {},
+          romCache: !!(perEmu.freej2mePlus?.romCache ?? true),
         },
-        ke: { romCache: keRomCache },
-        libretro: { romCache: libretroRomCache },
-        squirreljme: { romCache: squirrelRomCache },
+        ke: { romCache: !!(perEmu.ke?.romCache ?? true) },
+        libretro: { romCache: !!(perEmu.libretro?.romCache ?? false) },
+        squirreljme: { romCache: !!(perEmu.squirreljme?.romCache ?? true) },
+        freej2meZb3: {
+          romCache: !!(perEmu.freej2meZb3?.romCache ?? true),
+          ...(emulator === 'freej2meZb3'
+            ? {
+                useGlobal: !!(perEmu.freej2meZb3?.useGlobal ?? true),
+                params:
+                  (perEmu.freej2meZb3?.useGlobal ?? true)
+                    ? {}
+                    : {
+                        width: Number.isFinite(parseInt(perEmu.freej2meZb3?.params?.width, 10))
+                          ? parseInt(perEmu.freej2meZb3.params.width, 10)
+                          : 240,
+                        height: Number.isFinite(parseInt(perEmu.freej2meZb3?.params?.height, 10))
+                          ? parseInt(perEmu.freej2meZb3.params.height, 10)
+                          : 320,
+                      },
+              }
+            : {}),
+        },
       };
       await window.electronAPI.setGameEmulatorConfig(game.filePath, cfg);
-      // 需要在「配置」時立即更新 game.conf 的分辨率（首次啟動不寫入）
+      // 需要在「配置」時立即更新 game.conf（統一由主進程 adapter.prepareGame 處理，不直接寫檔）
       if (configureOnly) {
-        const effective = useGlobal ? globalDefaults : params;
         try {
-          await window.electronAPI.updateFreej2meGameConf(game.filePath, effective);
+          await window.electronAPI.prepareGameConf(game.filePath);
         } catch (e) {
-          console.warn('更新 game.conf 失敗（忽略不中斷）：', e);
+          console.warn('準備 game.conf 失敗（忽略不中斷）：', e);
         }
       }
 
@@ -513,7 +533,7 @@ function GameLaunchDialog({
           <label className="form-label">{t('emulatorConfig.params')}</label>
           <div className="radio-group">
             <label
-              className={`radio-option ${useGlobal ? 'checked' : ''}`}
+              className={`radio-option ${(perEmu[emulator]?.useGlobal ?? true) ? 'checked' : ''}`}
               tabIndex={0}
               role="button"
             >
@@ -521,13 +541,18 @@ function GameLaunchDialog({
                 className="radio-input"
                 type="radio"
                 name="useGlobal"
-                checked={useGlobal}
-                onChange={() => setUseGlobal(true)}
+                checked={perEmu[emulator]?.useGlobal ?? true}
+                onChange={() =>
+                  setPerEmu((m) => ({
+                    ...m,
+                    [emulator]: { ...(m[emulator] || {}), useGlobal: true },
+                  }))
+                }
               />
               {t('emulatorConfig.default')}
             </label>
             <label
-              className={`radio-option ${!useGlobal ? 'checked' : ''}`}
+              className={`radio-option ${!(perEmu[emulator]?.useGlobal ?? true) ? 'checked' : ''}`}
               tabIndex={0}
               role="button"
             >
@@ -535,8 +560,13 @@ function GameLaunchDialog({
                 className="radio-input"
                 type="radio"
                 name="useGlobal"
-                checked={!useGlobal}
-                onChange={() => setUseGlobal(false)}
+                checked={!(perEmu[emulator]?.useGlobal ?? true)}
+                onChange={() =>
+                  setPerEmu((m) => ({
+                    ...m,
+                    [emulator]: { ...(m[emulator] || {}), useGlobal: false },
+                  }))
+                }
               />
               {t('emulatorConfig.custom')}
             </label>
@@ -553,11 +583,28 @@ function GameLaunchDialog({
             <FreeJ2MEPlusConfig
               context="game"
               caps={selectedCaps || {}}
-              values={useGlobal ? globalDefaults : params}
-              onChange={(partial) => setParams((p) => ({ ...p, ...partial }))}
-              disabled={useGlobal}
-              romCache={freeRomCache}
-              onRomCacheChange={setFreeRomCache}
+              values={
+                (perEmu.freej2mePlus?.useGlobal ?? true)
+                  ? globalDefaults
+                  : perEmu.freej2mePlus?.params || globalDefaults
+              }
+              onChange={(partial) =>
+                setPerEmu((m) => ({
+                  ...m,
+                  freej2mePlus: {
+                    ...(m.freej2mePlus || {}),
+                    params: { ...(m.freej2mePlus?.params || {}), ...partial },
+                  },
+                }))
+              }
+              disabled={perEmu.freej2mePlus?.useGlobal ?? true}
+              romCache={perEmu.freej2mePlus?.romCache ?? true}
+              onRomCacheChange={(v) =>
+                setPerEmu((m) => ({
+                  ...m,
+                  freej2mePlus: { ...(m.freej2mePlus || {}), romCache: !!v },
+                }))
+              }
               romCacheDisabled={false}
             />
             <div className="hint text-12 text-secondary mt-8">{t('emulatorConfig.saveHint')}</div>
@@ -572,7 +619,13 @@ function GameLaunchDialog({
             open={keOpen}
             onToggle={() => setKeOpen((o) => !o)}
           >
-            <KEmulator romCache={keRomCache} onRomCacheChange={setKeRomCache} disabled={false} />
+            <KEmulator
+              romCache={perEmu.ke?.romCache ?? true}
+              onRomCacheChange={(v) =>
+                setPerEmu((m) => ({ ...m, ke: { ...(m.ke || {}), romCache: !!v } }))
+              }
+              disabled={false}
+            />
           </Collapsible>
         )}
 
@@ -585,10 +638,54 @@ function GameLaunchDialog({
             onToggle={() => setSquirrelOpen((o) => !o)}
           >
             <RomCacheSwitch
-              checked={squirrelRomCache}
-              onChange={setSquirrelRomCache}
+              checked={perEmu.squirreljme?.romCache ?? true}
+              onChange={(v) =>
+                setPerEmu((m) => ({
+                  ...m,
+                  squirreljme: { ...(m.squirreljme || {}), romCache: !!v },
+                }))
+              }
               disabled={false}
             />
+          </Collapsible>
+        )}
+
+        {emulator === 'freej2meZb3' && (
+          <Collapsible
+            className="mb-12"
+            title={`FreeJ2ME-ZB3 ${t('emulatorConfig.emuParams')}`}
+            open={zb3Open}
+            onToggle={() => setZb3Open((o) => !o)}
+          >
+            <FreeJ2MEZb3Config
+              values={
+                (perEmu.freej2meZb3?.useGlobal ?? true)
+                  ? { width: zb3Defaults.width, height: zb3Defaults.height }
+                  : perEmu.freej2meZb3?.params || {
+                      width: zb3Defaults.width,
+                      height: zb3Defaults.height,
+                    }
+              }
+              onChange={(partial) =>
+                setPerEmu((m) => ({
+                  ...m,
+                  freej2meZb3: {
+                    ...(m.freej2meZb3 || {}),
+                    params: { ...(m.freej2meZb3?.params || {}), ...partial },
+                  },
+                }))
+              }
+              disabled={perEmu.freej2meZb3?.useGlobal ?? true}
+              romCache={perEmu.freej2meZb3?.romCache ?? true}
+              onRomCacheChange={(v) =>
+                setPerEmu((m) => ({
+                  ...m,
+                  freej2meZb3: { ...(m.freej2meZb3 || {}), romCache: !!v },
+                }))
+              }
+              resOptions={RES_OPTIONS}
+            />
+            <div className="hint text-12 text-secondary mt-8">{t('emulatorConfig.saveHint')}</div>
           </Collapsible>
         )}
 
@@ -601,8 +698,10 @@ function GameLaunchDialog({
             onToggle={() => setLibretroOpen((o) => !o)}
           >
             <LibretroFJPlus
-              romCache={libretroRomCache}
-              onRomCacheChange={setLibretroRomCache}
+              romCache={perEmu.libretro?.romCache ?? false}
+              onRomCacheChange={(v) =>
+                setPerEmu((m) => ({ ...m, libretro: { ...(m.libretro || {}), romCache: !!v } }))
+              }
               disabled={false}
             />
           </Collapsible>

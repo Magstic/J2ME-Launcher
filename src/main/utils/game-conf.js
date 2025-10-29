@@ -220,3 +220,84 @@ async function updateGameConf({ jarPath, gameFilePath, params, DataStore, getCon
 }
 
 module.exports = { updateGameConf };
+
+// FreeJ2ME-ZB3: simplified game.conf writer
+// Writes keys: width, height, fps, rotate, phone, sound
+async function updateZb3GameConf({ jarPath, gameFilePath, params, DataStore, getConfigGameName }) {
+  const dsGame = DataStore.getGame(gameFilePath);
+  const fallback =
+    dsGame && dsGame.gameName
+      ? dsGame.gameName
+      : path.basename(gameFilePath, path.extname(gameFilePath));
+  const gameName = await getConfigGameName(gameFilePath, fallback);
+
+  const confDir = path.join(path.dirname(jarPath), 'config', gameName);
+  const confPath = path.join(confDir, 'game.conf');
+
+  const width = ensureInt(params?.width, 240);
+  const height = ensureInt(params?.height, 320);
+  const fpsValue = ensureInt(params?.fps, 0);
+  const rotateVal = String(params?.rotate ?? 'off');
+  const phoneVal = String(params?.phone ?? 'Nokia');
+  const soundVal = String(params?.sound ?? 'on');
+
+  let lines = [];
+  if (fs.existsSync(confPath)) {
+    try {
+      const text = fs.readFileSync(confPath, 'utf8');
+      lines = text.split(/\r?\n/);
+    } catch (_) {
+      lines = [];
+    }
+  }
+  // Replace existing target keys, keep others
+  let hasW = false,
+    hasH = false,
+    hasFps = false,
+    hasRotate = false,
+    hasPhone = false,
+    hasSound = false;
+
+  const newLines = lines.map((ln) => {
+    const idx = ln.indexOf(':');
+    if (idx > 0) {
+      const key = ln.slice(0, idx).trim();
+      switch (key) {
+        case 'width':
+          hasW = true;
+          return `width:${width}`;
+        case 'height':
+          hasH = true;
+          return `height:${height}`;
+        case 'fps':
+          hasFps = true;
+          return `fps:${fpsValue}`;
+        case 'rotate':
+          hasRotate = true;
+          return `rotate:${rotateVal}`;
+        case 'phone':
+          hasPhone = true;
+          return `phone:${phoneVal}`;
+        case 'sound':
+          hasSound = true;
+          return `sound:${soundVal}`;
+        default:
+          break;
+      }
+    }
+    return ln;
+  });
+
+  if (!hasW) newLines.push(`width:${width}`);
+  if (!hasH) newLines.push(`height:${height}`);
+  if (!hasFps) newLines.push(`fps:${fpsValue}`);
+  if (!hasRotate) newLines.push(`rotate:${rotateVal}`);
+  if (!hasPhone) newLines.push(`phone:${phoneVal}`);
+  if (!hasSound) newLines.push(`sound:${soundVal}`);
+
+  fs.mkdirSync(confDir, { recursive: true });
+  fs.writeFileSync(confPath, newLines.join('\n'), 'utf8');
+  return { confPath };
+}
+
+module.exports.updateZb3GameConf = updateZb3GameConf;
