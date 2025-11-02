@@ -335,7 +335,38 @@
       "name": "FreeJ2ME-ZB3",
       "jarPath": "执行文件（emulator.jar）",
       "placeholder": "尚未配置，请选择模拟器 JAR",
-      "hint": "FreeJ2ME-ZB3 暂不支持自定义参数启动。"
+      "hint": "FreeJ2ME-ZB3 暂不支持更多的自定义参数启动。",
+      "phone": {
+        "label": "手机型号（phone）",
+        "options": {
+          "Standard": "Standard",
+          "Nokia": "Nokia",
+          "Siemens": "Siemens",
+          "Motorola": "Motorola",
+          "SonyEricsson": "SonyEricsson"
+        }
+      },
+      "dgFormat": {
+        "label": "图形格式（dgFormat）",
+        "options": {
+          "default": "Default",
+          "444": "444RGB",
+          "4444": "ARGB",
+          "565": "565RGB"
+        }
+      },
+      "forceFullscreen": "强制全屏（forceFullscreen）",
+      "forceVolatileFields": "强制 volatile 字段（forceVolatileFields）",
+      "sound": "模拟手机声音",
+      "resolution": "分辨率",
+      "framerate": "FPS",
+      "rotate": "屏幕旋转（rotate）",
+      "fps": {
+        "auto": "Auto",
+        "fast60": "60",
+        "slow30": "30",
+        "turtle15": "15"
+      }
     },
     "libretroFJP": {
       "name": "Libretro(FreeJ2ME-Plus)",

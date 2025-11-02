@@ -52,31 +52,6 @@ function register({
     }
   });
 
-  // 取得特定模擬器能力（若需要細分）
-  ipcMain.handle('get-emulator-capabilities', (event, emulatorId) => {
-    try {
-      const adp = adapterMap.get(emulatorId) || null;
-      if (!adp) return null;
-      return { id: adp.id, name: adp.name, capabilities: adp.capabilities || {} };
-    } catch (error) {
-      console.error('取得模擬器能力失敗:', error);
-      return null;
-    }
-  });
-
-  // 取得特定模擬器的設定 Schema（若該 adapter 提供）
-  ipcMain.handle('get-emulator-schema', (event, emulatorId) => {
-    try {
-      const adp = adapterMap.get(emulatorId) || null;
-      if (!adp || typeof adp.getConfigSchema !== 'function') return null;
-      const schema = adp.getConfigSchema();
-      return schema || null;
-    } catch (error) {
-      console.error('取得模擬器 Schema 失敗:', error);
-      return null;
-    }
-  });
-
   // 設置（合併）模擬器設定
   ipcMain.handle('set-emulator-config', (event, partial) => {
     try {
@@ -255,10 +230,13 @@ function register({
         const base = {
           width: 240,
           height: 320,
-          fps: 0,
+          fps: 60,
           rotate: 'off',
           phone: 'Nokia',
           sound: 'on',
+          dgFormat: 'default',
+          forceFullscreen: 'off',
+          forceVolatileFields: 'off',
         };
         const merged = {
           ...base,

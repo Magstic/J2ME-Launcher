@@ -180,10 +180,6 @@ interface ElectronAPI {
   // ===== Emulator config =====
   getEmulatorConfig(): Promise<any>;
   listEmulators(): Promise<Array<{ id: string; name: string; capabilities: Record<string, any> }>>;
-  getEmulatorCapabilities(
-    emulatorId: string
-  ): Promise<{ id: string; name: string; capabilities: Record<string, any> } | null>;
-  getEmulatorSchema(emulatorId: string): Promise<any>;
   setEmulatorConfig(partial: Record<string, any>): Promise<any>;
   pickEmulatorBinary(emulatorId: string): Promise<string | null>;
   getGameEmulatorConfig(filePath: string): Promise<any>;

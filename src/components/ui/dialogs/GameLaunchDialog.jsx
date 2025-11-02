@@ -46,13 +46,19 @@ function GameLaunchDialog({
     ke: { romCache: true },
     libretro: { romCache: false },
     squirreljme: { romCache: true },
-    freej2meZb3: { useGlobal: true, params: { width: 240, height: 320 }, romCache: true },
+    freej2meZb3: {
+      useGlobal: true,
+      params: { width: 240, height: 320, fps: 60, rotate: 'off', phone: 'Nokia', sound: 'on' },
+      romCache: true,
+    },
   });
   const [zb3Defaults, setZb3Defaults] = useState({
     width: 240,
     height: 320,
-    fps: 0,
+    fps: 60,
     rotate: 'off',
+    phone: 'Nokia',
+    sound: 'on',
   });
   const [freeOpen, setFreeOpen] = useState(true);
   const [emulator, setEmulator] = useState('freej2mePlus'); // 預設 FreeJ2ME-Plus
@@ -78,7 +84,6 @@ function GameLaunchDialog({
     [emulatorList, emulator]
   );
   const selectedCaps = selectedEmu?.capabilities || {};
-  const [schema, setSchema] = useState(null);
   const emulatorOptions = useMemo(
     () =>
       (emulatorList && emulatorList.length
@@ -93,26 +98,6 @@ function GameLaunchDialog({
       ).map((opt) => ({ value: opt.id, label: opt.name })),
     [emulatorList]
   );
-
-  // 當前選擇的模擬器若支援 per-game params，嘗試取得 Schema（目前支援 FreeJ2ME-Plus）
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        if (isOpen && selectedCaps?.perGameParams) {
-          const sc = await window.electronAPI.getEmulatorSchema(emulator);
-          if (mounted) setSchema(sc || null);
-        } else {
-          if (mounted) setSchema(null);
-        }
-      } catch (e) {
-        if (mounted) setSchema(null);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, [isOpen, emulator, selectedCaps?.perGameParams]);
 
   // 固定解析度選項（取值寫入 width/height）
   const RES_OPTIONS = useMemo(
@@ -202,10 +187,13 @@ function GameLaunchDialog({
           const zb3Base = {
             width: 240,
             height: 320,
-            fps: 0,
+            fps: 60,
             rotate: 'off',
             phone: 'Nokia',
             sound: 'on',
+            dgFormat: 'default',
+            forceFullscreen: 'off',
+            forceVolatileFields: 'off',
           };
           const effZb3Defaults = {
             ...zb3Base,
@@ -444,6 +432,31 @@ function GameLaunchDialog({
                         height: Number.isFinite(parseInt(perEmu.freej2meZb3?.params?.height, 10))
                           ? parseInt(perEmu.freej2meZb3.params.height, 10)
                           : 320,
+                        fps: Number.isFinite(parseInt(perEmu.freej2meZb3?.params?.fps, 10))
+                          ? parseInt(perEmu.freej2meZb3.params.fps, 10)
+                          : 60,
+                        rotate:
+                          typeof perEmu.freej2meZb3?.params?.rotate === 'string'
+                            ? perEmu.freej2meZb3.params.rotate
+                            : 'off',
+                        sound: String(perEmu.freej2meZb3?.params?.sound) === 'off' ? 'off' : 'on',
+                        phone:
+                          typeof perEmu.freej2meZb3?.params?.phone === 'string'
+                            ? perEmu.freej2meZb3.params.phone
+                            : 'Nokia',
+                        dgFormat: ['default', '444', '4444', '565'].includes(
+                          String(perEmu.freej2meZb3?.params?.dgFormat)
+                        )
+                          ? String(perEmu.freej2meZb3.params.dgFormat)
+                          : 'default',
+                        forceFullscreen:
+                          String(perEmu.freej2meZb3?.params?.forceFullscreen) === 'on'
+                            ? 'on'
+                            : 'off',
+                        forceVolatileFields:
+                          String(perEmu.freej2meZb3?.params?.forceVolatileFields) === 'on'
+                            ? 'on'
+                            : 'off',
                       },
               }
             : {}),
@@ -660,10 +673,17 @@ function GameLaunchDialog({
             <FreeJ2MEZb3Config
               values={
                 (perEmu.freej2meZb3?.useGlobal ?? true)
-                  ? { width: zb3Defaults.width, height: zb3Defaults.height }
+                  ? { ...zb3Defaults }
                   : perEmu.freej2meZb3?.params || {
                       width: zb3Defaults.width,
                       height: zb3Defaults.height,
+                      fps: zb3Defaults.fps,
+                      rotate: zb3Defaults.rotate,
+                      sound: zb3Defaults.sound,
+                      phone: zb3Defaults.phone,
+                      dgFormat: zb3Defaults.dgFormat || 'default',
+                      forceFullscreen: zb3Defaults.forceFullscreen || 'off',
+                      forceVolatileFields: zb3Defaults.forceVolatileFields || 'off',
                     }
               }
               onChange={(partial) =>

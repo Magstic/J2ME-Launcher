@@ -334,8 +334,39 @@
     "freej2meZb3": {
       "name": "FreeJ2ME-ZB3",
       "jarPath": "執行檔（emulator.jar）",
-      "placeholder": "尚未設定，請選擇模擬器 JAR",
-      "hint": "FreeJ2ME-ZB3 暫不支援自訂參數啟動。"
+      "placeholder": "尚未設定，請選擇 freej2me-zb3 fork.jar",
+      "hint": "FreeJ2ME-ZB3 暫不支援更多的自訂參數啟動。",
+      "phone": {
+        "label": "手機型號（phone）",
+        "options": {
+          "Standard": "Standard",
+          "Nokia": "Nokia",
+          "Siemens": "Siemens",
+          "Motorola": "Motorola",
+          "SonyEricsson": "SonyEricsson"
+        }
+      },
+      "dgFormat": {
+        "label": "圖形格式（dgFormat）",
+        "options": {
+          "default": "Default",
+          "444": "444RGB",
+          "4444": "ARGB",
+          "565": "565RGB"
+        }
+      },
+      "forceFullscreen": "強制全螢幕（forceFullscreen）",
+      "forceVolatileFields": "強制 volatile 欄位（forceVolatileFields）",
+      "sound": "模擬手機聲音",
+      "resolution": "解析度",
+      "framerate": "FPS",
+      "rotate": "螢幕旋轉（rotate）",
+      "fps": {
+        "auto": "Auto",
+        "fast60": "60",
+        "slow30": "30",
+        "turtle15": "15"
+      }
     },
     "libretroFJP": {
       "name": "Libretro(FreeJ2ME-Plus)",

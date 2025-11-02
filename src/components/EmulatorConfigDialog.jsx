@@ -46,7 +46,17 @@ function EmulatorConfigDialog({ isOpen, onClose }) {
 
   // ZB3 內建基線（與 GameLaunchDialog 的 zb3Defaults 初始值一致）
   const ZB3_BASE_DEFAULTS = useMemo(
-    () => ({ width: 240, height: 320, fps: 0, rotate: 'off', phone: 'Nokia', sound: 'on' }),
+    () => ({
+      width: 240,
+      height: 320,
+      fps: 60,
+      rotate: 'off',
+      phone: 'Nokia',
+      sound: 'on',
+      dgFormat: 'default',
+      forceFullscreen: 'off',
+      forceVolatileFields: 'off',
+    }),
     []
   );
   const freeCaps = freeAdapter?.capabilities || {};

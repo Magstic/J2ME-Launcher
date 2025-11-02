@@ -240,6 +240,9 @@ async function updateZb3GameConf({ jarPath, gameFilePath, params, DataStore, get
   const rotateVal = String(params?.rotate ?? 'off');
   const phoneVal = String(params?.phone ?? 'Nokia');
   const soundVal = String(params?.sound ?? 'on');
+  const dgFormatVal = String(params?.dgFormat ?? 'default');
+  const forceFullscreenOn = String(params?.forceFullscreen ?? 'off') === 'on';
+  const forceVolatileOn = String(params?.forceVolatileFields ?? 'off') === 'on';
 
   let lines = [];
   if (fs.existsSync(confPath)) {
@@ -256,7 +259,10 @@ async function updateZb3GameConf({ jarPath, gameFilePath, params, DataStore, get
     hasFps = false,
     hasRotate = false,
     hasPhone = false,
-    hasSound = false;
+    hasSound = false,
+    hasDgFormat = false,
+    hasForceFS = false,
+    hasForceVol = false;
 
   const newLines = lines.map((ln) => {
     const idx = ln.indexOf(':');
@@ -281,6 +287,15 @@ async function updateZb3GameConf({ jarPath, gameFilePath, params, DataStore, get
         case 'sound':
           hasSound = true;
           return `sound:${soundVal}`;
+        case 'dgFormat':
+          hasDgFormat = true;
+          return `dgFormat:${dgFormatVal}`;
+        case 'forceFullscreen':
+          hasForceFS = true;
+          return forceFullscreenOn ? 'forceFullscreen:on' : '';
+        case 'forceVolatileFields':
+          hasForceVol = true;
+          return forceVolatileOn ? 'forceVolatileFields:on' : '';
         default:
           break;
       }
@@ -294,9 +309,14 @@ async function updateZb3GameConf({ jarPath, gameFilePath, params, DataStore, get
   if (!hasRotate) newLines.push(`rotate:${rotateVal}`);
   if (!hasPhone) newLines.push(`phone:${phoneVal}`);
   if (!hasSound) newLines.push(`sound:${soundVal}`);
+  if (!hasDgFormat) newLines.push(`dgFormat:${dgFormatVal}`);
+  if (forceFullscreenOn && !hasForceFS) newLines.push('forceFullscreen:on');
+  if (forceVolatileOn && !hasForceVol) newLines.push('forceVolatileFields:on');
+
+  const cleaned = newLines.filter((ln) => typeof ln === 'string' && ln.trim().length > 0);
 
   fs.mkdirSync(confDir, { recursive: true });
-  fs.writeFileSync(confPath, newLines.join('\n'), 'utf8');
+  fs.writeFileSync(confPath, cleaned.join('\n'), 'utf8');
   return { confPath };
 }
 

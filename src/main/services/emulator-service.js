@@ -59,12 +59,13 @@ function createEmulatorService({
       const perGameConf = (perGame && perGame[selectedEmulator]) || {};
 
       // romCache：每遊戲 > 全局 > 預設 false（各適配器可在 YAML 預設中覆蓋）
+      const defaultRomCache = selectedEmulator === 'libretro' ? false : true;
       const romCache =
         typeof perGameConf.romCache === 'boolean'
           ? perGameConf.romCache
           : typeof globalConf.romCache === 'boolean'
             ? globalConf.romCache
-            : false;
+            : defaultRomCache;
 
       // 友好錯誤：針對已知適配器預先檢查必填路徑
       if (selectedEmulator === 'ke') {
@@ -162,10 +163,13 @@ function createEmulatorService({
         const extendedDefaults = {
           width: 240,
           height: 320,
-          fps: 0,
+          fps: 60,
           rotate: 'off',
           phone: 'Nokia',
           sound: 'on',
+          dgFormat: 'default',
+          forceFullscreen: 'off',
+          forceVolatileFields: 'off',
         };
         const useGlobal = !(
           perGame &&
@@ -328,10 +332,13 @@ function createEmulatorService({
         const extendedDefaults = {
           width: 240,
           height: 320,
-          fps: 0,
+          fps: 60,
           rotate: 'off',
           phone: 'Nokia',
           sound: 'on',
+          dgFormat: 'default',
+          forceFullscreen: 'off',
+          forceVolatileFields: 'off',
         };
         const useGlobal = !(
           perGame &&

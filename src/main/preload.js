@@ -174,11 +174,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getEmulatorConfig: () => ipcRenderer.invoke('get-emulator-config'),
   // 列出可用模擬器
   listEmulators: () => ipcRenderer.invoke('list-emulators'),
-  // 取得特定模擬器能力
-  getEmulatorCapabilities: (emulatorId) =>
-    ipcRenderer.invoke('get-emulator-capabilities', emulatorId),
-  // 取得特定模擬器設定 Schema（若提供）
-  getEmulatorSchema: (emulatorId) => ipcRenderer.invoke('get-emulator-schema', emulatorId),
   // 取得特定模擬器的有效全局預設（主進程合併後）
   getEmulatorDefaults: (emulatorId) => ipcRenderer.invoke('get-emulator-defaults', emulatorId),
   // 設置（合併）模擬器設定

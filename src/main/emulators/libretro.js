@@ -46,22 +46,4 @@ async function prepareGame({ gameFilePath, utils }) {
   return { preparedGamePath };
 }
 
-function getConfigSchema() {
-  return {
-    id,
-    name,
-    groups: [
-      {
-        id: 'paths',
-        label: 'Paths',
-        fields: [
-          { key: 'retroarchPath', type: 'file', label: '執行檔 (retroarch.exe)' },
-          { key: 'corePath', type: 'file', label: '核心 (freej2me_libretro.dll)' },
-          { key: 'romCache', type: 'checkbox', label: 'ROM 快取模式', default: false },
-        ],
-      },
-    ],
-  };
-}
-
-module.exports = { id, name, capabilities, buildCommand, prepareGame, getConfigSchema };
+module.exports = { id, name, capabilities, buildCommand, prepareGame };

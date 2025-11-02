@@ -154,6 +154,12 @@ function resolveItems(app, groups) {
         if (needRms) walk(path.join(keBase, 'rms'), 'external/kemulator/rms');
         // KEmulator has no config dir
       }
+      const zb = emus.freej2meZb3 || {};
+      const zbBase = zb.jarPath ? path.dirname(zb.jarPath) : '';
+      if (zbBase) {
+        if (needRms) walk(path.join(zbBase, 'rms'), 'external/freej2meZb3/rms');
+        if (needEmuCfg) walk(path.join(zbBase, 'config'), 'external/freej2meZb3/config');
+      }
       // Libretro (FreeJ2ME-Plus)
       const lr = emus.libretro || {};
       const raBase = lr.retroarchPath ? path.dirname(lr.retroarchPath) : '';
@@ -748,6 +754,17 @@ async function runRestore({
         mapping.push({
           prefix: 'external/freej2mePlus/config/',
           base: path.join(fjBase, 'config'),
+        });
+    }
+    const zb = emus.freej2meZb3 || {};
+    const zbBase = zb.jarPath ? path.dirname(zb.jarPath) : '';
+    if (zbBase) {
+      if (groupSet.has('rms'))
+        mapping.push({ prefix: 'external/freej2meZb3/rms/', base: path.join(zbBase, 'rms') });
+      if (groupSet.has('emuConfig'))
+        mapping.push({
+          prefix: 'external/freej2meZb3/config/',
+          base: path.join(zbBase, 'config'),
         });
     }
     // KEmulator

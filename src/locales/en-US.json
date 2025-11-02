@@ -335,7 +335,38 @@
       "name": "FreeJ2ME-ZB3",
       "jarPath": "Executable (emulator.jar)",
       "placeholder": "Not configured yet. Please select the emulator JAR",
-      "hint": "FreeJ2ME-ZB3 currently doesn't support custom launch parameters."
+      "hint": "FreeJ2ME-ZB3 currently doesn't support custom launch parameters.",
+      "phone": {
+        "label": "Phone (phone)",
+        "options": {
+          "Standard": "Standard",
+          "Nokia": "Nokia",
+          "Siemens": "Siemens",
+          "Motorola": "Motorola",
+          "SonyEricsson": "SonyEricsson"
+        }
+      },
+      "dgFormat": {
+        "label": "Graphics format (dgFormat)",
+        "options": {
+          "default": "Default",
+          "444": "444RGB",
+          "4444": "ARGB",
+          "565": "565RGB"
+        }
+      },
+      "forceFullscreen": "Force fullscreen (forceFullscreen)",
+      "forceVolatileFields": "Force volatile fields (forceVolatileFields)",
+      "sound": "Emulate phone sound",
+      "resolution": "Resolution",
+      "framerate": "FPS",
+      "rotate": "Rotate screen (rotate)",
+      "fps": {
+        "auto": "Auto",
+        "fast60": "60",
+        "slow30": "30",
+        "turtle15": "15"
+      }
     },
     "libretroFJP": {
       "name": "Libretro (FreeJ2ME-Plus)",

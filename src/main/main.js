@@ -76,9 +76,9 @@ registerEmulatorIpc({
   adapters: [
     freej2mePlusAdapter,
     keAdapter,
-    libretroAdapter,
     squirreljmeAdapter,
     freej2meZb3Adapter,
+    libretroAdapter,
   ],
 });
 

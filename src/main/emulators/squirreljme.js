@@ -33,25 +33,4 @@ async function prepareGame({ gameFilePath, utils }) {
   return { preparedGamePath };
 }
 
-function getConfigSchema() {
-  return {
-    id,
-    name,
-    groups: [
-      {
-        id: 'paths',
-        label: 'Paths',
-        fields: [
-          {
-            key: 'jarPath',
-            type: 'file',
-            label: 'SquirrelJME Standalone JAR (squirreljme-standalone-*.jar)',
-          },
-          { key: 'romCache', type: 'checkbox', label: 'ROM 快取模式', default: true },
-        ],
-      },
-    ],
-  };
-}
-
-module.exports = { id, name, capabilities, buildCommand, prepareGame, getConfigSchema };
+module.exports = { id, name, capabilities, buildCommand, prepareGame };
