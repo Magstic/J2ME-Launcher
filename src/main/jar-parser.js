@@ -24,6 +24,9 @@ async function parseJarFile(jarPath) {
     const stats = await fs.stat(jarPath);
     const md5 = await calculateMD5(jarPath);
     const basic = await parseJarWithReaders(jarPath);
+    if (!basic || basic.hasManifest !== true) {
+      return null;
+    }
 
     return {
       filePath: jarPath,
@@ -37,19 +40,8 @@ async function parseJarFile(jarPath) {
     };
   } catch (error) {
     log.error(`[Parse Error] Critical failure parsing ${jarPath}: ${error.message}`);
-    // Fallback for critical errors
-    const stats = await fs.stat(jarPath).catch(() => ({ mtimeMs: 0, size: 0 }));
-    const md5 = await calculateMD5(jarPath).catch(() => null);
-    return {
-      filePath: jarPath,
-      gameName: path.basename(jarPath, '.jar'),
-      vendor: 'Unknown',
-      version: '1.0',
-      md5: md5,
-      iconPath: null,
-      mtimeMs: stats.mtimeMs,
-      size: stats.size,
-    };
+    // 嚴格篩選：遇到異常時不再建立基本條目，直接略過（避免把非 J2ME 檔案寫入庫）
+    return null;
   }
 }
 
@@ -341,6 +333,8 @@ async function processDirectory(directoryPath, isIncrementalScan = false, opts =
           } catch (sqlError) {
             log.error(`保存遊戲到數據庫失敗 ${file.path}:`, sqlError.message);
           }
+        } else {
+          log.info(`⏭️  跳過非 J2ME 或無 MANIFEST 檔案: ${path.basename(file.path)}`);
         }
       } catch (error) {
         log.error(`解析文件失败 ${file.path}:`, error.message);

@@ -1,5 +1,12 @@
-require('../utils/logger.cjs');
 const { app, BrowserWindow, ipcMain, dialog, Menu, session, protocol, shell } = require('electron');
+// 確保在開發模式下啟用日誌（影響 logger.cjs 的啟用判斷）
+try {
+  const isDevEnv = process.env.NODE_ENV === 'development' || !app.isPackaged;
+  if (isDevEnv && process.env.NODE_ENV !== 'development') {
+    process.env.NODE_ENV = 'development';
+  }
+} catch (_) {}
+require('../utils/logger.cjs');
 const path = require('path');
 const {
   processDirectory,

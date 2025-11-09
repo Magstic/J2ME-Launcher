@@ -18,22 +18,28 @@ async function trySystemExtraction(jarPath) {
   try {
     await fs.ensureDir(tempDir);
 
-    // 嘗試多種解壓工具
-    const extractCommands = [
-      `7z x "${jarPath}" -o"${tempDir}" -y`,
-      `unzip -q "${jarPath}" -d "${tempDir}"`,
-      `jar xf "${jarPath}" -C "${tempDir}"`,
+    // 嘗試多種解壓工具（按容錯度排序）
+    const candidates = [
+      { cmd: `7z x "${jarPath}" -o"${tempDir}" -y` },
+      { cmd: `bsdtar -xf "${jarPath}" -C "${tempDir}"` },
+      { cmd: `tar -xf "${jarPath}" -C "${tempDir}"` },
+      { cmd: `unzip -q "${jarPath}" -d "${tempDir}"` },
+      // jar 抽取需在目標目錄執行，-C 對抽取並不通用
+      { cmd: `jar xf "${jarPath}"`, cwd: tempDir },
     ];
 
     let extracted = false;
-    for (const cmd of extractCommands) {
+    for (const c of candidates) {
       try {
-        execSync(cmd, { stdio: 'ignore', timeout: 10000 });
+        execSync(c.cmd, { stdio: 'ignore', timeout: 10000, cwd: c.cwd || undefined });
         extracted = true;
-        log.info(`✅ 成功使用命令解壓: ${cmd.split(' ')[0]}`);
+        try {
+          log.info(`✅ 成功使用命令解壓: ${c.cmd.split(' ')[0]}`);
+        } catch (_) {}
         break;
       } catch (cmdError) {
-        continue; // 嘗試下一個命令
+        // 下一個候選
+        continue;
       }
     }
 

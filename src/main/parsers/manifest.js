@@ -21,4 +21,20 @@ function resolveIconPath(manifest) {
   return iconPath || null;
 }
 
-module.exports = { parseManifest, resolveIconPath };
+function getValueCI(manifest, key) {
+  if (!manifest) return undefined;
+  const target = String(key).toLowerCase();
+  for (const k of Object.keys(manifest)) {
+    if (String(k).toLowerCase() === target) return manifest[k];
+  }
+  return undefined;
+}
+
+function pickGameName(manifest, fallbackName) {
+  const rawName = (getValueCI(manifest, 'MIDlet-Name') || '').trim();
+  const midlet1 = (getValueCI(manifest, 'MIDlet-1') || '').trim();
+  const midlet1Name = ((midlet1.split(',')[0] || '') + '').trim();
+  return rawName || midlet1Name || fallbackName;
+}
+
+module.exports = { parseManifest, resolveIconPath, getValueCI, pickGameName };
