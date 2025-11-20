@@ -145,6 +145,9 @@ emulators:
   squirreljme:
     jarPath: ''
     romCache: true
+  freej2meZb3:
+    jarPath: ''
+    romCache: true
 ui:
   defaultView: desktop
   showUncategorized: true
@@ -163,6 +166,7 @@ ui:
   },
   "ke": { "romCache": true },
   "squirreljme": { "romCache": true },
+  "freej2meZb3": { "romCache": true },
   "libretro": { "romCache": false }
 }
 ```

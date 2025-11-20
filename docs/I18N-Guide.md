@@ -130,17 +130,21 @@ export const SUPPORTED_LANGUAGES = {
 
 ## Advanced: system language detection and defaults
 
-- `src/contexts/I18nContext.jsx` 會依下列順序決定語言：
-  1. `localStorage.language`
-  2. 系統語言 `navigator.language`
-  3. `DEFAULT_LANGUAGE`（目前為 `zh-TW`）
-- 若系統語言返回不受支援的代碼，會嘗試載入對應檔案；失敗則回退至預設語言。
+- `src/contexts/I18nContext.jsx` 的初始化邏輯：
+  1. 優先讀取 `localStorage.language`。
+  2. 若無設定，則檢測 `navigator.language`：
+     - `zh` 系列：依地區對應至 `zh-CN` 或 `zh-TW`。
+     - `en` 系列：統一對應至 `en-US`。
+     - 其他語言：回退至 `DEFAULT_LANGUAGE`（目前為 `zh-TW`）。
+  3. 若需支援新語言的自動偵測，請在 `I18nProvider` 的 `useState` 初始化邏輯中添加對應規則。
 
-- Language resolution order in `src/contexts/I18nContext.jsx`:
-  1. `localStorage.language`
-  2. System language `navigator.language`
-  3. `DEFAULT_LANGUAGE` (currently `zh-TW`)
-- If the system language is unsupported, we try to load it; on failure, we fall back to the default.
+- Initialization logic in `src/contexts/I18nContext.jsx`:
+  1. Check `localStorage.language`.
+  2. If missing, check `navigator.language`:
+     - `zh-*`: Maps to `zh-CN` or `zh-TW` based on region.
+     - `en-*`: Maps to `en-US`.
+     - Others: Falls back to `DEFAULT_LANGUAGE` (currently `zh-TW`).
+  3. To support auto-detection for a new language, add your logic in the `useState` initialization block of `I18nProvider`.
 
 ## 常見問題
 

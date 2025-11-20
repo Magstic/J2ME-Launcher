@@ -151,6 +151,7 @@ const handleAddToFolder = async (games, folderId) => {
       - `FreeJ2MEPlusConfig`
       - `KEmulator`
       - `LibretroFJPlus`
+      - `FreeJ2MEZb3Config`
     - 常用對話框：
       - `GameLaunchDialog`
       - `FolderSelectDialog`
@@ -164,7 +165,28 @@ const handleAddToFolder = async (games, folderId) => {
     // ui.ModalWithFooter, ui.Collapsible, ...
     ```
 
-> 備註：彙總出口為選用，目的在於降低匯入冗長度、提升開發體驗。
+- `src/hooks/index.js`
+  - 應用邏輯 Hooks 彙總出口（`@hooks`）：
+    - `useAppDialogs`
+    - `useAppEventListeners`
+    - `useDesktopActions`
+    - `useDesktopDialogs`
+    - `useDesktopEventListeners`
+    - `useDesktopManager`
+    - `useDesktopState`
+    - `useDesktopView`
+    - `useDrawerPositioning`
+    - `useFabMenu`
+    - `useFolderOperations`
+    - `useGameLauncher`
+    - `useGameStore`
+    - `useThemeManager`
+    - `useTranslation`
+    - `useWelcomeGuide`
+  - 用法：
+    ```js
+    import { useTranslation, useGameStore } from '@hooks';
+    ```
 
 - `src/assets/icons/index.js`
   - 命名匯出（Named exports）：

@@ -80,8 +80,7 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
 - **模擬器設定**
   - `getEmulatorConfig()`
   - `listEmulators()`
-  - `getEmulatorCapabilities(emulatorId)`
-  - `getEmulatorSchema(emulatorId)`
+  - `getEmulatorDefaults(emulatorId)`
   - `setEmulatorConfig(partial)`
   - `pickEmulatorBinary(emulatorId)`
   - `getGameEmulatorConfig(filePath)`
@@ -97,11 +96,14 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
   - 集合與讀取：`getDesktopClusters()`、`getClustersByFolder(folderId)`、`getCluster(id)`
   - 關係：`addClusterToFolder(clusterId, folderId)`、`removeClusterFromFolder(clusterId, folderId)`、`mergeClusters(fromId, toId)`
   - 維護：`cleanupOrphanClusters()`
-  - 事件：`onClusterChanged(callback)`、`onClusterDeleted(callback)`
+  - 事件：
+    - `onClusterChanged(callback)` → channel: `'cluster:changed'`，回傳 unsubscribe 函式
+    - `onClusterDeleted(callback)` → channel: `'cluster:deleted'`，回傳 unsubscribe 函式
 
 - **資料夾事件監聽**
   - `onFolderUpdated(callback)` → channel: `'folder-updated'`（回傳 unsubscribe）
   - `onFolderChanged(callback)` → channel: `'folder-changed'`（回傳 unsubscribe）
+  - `onFolderMembershipChanged(callback)` → channel: `'folder-membership-changed'`（回傳 unsubscribe）
 
 - **批次操作事件監聽**
   - `onBulkOperationStart(callback)` → channel: `'bulk-operation-start'`（回傳 unsubscribe）
@@ -228,8 +230,7 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
 - **模擬器設定與資產**
   - `getEmulatorConfig` → `'get-emulator-config'`（invoke）
   - `listEmulators` → `'list-emulators'`（invoke）
-  - `getEmulatorCapabilities` → `'get-emulator-capabilities'`（invoke）
-  - `getEmulatorSchema` → `'get-emulator-schema'`（invoke）
+  - `getEmulatorDefaults` → `'get-emulator-defaults'`（invoke）
   - `setEmulatorConfig` → `'set-emulator-config'`（invoke）
   - `pickEmulatorBinary` → `'pick-emulator-binary'`（invoke）
   - `getGameEmulatorConfig` → `'get-game-emulator-config'`（invoke）
@@ -261,6 +262,7 @@ const result = await window.electronAPI.addGameToFolder(gameObject, folderObject
 - **資料夾事件監聽**
   - `onFolderUpdated` → `'folder-updated'`（event，return unsubscribe）
   - `onFolderChanged` → `'folder-changed'`（event，return unsubscribe）
+  - `onFolderMembershipChanged` → `'folder-membership-changed'`（event，return unsubscribe）
 
 - **跨窗口拖拽會話**
   - `startDragSession` → `'drag-session:start'`（invoke）
@@ -379,10 +381,16 @@ class EventManager {
 }
 ```
 
+### 統一事件系統與批次廣播
+
+- 高頻事件（例如 `games-updated`、`cluster:changed`、`folder-updated`、`bulk-operation-*`）會在主進程由 `unified-events.js` 合併與分批廣播，降低 IPC 壓力並避免事件風暴。
+- 渲染端只需透過 `window.electronAPI.on*` 監聽，可能略有延遲，但可以換取更穩定的一致狀態與更少重排。
+- 若新增新的廣播型事件，建議透過統一事件系統或現有的聚合機制（例如批次更新/增量更新），而不是在單一 handler 中頻繁呼叫 `broadcastToAll`。
+
 ## 注意事項
 
 - **退訂管理**: 多數 `on*` 方法會返回 unsubscribe（例如 `onGamesUpdated`、`onFolderUpdated`）；少數不返回（如 `onAutoScanCompleted`）。對於不返回的事件，可使用 `removeAllListeners(channel)` 或控制組件生命週期確保釋放。
-- **通道命名**: IPC 通道名與 API 方法名一一對應
+- **通道命名**: IPC 通道名與 API 方法名在此文件中都有對照表，可作為查詢依據。
 - **錯誤處理**: 所有 IPC 調用都應該包裝在 try-catch 中
 - **性能考量**: 使用批量 API 處理大量資料，避免頻繁的單一調用
 

@@ -11,8 +11,8 @@
 **解決方案**：
 
 - **虛擬化渲染**：使用 `react-window` 僅渲染可見項目
-- **錯誤邊界**：虛擬化失敗時優雅降級到普通網格
-- **記憶體池**：統一管理 URL 物件生命週期
+- **雙模式渲染**：大列表啟用虛擬化，小列表或關閉虛擬化時使用普通網格（非 runtime 錯誤 fallback）
+- **記憶體池（設計草案）**：統一管理 URL 物件生命週期（目前專案主要透過 `safe-file://` 協議載入圖示，尚未實作 object URL 池化）
 - **無效過濾**：Hook 層面過濾 `undefined` 遊戲物件
 - **靜默處理**：避免不必要的控制台警告
 
@@ -115,6 +115,8 @@ ipcMain.handle('games-incremental-update', (event, changes) => {
 });
 ```
 
+> 註：實際程式碼中，`games-incremental-update` 事件由 `src/main/ipc/incremental-updates.js` 的 `IncrementalUpdater` 單例負責組裝與廣播，各 IPC handler 透過 `queueUpdate` / `updateFolderMembership` 呼叫它，而不是直接註冊 `ipcMain.handle('games-incremental-update')`。此段程式碼主要說明「先在主進程整理增量，再一次廣播」的設計思路。
+
 ### 3. 資料庫查詢優化
 
 **索引策略**：
@@ -126,6 +128,8 @@ CREATE INDEX idx_folder_games_composite ON folder_games(folderId, filePath);
 -- 啟用目錄過濾索引
 CREATE INDEX idx_games_filepath_pattern ON games(filePath);
 ```
+
+> 註：`idx_folder_games_composite` 已在 `src/main/db.js` 的 schema 初始化中建立；`idx_games_filepath_pattern` 為可選索引，目前預設 schema 未啟用，如需針對特定檔案路徑篩選優化，可依實際查詢模式選擇性建立。
 
 **查詢優化**：
 
@@ -176,6 +180,8 @@ dispatch({
   },
 });
 ```
+
+> 註：目前 `GameStore` 並沒有實作通用的 `BATCH_UPDATE` action，而是透過 `dispatch` 內建的 `actionQueue` 機制在 store 內批次處理多個 action。以上程式碼是建議模式，如需使用可自行在 `src/store/GameStore.js` 中擴充對應 reducer 與 action creator。
 
 ### 2. 選擇器優化
 
@@ -265,6 +271,8 @@ const calculateAbsolutePosition = (index, gridDimensions) => {
 
 ### 1. URL 物件管理
 
+> 註：目前專案沒有在 renderer 端使用 `URL.createObjectURL` 來產生圖示 URL，而是透過 `safe-file://` 協議與 `toIconUrl()`（見 `src/main/utils/icon-url.js`）載入圖示，因此沒有真正的 `MemoryPool` 類別。以下程式碼為未來若引入 object URL 時可參考的設計範例。
+
 **記憶體池模式**：
 
 ```javascript
@@ -321,7 +329,7 @@ useEffect(() => {
 **自動序列化檢查**：
 
 ```javascript
-// main.js - broadcastToAll 序列化安全
+// 示例：在廣播前對 payload 做序列化預檢的模式
 function broadcastToAll(channel, payload, excludeWindowId = null) {
   let serializedPayload;
   try {
@@ -338,6 +346,8 @@ function broadcastToAll(channel, payload, excludeWindowId = null) {
   }
 }
 ```
+
+> 註：專案目前的廣播函式由 `src/main/ipc/unified-events.js` 提供的 `broadcastToAll()` 接管，統一進入事件佇列與批次處理，並沒有在 `main.js` 內直接宣告此函式。序列化安全主要由 `addUrlToGames()` 等 util 保證；上面程式碼僅示意「在送出前先過濾 / 清理 payload」的設計概念。
 
 **遊戲物件清理**：
 
@@ -397,6 +407,8 @@ ipcMain.handle('batch-remove-games-from-folder', async (event, filePaths, folder
 });
 ```
 
+> 註：實際實作中，`batch-remove-games-from-folder` handler 位於 `src/main/ipc/folders.js`，會先透過 SQL 批次刪除、更新快取與 `GameStore`（經由 `store-bridge`），再使用 `folder-membership-changed` / `folder-changed` 等事件廣播狀態變更，而不是直接送出 `games-incremental-update`。上述程式碼是簡化示例，用來說明「在單一交易中處理多筆資料，最後只廣播一次」的設計模式。
+
 ### 4. 錯誤處理與重試
 
 **重試機制**：
@@ -434,6 +446,8 @@ export default {
 };
 ```
 
+> 註：目前 `vite.config.js` 的實際內容以 alias、base 路徑與 CSP header 為主，尚未關閉 HMR overlay 或設定 `optimizeDeps.include`。上述設定是一種可選的優化範例，可依專案需求選擇性套用。
+
 ### 2. 開發工具
 
 **性能監控**：
@@ -453,6 +467,8 @@ if (process.env.NODE_ENV === 'development') {
   observer.observe({ entryTypes: ['measure'] });
 }
 ```
+
+> 註：專案目前尚未在程式碼中啟用這段 `PerformanceObserver` 監控邏輯；它提供的是一種「如有需要時可加入」的開發期性能監控模式。
 
 ## 性能監控與調試
 
@@ -527,8 +543,8 @@ if (process.env.NODE_ENV === 'development') {
 
 ## 最新優化成果 (v2.1.0)
 
-- ✅ **序列化安全**: 修復所有 "An object could not be cloned" 錯誤
+- ✅ **序列化安全**: 修復目前已知會觸發 "An object could not be cloned" 的錯誤來源，並在關鍵 payload 上加上序列化前清理
 - ✅ **狀態一致性**: Hook 層面無效物件過濾
 - ✅ **渲染穩定**: 消除 VirtualizedUnifiedGrid 無效遊戲警告
-- ✅ **IPC 可靠**: 全面的參數序列化檢查
+- ✅ **IPC 可靠**: 主要遊戲 / 資料夾相關 IPC 在進入廣播前都經過序列化檢查或清理
 - ✅ **錯誤處理**: 分層錯誤處理與優雅降級

@@ -2,9 +2,9 @@
 
 本文檔提供 J2ME Launcher 的整體架構設計與核心概念說明，幫助開發者快速理解系統結構。
 
-> **最後更新**: 2025-09-03  
-> **版本**: v2.3.0  
-> **狀態**: ✅ 已完成 React Hooks 系統重構、模組化架構優化、未使用變數清理
+> **最後更新**: 2025-11-20
+> **版本**: v2.4.0
+> **狀態**: ✅ 遊戲簇 Cluster 系統、統一事件系統、Local Header 備援解析、備份子系統、新模擬器適配
 
 ## 系統架構
 
@@ -45,13 +45,14 @@ src/main/
 │   ├── sql-games.js           # SQL 輔助（可選）
 │   ├── incremental-updates.js # 增量更新（工具類）
 │   └── unified-events.js      # 統一事件系統（分批/合併/重試）
-├── sql/                       # SQL 存取層
-├── emulators/                 # 模擬器適配層
+├── sql/                       # SQL 存取層（含 sharded-queries.js）
+├── emulators/                 # 模擬器適配層（含 SquirrelJME, FreeJ2ME-Zb3）
+├── readers/                   # JAR 解析策略（yauzl, system-extract, local-header）
 ├── services/                  # 業務服務層（例：config-service.js）
 └── utils/                     # 工具函式集
-    ├── icon-url.js            # safe-file 圖示 URL 與序列化（addUrlToGames）
+    ├── icon-url.js            # safe-file 圖示 URL 與序列化
     ├── batch-operations.js    # 批次操作工具
-    ├── game-state-cache.js    # 遊戲狀態快取（folder membership 等）
+    ├── unified-cache.js       # 統一快取系統（單一真實來源）
     ├── jar-cache.js           # JAR 圖示/資源快取
     └── hash.js                # 遊戲啟動所用哈希工具
 ```
@@ -73,6 +74,7 @@ src/
 ├── App.jsx             # 主應用組件
 ├── components/         # UI 組件集合
 │   ├── FolderWindowApp.jsx # 資料夾窗口
+│   ├── ClusterCard.jsx     # 遊戲簇卡片
 │   └── shared/         # 共享組件
 │       └── VirtualizedUnifiedGrid.jsx # 統一虛擬化網格
 ├── hooks/              # React Hooks 系統
@@ -81,6 +83,7 @@ src/
 │   ├── useDesktopView.js # 桌面視圖邏輯
 │   ├── useAppDialogs.js # 應用級對話框管理
 │   ├── useGameStore.js # 遊戲狀態 Hook
+│   ├── useGuardedRefresh.js # 防抖刷新 Hook
 │   └── useTranslation.js # 國際化 Hook
 ├── contexts/           # React Context
 │   └── I18nContext.jsx # 國際化上下文
@@ -114,6 +117,7 @@ src/
   gamesById: {},          // filePath -> game（O(1) 查詢）
   folderMembership: {},   // filePath -> folderIds[]
   folders: {},            // folderId -> folder 物件
+  clusters: [],           // 遊戲簇陣列
   ui: {                   // UI 狀態
     selectedGames: [],
     dragState: { isDragging: false, draggedItems: [] },
@@ -123,24 +127,39 @@ src/
 }
 ```
 
-### 2. IPC 通訊架構
+### 2. 統一事件系統 (UnifiedEventSystem)
 
-**分層設計**：
+**設計目標**：解決高頻事件導致的 UI 阻塞與狀態不一致
 
-1. **Preload 層**：安全的 API 暴露
-2. **IPC Handler 層**：功能域分組處理
-3. **Service 層**：業務邏輯封裝
-4. **Data 層**：資料存取抽象
+- **分批廣播**：將大量細碎事件合併為批次事件
+- **事件合併**：相同類型的事件進行 payload 合併
+- **智能防抖**：渲染端 `useMergedEventRefresh` 配合 `useGuardedRefresh` 確保 UI 響應性
+- **重試機制**：確保 IPC 傳遞的可靠性
 
-**事件驅動**：
+### 3. 遊戲簇系統 (Cluster System)
 
-- 雙向通訊：`invoke/handle` + `send/on`
-- 廣播機制：`broadcastToAll` 同步多窗口
-- 錯誤處理：重試機制與降級策略
-- 序列化安全：所有 payload 經過序列化檢查
-- 批次處理：`unified-events.js` 事件合併與分發；配合 `store-bridge.js` 進行跨窗口狀態同步
+**功能**：解決重複遊戲/多版本遊戲的整理難題
 
-### 3. 虛擬化渲染系統
+- **視覺堆疊**：在網格中以堆疊卡片呈現
+- **多對多關係**：遊戲可屬於簇，簇可屬於資料夾
+- **主遊戲機制**：簇內指定「主遊戲」作為封面與啟動入口
+- **自動/手動管理**：支援手動合併/拆分，預留自動分組介面
+
+### 4. 備份子系統 (Backup System)
+
+**支援後端**：
+
+- **本地/WebDAV**：標準協議支援
+- **S3 Compatible**：AWS S3, MinIO, Cloudflare R2
+- **Dropbox**：整合 OAuth PKCE 認證流程
+
+**特性**：
+
+- **索引分離**：使用 `index.tsv` 管理備份索引
+- **分塊傳輸**：支援大檔案斷點續傳（部分 Provider）
+- **跨平台路徑**：自動處理 Win/Posix 路徑分隔符差異
+
+### 5. 虛擬化渲染系統
 
 **統一布局架構**：
 
@@ -151,7 +170,7 @@ src/
 - **無效過濾**：Hook 層面過濾無效遊戲物件
 - **靜默處理**：避免不必要的控制台警告
 
-### 4. 拖拽系統
+### 6. 拖拽系統
 
 **跨窗口拖拽**：
 
@@ -165,24 +184,24 @@ src/
 ### 1. 遊戲資料流
 
 ```
-檔案系統 → JAR 解析 → 資料庫存儲 → GameStore → UI 渲染
-    ↑                                    ↓
-    └── 圖示快取 ←── 圖示提取 ←── 狀態同步
+檔案系統 → JAR 解析 (LocalHeader/System) → 資料庫存儲 → GameStore → UI 渲染
+    ↑                                             ↓
+    └── 圖示快取 ←── 圖示提取 (Fallback) ←── 狀態同步
 ```
 
-### 2. 資料夾管理流
+### 2. 資料夾/簇管理流
 
 ```
-用戶操作 → IPC 調用 → SQL 事務 → 狀態廣播 → UI 更新
-    ↑                              ↓
-    └── 拖拽會話 ←── 批次操作 ←── 增量更新
+用戶操作 → IPC 調用 → SQL 事務 → 統一事件廣播 → UI 增量更新
+    ↑                                   ↓
+    └── 拖拽會話 ←── 批次操作 ←── 狀態快取
 ```
 
 ### 3. 模擬器啟動流
 
 ```
-遊戲選擇 → 配置檢查 → 參數組裝 → 進程啟動 → 狀態監控
-    ↑                              ↓
+遊戲選擇 → 配置檢查 (Schema) → 參數組裝 → 進程啟動 → 狀態監控
+    ↑                                     ↓
     └── 錯誤處理 ←── 日誌收集 ←── 進程管理
 ```
 
@@ -197,6 +216,7 @@ src/
 
 ### 2. 資料庫優化
 
+- **分片查詢**：`sharded-queries.js` 解決 SQLite 變數限制
 - **索引策略**：合理的索引覆蓋查詢
 - **查詢優化**：避免 SELECT \*，使用預編譯語句與精確欄位
 - **事務管理**：批次操作減少 I/O 次數
@@ -204,13 +224,19 @@ src/
 
 ### 3. 記憶體管理
 
+- **統一快取**：`unified-cache.js` 作為單一真實來源 (Single Source of Truth)
 - **遊戲狀態快取**：`src/main/utils/game-state-cache.js`
 - **JAR 快取清理**：啟動與運行期的 `jar-cache.js` 清理策略
 - **圖示 URL 安全**：`icon-url.js` 僅傳可序列化欄位（避免傳遞非可克隆物件）
 
 ## 錯誤處理策略
 
-### 1. 分層錯誤處理
+### 1. JAR 解析韌性
+
+- **Local Header 備援**：當 Central Directory 損壞時，自動回退至 Local Header 順序掃描
+- **多重策略**：yauzl (標準) → system-extract (外部工具) → raw-fallback (特徵碼) → local-header (底層掃描)
+
+### 2. 分層錯誤處理
 
 - **UI 層**：錯誤邊界 + 用戶友好提示
 - **IPC 層**：重試機制 + 降級策略 + 序列化檢查
@@ -218,7 +244,7 @@ src/
 - **系統層**：崩潰恢復 + 狀態持久化
 - **序列化層**：主進程在構建 payload 時使用 `addUrlToGames()` 保證可序列化；`UnifiedEventSystem` 僅負責分批/合併/重試
 
-### 2. 容錯設計
+### 3. 容錯設計
 
 - **防禦性程式設計**：空值檢查與類型驗證
 - **優雅降級**：功能不可用時的替代方案
@@ -231,7 +257,7 @@ src/
 
 ### 1. 模擬器擴展
 
-- **適配器模式**：統一的模擬器介面
+- **適配器模式**：統一的模擬器介面 (新增 SquirrelJME, FreeJ2ME-Zb3 支援)
 - **配置驅動**：Schema-based 配置系統
 - **插件架構**：動態載入模擬器支援
 
@@ -275,10 +301,10 @@ J2ME Launcher 採用現代化的 Electron 架構，結合 React 生態系統，�
 
 **核心優勢**：
 
-- **性能優異**：虛擬化渲染 + 資料庫優化 + 批次處理
-- **用戶體驗**：流暢動畫 + 直觀交互 + 無錯誤提示
+- **性能優異**：虛擬化渲染 + 資料庫優化 + 批次處理 + 統一快取
+- **用戶體驗**：流暢動畫 + 直觀交互 + 遊戲簇管理
 - **可維護性**：模組化設計 + 清晰架構 + 防禦性編程
-- **可擴展性**：插件化模擬器 + 國際化支援
-- **穩定性**：序列化安全 + 全面錯誤處理 + 狀態一致性
+- **可擴展性**：插件化模擬器 + 國際化支援 + 雲端備份
+- **穩定性**：序列化安全 + 全面錯誤處理 + 狀態一致性 + 韌性解析
 
 **設計哲學**：遵循實用主義原則，注重實際效果勝過理論完美。

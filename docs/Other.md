@@ -111,6 +111,8 @@ const leftOffset = Math.floor((availableWidth - actualGridWidth) / 2);
 }
 ```
 
+> 註：在窄螢幕（`@media (width <= 768px)`）下，`App.css` 會對頂層 `.content-area` 加上 `padding: 16px;` 作為行動版視覺間距。此層本身 `overflow: hidden`，實際滾動容器仍是內部的 `.desktop-grid` / react-window Grid，因此不會影響滾動條貼邊原則。若未來調整 RWD 結構，請再次確認「只有 Grid 負責滾動」這一前提是否依然成立。
+
 ### 滾動處理
 
 ```css

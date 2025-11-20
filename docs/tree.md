@@ -45,6 +45,7 @@
 │  │
 │  ├─emulators
 │  │      FreeJ2MEPlusConfig.jsx
+│  │      FreeJ2MEZb3Config.jsx
 │  │      KEmulator.jsx
 │  │      LibretroFJPlus.jsx
 │  │
@@ -130,6 +131,7 @@
 │      useFolderOperations.js
 │      useGameLauncher.js
 │      useGameStore.js
+│      useModalFocus.js
 │      useThemeManager.js
 │      useTranslation.js
 │      useWelcomeGuide.js
@@ -161,8 +163,10 @@
 │  │
 │  ├─emulators
 │  │      freej2mePlus.js
+│  │      freej2meZb3.js
 │  │      ke.js
 │  │      libretro.js
+│  │      squirreljme.js
 │  │
 │  ├─ipc
 │  │      backup.js
@@ -191,6 +195,7 @@
 │  │
 │  ├─readers
 │  │      factory.js
+│  │      local-header.js
 │  │      raw-fallback.js
 │  │      system-extract.js
 │  │      yauzl-reader.js
@@ -259,8 +264,8 @@
 
 以下為每個目錄與關鍵檔案的用途簡述，方便後續維護與導覽。
 
-> **重要提醒**：該附註說明會定期更新以反映當前專案狀態，但仍可能存在滯後，請以實際程式碼為準。  
-> **最後更新**：2025-10-20（自訂名稱增量事件、資料夾清單按顯示名排序、ICON 清理機制修正、安全協議映射）
+> **重要提醒**：該附註說明會定期更新以反映當前專案狀態，但仍可能存在滯後，請以實際程式碼為準。
+> **最後更新**：2025-11-20（遊戲簇 Cluster 系統、JAR 解析 Local Header 備援、新模擬器適配、統一事件系統）
 
 - **根目錄（src/）**
   - `App.jsx`：Renderer 主頁（桌面視圖）入口，掛載應用、註冊全域樣式並整合狀態 hooks。
@@ -274,7 +279,8 @@
 
 - **`components/`（Renderer UI 組件）**
   - `App.jsx` 中的 `DesktopManagerHooks` 與 `DesktopViewDirect`：整合 `useDesktopManager` 等 hooks，協調桌面/資料夾對話框與全域操作，並使用 `@shared/VirtualizedUnifiedGrid` 進行渲染。
-  - `DirectoryManager.jsx` / `DirectoryManager.css`：資料夾來源管理 UI 與樣式。
+  - `ClusterCard.jsx`：遊戲簇（Cluster）卡片元件。顯示堆疊視覺效果，支援右鍵選單與拖拽操作（合併/移動）。
+  - `DirectoryManager.jsx` / `DirectoryManager.css`：掃描目錄管理 UI 與樣式。
   - `EmulatorConfigDialog.jsx`：模擬器設定對話框，使用 `@ui/Collapsible`，讀取 schema/IPC。
   - `FolderWindowApp.jsx` / `FolderWindowApp.css`：資料夾窗口頁面（獨立 BrowserWindow 渲染端）。監聽 `onGamesIncrementalUpdate` 就地修補 `customName/customVendor`，同步覆寫 `gameName/vendor` 並依顯示名重新排序；`onGamesUpdated` 進行強制重載以保證一致性。
   - `GameCard.jsx`：遊戲卡片元件（桌面/資料夾共用樣式與選取覆蓋）。顯示名稱遵循 `customName || gameName`，與增量補丁策略一致。
@@ -297,6 +303,7 @@
     - 抽屜把手與抽屜寬度參數由 `hooks/useDrawerPositioning.js` 與 `App.jsx` 統一管理。
 
   - `emulators/FreeJ2MEPlusConfig.jsx`：FreeJ2ME-Plus 特定設定 UI。
+  - `emulators/FreeJ2MEZb3Config.jsx`：FreeJ2ME-Zb3 特定設定 UI。
   - `emulators/KEmulator.jsx`：KEmulator 相關 UI。
   - `emulators/LibretroFJPlus.jsx`：Libretro（FJPlus）相關 UI/整合元件。
 
@@ -305,30 +312,43 @@
     - `index.js`：hooks 彙總匯出檔案。
     - `useCreateShortcut.js`：建立捷徑的共享邏輯（批次處理、錯誤收斂）。
     - `useDragSession.js`：拖曳會話管理。
+    - `useGuardedRefresh.js`：防抖動的刷新邏輯。
+    - `useMergedEventRefresh.js`：合併多重事件的刷新邏輯。
     - `useOutsideClick.js`：外點擊關閉偵測。
     - `useSelectionBox.js`：框選行為（最小拖動距離閾值 2px，提升快速拖放時的選取靈敏度）。
     - `useUnifiedContextMenu.js`：桌面/資料夾語境對應的統一選單。
+    - `useUserInputActivityRef.js`：使用者輸入活動追蹤（用於避免自動操作干擾用戶）。
     - `useWheelTouchLock.js`：在彈出層開啟時鎖定滾動至內部容器。
+    - `shared/utils/`：
+      - `itemsMemo.js`：列表記憶化工具。
+      - `listEquality.js`：列表相等性比較工具。
+      - `reloadLogger.js`：重載日誌工具。
 
   - `ui/`：可重用 UI 元件集合與 barrel：
     - `index.js`：`@ui` barrel。
+    - `AboutNetworkCard.jsx`：貢獻者網絡卡片（頭像可點擊，透過 `electronAPI.openExternal` 在外部瀏覽器開啟連結）。
     - `Card.jsx`：卡片視覺組件。
     - `Collapsible.jsx`：可摺疊區塊（使用 `.section` 系列樣式）。
     - `ModalHeaderOnly.jsx` / `ModalWithFooter.jsx`：共用 Modal 模板。
-    - `RomCacheSwitch.jsx`：ROM 快取開關。
-    - `ToggleSwitch.jsx`：通用開關元件（受控/非受控皆可，供表單或偏好設定使用）。
-    - `AboutNetworkCard.jsx`：貢獻者網絡卡片（頭像可點擊，透過 `electronAPI.openExternal` 在外部瀏覽器開啟連結）。
-    - `Select.jsx` / `Select.css`：下拉選單元件與樣式。
     - `NotificationBubble.jsx` / `NotificationBubble.css`：通知氣泡元件（用於操作反饋）。
+    - `ProgressPanel.jsx`：進度面板元件（用於顯示批量操作進度）。
+    - `RomCacheSwitch.jsx`：ROM 快取開關。
+    - `Select.jsx` / `Select.css`：下拉選單元件與樣式。
+    - `ToggleSwitch.jsx`：通用開關元件（受控/非受控皆可，供表單或偏好設定使用）。
     - `ui/dialogs/GameLaunchDialog.jsx`：啟動前設定表單（schema-driven，IPC 取得 emulator schema）。
     - `ui/dialogs/FolderSelectDialog.jsx`：資料夾選擇。
-    - `ui/dialogs/BackupDialog.jsx`：備份設定與進度對話框（串接 `backup.js` IPC 與 `shared/backup/spec`）。
+    - `ui/dialogs/ClusterDialog.jsx` / `.css`：簇（Cluster）建立/編輯對話框。
+    - `ui/dialogs/ClusterSelectDialog.jsx`：簇選擇對話框（用於合併/移動）。
     - `ui/dialogs/ConflictResolveDialog.jsx`：還原時的衝突處理 UI。
+    - `ui/dialogs/BackupDialog.jsx`：備份設定與進度對話框（串接 `backup.js` IPC 與 `shared/backup/spec`）。
+    - `ui/dialogs/EmulatorNotConfiguredDialog.jsx`：模擬器未配置提示。
+    - `ui/dialogs/RenameDialog.jsx`：重新命名對話框。
     - `ui/dialogs/AboutDialog.jsx`：關於對話框（應用資訊、模擬器介紹、貢獻者網絡卡片，支援外部鏈接）。
     - `ui/dialogs/SettingsDialog.jsx` / `SettingsDialog.css`：軟體配置對話框（主題切換等設定選項）。
     - `ui/dialogs/WelcomeGuideDialog.jsx`：歡迎引導對話框（首次使用設定向導，支援多語言與主題預覽）。
 
 - **`config/`**
+  - `clusterTags.js`：簇標籤定義（預設標籤列表）。
   - `perf.js`：效能相關常數/參數。
 
 - **`contexts/`**
@@ -349,6 +369,7 @@
   - `useFolderOperations.js`：資料夾操作邏輯。
   - `useGameLauncher.js`：遊戲啟動邏輯。
   - `useGameStore.js`：遊戲狀態管理 Hook（連接統一狀態管理系統）。
+  - `useModalFocus.js`：模態框焦點管理。
   - `useThemeManager.js`：主題管理器。
   - `useTranslation.js`：翻譯 Hook（提供 `t()` 函數與語言切換功能）。
   - `useWelcomeGuide.js`：歡迎引導邏輯。
@@ -374,34 +395,45 @@
   - `preload.js`：Preload 腳本，暴露 IPC API 給 Renderer（包含完整的資料夾管理、自訂名稱、雲端備份等 API）。
   - `data-store.js`：資料存取門面（SQL-first，委派至 `sql/` 與 `db.js`）。`cleanupOrphanIcons()` 改為直接查詢 SQL 全量 `games` 的 `iconPath/cachedIconPath` 作為引用來源，不受目錄啟用過濾影響，避免在停用目錄時誤刪 ICON。
   - `db.js`：SQLite 初始化與索引（如 `folder_games`），包含自動清理與壓縮功能。
-  - `jar-parser.js`：JAR 解析（透過 `readers/factory.js` 決定解讀路徑：yauzl → system-extract → raw-fallback），圖標資料透過 `parsers/icon-cache.js` 以內容 MD5 緩存至 `userData/icons/`。
+  - `jar-parser.js`：JAR 解析入口。透過 `readers/factory.js` 協調解析策略。
   - `shortcuts.js`：桌面捷徑與圖示處理（支援中文檔名、PNG 轉 ICO、hash-based 啟動參數）。
   - `store-bridge.js`：主進程與渲染進程狀態同步橋接。
 
   - `config/yaml-config.js`：YAML 設定存取（首啟用完整預設、讀寫自我修復）。
 
   - `emulators/*.js`：各模擬器介面/適配層（如 FreeJ2ME-Plus、KEmulator、Libretro）。
+    - `freej2meZb3.js`：FreeJ2ME-Zb3 適配。
+    - `squirreljme.js`：SquirrelJME 適配。
 
   - `ipc/*.js`：各功能域 IPC handler：
     - `desktop.js`、`directories.js`、`drag-session.js`、`emulator.js`、`folder-windows.js`、`folders.js`、`sql-games.js`、`stats.js`、`window-controls.js`、`shortcuts.js`。
-    - `custom-names.js`：自訂遊戲名稱與開發商管理。更新成功後先廣播 `games-incremental-update`（payload 同步攜帶 `customName/customVendor` 與 `gameName/vendor`），再廣播 `games-updated` 作為後備一致化。
+    - `clusters.js`：簇管理 IPC（CRUD、合併、成員管理、資料夾關聯）。
+    - `custom-names.js`：自訂名稱 SQL 操作。
     - `incremental-updates.js`：增量更新機制（Linus-style 最小化更新）。
     - `backup.js`：備份/還原與 Dropbox OAuth（PKCE）流程之 IPC 端點。
     - `README.md`：IPC 說明文件。
     - `folders.js`：`get-folder-contents` 聚合資料夾資訊與其內 `games/clusters`，自動隱藏屬於該資料夾簇的成員遊戲，並為條目添加 `iconUrl`。
     - `directories.js`：`toggle-directory` 變更後立即廣播 `games-updated`；`remove-directory` 會清除該目錄下的遊戲（SQL）並觸發 `cleanupOrphanIcons()` 清理孤立圖標。
+    - `unified-events.js`：統一事件廣播系統（取代分散的 event 發送）。
 
   - `parsers/`：匯入資源解析：`icon-cache.js`、`manifest.js`、`md5.js`、`zip-entry.js`。
 
-  - `readers/`：JAR 讀取策略：`factory.js`、`yauzl-reader.js`、`system-extract.js`、`raw-fallback.js`。
+  - `readers/`：JAR 讀取策略：
+    - `factory.js`：策略工廠，依序嘗試：1. `yauzl-reader` 2. `system-extract` 3. `raw-fallback` 4. `local-header`。
+    - `local-header.js`：Local Header 備援讀取器。當中央目錄損壞時，直接掃描 LFH 區域以解壓 MANIFEST 與圖標。
+    - `raw-fallback.js`：原始檔頭後備。
+    - `system-extract.js`：系統工具後備（7z/tar/bsdtar/unzip/jar）。
+    - `yauzl-reader.js`：標準 yauzl 讀取器（已放寬校驗參數以提升相容性）。
 
   - `services/emulator-service.js`：啟動模擬器服務（依 adapter 組裝指令，spawn Java 等）。
 
-  - **`sql/`：SQL 存取層：**
-  - `read.js`、`sync.js`、`settings.js`、`directories.js`、`folders-read.js`、`folders-write.js`、`emulator-configs.js`。
-  - `custom-names.js`：自訂名稱 SQL 操作。
-  - `optimized-read.js`：優化的讀取查詢（支援分頁與批次操作）。
-  - `folders-read.js`：資料夾/未分類/桌面清單統一按顯示名排序：`ORDER BY COALESCE(customName, gameName)`。
+  - `sql/`（SQL 存取層）：
+    - `read.js`、`sync.js`、`settings.js`、`directories.js`、`folders-read.js`、`folders-write.js`、`emulator-configs.js`。
+    - `clusters-read.js` / `clusters-write.js`：簇資料讀寫（支援分片查詢）。
+    - `custom-names.js`：自訂名稱 SQL 操作。
+    - `optimized-read.js`：優化的讀取查詢（支援分頁與批次操作）。
+    - `sharded-queries.js`：分片查詢工具（解決 SQLite 變數限制）。
+    - `folders-read.js`：資料夾/未分類/桌面清單統一按顯示名排序：`ORDER BY COALESCE(customName, gameName)`。
 
   - `utils/`：主進程工具集合：
     - `game-conf.js`：遊戲配置檔案處理。
@@ -418,13 +450,13 @@
     - `unified-cache.js`：統一快取系統（支援 10k+ 遊戲）。
 
 - **備份子系統**
-- `main/backup/core.js`：備份/還原核心流程（規劃、分組與進度回報）。
-- `main/backup/providers/`：實際雲端提供者：
-  - `webdav.js`：WebDAV（含目錄存在檢查、MKCOL、重試退避）。
-  - `s3.js`：S3 相容（需 accessKey/secretKey 等）。
-  - `dropbox.js`：Dropbox API（與 `ipc/backup.js` 之 OAuth 整合）。
-- `main/ipc/backup.js`：提供 `backup:*` 與 `dropbox:*` IPC。
-- `shared/backup/spec.js`：與渲染端共享之備份規格（群組、預設路徑）；`shared/backup/indexTSV.js`：索引序列化工具。
+  - `main/backup/core.js`：備份/還原核心流程（規劃、分組與進度回報）。
+  - `main/backup/providers/`：實際雲端提供者：
+    - `webdav.js`：WebDAV（含目錄存在檢查、MKCOL、重試退避）。
+    - `s3.js`：S3 相容（需 accessKey/secretKey 等）。
+    - `dropbox.js`：Dropbox API（與 `ipc/backup.js` 之 OAuth 整合）。
+  - `main/ipc/backup.js`：提供 `backup:*` 與 `dropbox:*` IPC。
+  - `shared/backup/spec.js`：與渲染端共享之備份規格（群組、預設路徑）；`shared/backup/indexTSV.js`：索引序列化工具。
 
 - **`shared/`（跨進程共享模組）**
   - `backup/`：備份子系統共享模組：
@@ -447,30 +479,3 @@
   - `i18n.js`：國際化工具函數。
   - `logger.js` / `logger.cjs`：日誌工具。
   - `dom/scroll.js`：滾動相關工具（`getScrollParent()` 等）。
-
-## 架構特色與設計理念
-
-### 性能優化策略
-
-- **虛擬化渲染**：`shared/VirtualizedUnifiedGrid.jsx` 支援 10k+ 遊戲的流暢渲染
-- **增量更新**：`incremental-updates.js` 實現 Linus-style 最小化更新
-- **統一快取**：`unified-cache.js` 提供單一真實來源的快取系統
-- **批次操作**：`batch-folder-operations.js` 優化大量資料夾操作
-
-### 國際化系統
-
-- **完整 i18n 支援**：繁中、簡中、英文三語言
-- **熱重載**：開發時支援翻譯資源熱重載
-- **自動檢測**：根據系統語言自動選擇預設語言
-
-### 狀態管理
-
-- **統一狀態**：`GameStore.js` 提供 Redux-like 但更簡潔的狀態管理
-- **增量同步**：主進程與渲染進程間的高效狀態同步
-- **快取一致性**：多層快取確保資料一致性
-
-### 模組化架構
-
-- **IPC 分離**：各功能域獨立的 IPC 處理器
-- **SQL 分層**：讀寫分離的 SQL 操作層
-- **組件復用**：高度模組化的 UI 組件系統

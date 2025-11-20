@@ -54,6 +54,9 @@ emulators:
   squirreljme:
     jarPath: ''
     romCache: true
+  freej2meZb3:
+    jarPath: ''
+    romCache: true
 ui:
   defaultView: 'desktop'
   showUncategorized: true
@@ -64,7 +67,7 @@ ui:
     versions: ['MIDP-1.0', 'MIDP-2.0']
 ```
 
--## runtime 區塊
+## runtime 區塊
 
 - 來源檔：
   - `src/main/services/config-service.js`（`get/set('javaPath')`、`resolveJavaPath()`、`isValidJavaPath()`）
@@ -106,6 +109,11 @@ ui:
 - 啟動命令（參考程式）：`java -jar <squirreljme-standalone.jar> -jar <game.jar>`（`src/main/emulators/squirreljme.js#buildCommand()`）
 - 目前不提供自訂啟動參數（per-game params 不適用）
 
+### freej2meZb3
+
+- `jarPath`、`romCache`
+- 參數結構類似 FreeJ2ME-Plus，實際預設值由 `emulator-service` 內建 `extendedDefaults` 提供（例如寬高、fps、phone 等），可透過 YAML 中的 `emulators.freej2meZb3.defaults` 或每遊戲 `params` 覆寫。
+
 ### 寫入與自我修復
 
 - 每次讀取會經 `validate()` 進行自我修復與補全缺失鍵，並在必要時回寫更正後的配置。
@@ -143,7 +151,7 @@ ui:
 ## 優先級與遷移策略
 
 - 權威來源（SSoT）：YAML `config.yml`。
-- 舊版 JSON 兼容：若首次讀取時檢測到舊的 `clusterTagOptions`（存於舊設定服務），會自動遷移並寫入 YAML，之後以 YAML 為準。
+- 舊版 JSON 兼容：早期版本曾考慮從舊設定服務中的 `clusterTagOptions` 自動遷移，但目前程式碼中已不再保留此自動遷移流程；現階段僅以 YAML 為唯一來源，如需沿用舊資料，請手動在 YAML 中補上。
 - UI 合併：對於 `ui.clusterTagOptions`，前端會用 YAML 的值「追加」到內建預設，用於下拉選單；不會覆蓋/刪除內建值。
 
 ---
@@ -190,12 +198,13 @@ ui:
 
 - **romCache 預設值與覆寫**
   - FreeJ2ME-Plus：預設開啟（可 per-game 覆寫）
+  - FreeJ2ME-Zb3：預設開啟（可 per-game 覆寫）
   - KEmulator（`ke`）：預設開啟（可 per-game 覆寫）
   - Libretro：預設關閉（可 per-game 覆寫）
   - SquirrelJME：預設開啟（可 per-game 覆寫）
 
 - **選用模擬器**
-  - 每遊戲可存 `emulator` 或 `selectedEmulator`（`ke`、`freej2mePlus`、`squirreljme`、`libretro`），未指定時預設為 `freej2mePlus`。額外相容：舊值 `kemulator` 會在運行時映射為 `ke`。
+  - 每遊戲可存 `emulator` 或 `selectedEmulator`（`ke`、`freej2mePlus`、`freej2meZb3`、`squirreljme`、`libretro`），未指定時預設為 `freej2mePlus`。額外相容：舊值 `kemulator` 會在運行時映射為 `ke`。
 
 ---
 
@@ -257,12 +266,14 @@ ui:
   - `rms`：依模擬器配置動態解析，例如：
     - FreeJ2ME-Plus：`<FJ-jar-dir>/rms` → `external/freej2mePlus/rms/*`
     - KEmulator：`<KE-jar-dir>/rms` → `external/kemulator/rms/*`
+    - FreeJ2ME-Zb3：`<ZB3-jar-dir>/rms` → `external/freej2meZb3/rms/*`
     - Libretro：`<RetroArch>/saves/FreeJ2ME-Plus/freej2me/rms` → `external/libretro/freej2me/rms/*`
     - SquirrelJME：
       - Windows：`%LOCALAPPDATA%/squirreljme/data` → `external/squirreljme/*`
       - Linux：`$XDG_STATE_HOME/squirreljme` 或 `~/.local/state/squirreljme` → `external/squirreljme/*`
   - `emuConfig`：依模擬器配置動態解析，例如：
     - FreeJ2ME-Plus：`<FJ-jar-dir>/config` → `external/freej2mePlus/config/*`
+    - FreeJ2ME-Zb3：`<ZB3-jar-dir>/config` → `external/freej2meZb3/config/*`
     - Libretro：`<RetroArch>/saves/FreeJ2ME-Plus/freej2me/config` → `external/libretro/freej2me/config/*`
 
 - 提供者（Providers）：S3、Dropbox、WebDAV（參見 `providers/*.js`）。

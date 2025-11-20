@@ -3,12 +3,12 @@
 本文件說明 J2ME Launcher 專案的 Stylelint 配置與使用建議，方便在撰寫 CSS/樣式時維持一致性與可維護性，並確保樣式品質符合現代前端最佳實踐。
 
 - 依賴套件：`stylelint@^16.23.1`、`stylelint-config-standard@^36.0.1`
-- 配置方式：內建預設配置（使用 `stylelint-config-standard`）
+- 配置方式：使用 `stylelint-config-standard` 搭配根目錄 `.stylelintrc.json`（少量規則覆寫）
 - 執行腳本：`package.json` 中的 `stylelint` 與 `stylelint:fix`
 
 ## 配置摘要
 
-專案使用 `stylelint-config-standard` 作為基礎配置，無額外自訂規則檔案。
+專案使用 `stylelint-config-standard` 作為基礎配置，並在根目錄 `.stylelintrc.json` 中做極少量調整（允許部分現代 at-rule、關閉高噪音規則），整體仍以官方預設行為為主。
 
 ### 執行腳本（package.json）
 
@@ -29,6 +29,23 @@
 - **檢查範圍**：`src/**/*.{css,scss}`
   - 涵蓋所有 `src/` 目錄下的 CSS 和 SCSS 檔案
   - 主要樣式檔案位於 `src/styles/` 與各元件目錄中
+
+#### 實際 Stylelint 設定檔（.stylelintrc.json）
+
+專案根目錄下的 `.stylelintrc.json` 內容如下：
+
+```json
+{
+  "extends": ["stylelint-config-standard"],
+  "rules": {
+    "at-rule-no-unknown": [true, { "ignoreAtRules": ["layer", "keyframes"] }],
+    "no-descending-specificity": null
+  }
+}
+```
+
+- `at-rule-no-unknown`：允許使用 `@layer` 與自訂 `@keyframes` 等現代語法。
+- `no-descending-specificity`：關閉層疊順序相關規則，避免在多層結構與覆寫場景中產生過多噪音。
 
 #### SCSS 現況
 
@@ -209,7 +226,7 @@ npm run format:check && npm run stylelint
 
 ### 自訂規則
 
-如需新增忽略規則或調整校驗強度，可建立 `.stylelintrc.json` 配置檔案：
+目前專案的 `.stylelintrc.json` 僅做少量調整；若未來需要更嚴格的命名規範或忽略檔案設定，可參考以下擴充範例：
 
 ```json
 {
@@ -231,6 +248,8 @@ npm run format:check && npm run stylelint
   "ignoreFiles": ["node_modules/**", "dist/**", "build/**"]
 }
 ```
+
+> 註：上述設定為進階示例，預設專案僅使用前文列出的簡化版本。若要引入 BEM 命名規範或額外忽略檔案，請先在團隊內達成共識再調整 `.stylelintrc.json`。
 
 ### CSS 命名規範
 
