@@ -83,7 +83,7 @@ sequenceDiagram
 ## 運行邏輯（服務層重點）
 
 - **選擇適配器**：
-  - 每遊戲：`perGame.emulator || perGame.selectedEmulator`，舊值 `'kemulator'` 會映射為 `'ke'`。
+  - 每遊戲：使用 `perGame.emulator || perGame.selectedEmulator`，支援的 ID 包含 `freej2mePlus`、`ke`、`squirreljme`、`freej2meZb3`、`libretro`。
   - 回退：若找不到對應 `adapter`，回退到 `freej2mePlus` 或第一個可用適配器。
 - **配置合併**：
   - 全域：`DataStore.getEmulatorConfig()` 來自 YAML（見下）。

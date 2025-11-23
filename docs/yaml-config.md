@@ -204,7 +204,7 @@ ui:
   - SquirrelJME：預設開啟（可 per-game 覆寫）
 
 - **選用模擬器**
-  - 每遊戲可存 `emulator` 或 `selectedEmulator`（`ke`、`freej2mePlus`、`freej2meZb3`、`squirreljme`、`libretro`），未指定時預設為 `freej2mePlus`。額外相容：舊值 `kemulator` 會在運行時映射為 `ke`。
+  - 每遊戲可存 `emulator` 或 `selectedEmulator`（`ke`、`freej2mePlus`、`freej2meZb3`、`squirreljme`、`libretro`），未指定時預設為 `freej2mePlus`。
 
 ---
 

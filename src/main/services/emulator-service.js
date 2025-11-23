@@ -41,8 +41,8 @@ function createEmulatorService({
       const emus = DataStore.getEmulatorConfig() || {};
       const perGame = DataStore.getGameEmulatorConfig(gameFilePath) || null;
 
-      const rawSel = (perGame && (perGame.emulator || perGame.selectedEmulator)) || 'freej2mePlus';
-      let selectedEmulator = rawSel === 'kemulator' ? 'ke' : rawSel;
+      const selectedEmulator =
+        (perGame && (perGame.emulator || perGame.selectedEmulator)) || 'freej2mePlus';
 
       // 取得目標適配器，若不存在則回退
       let adapter = adapters && adapters[selectedEmulator];
@@ -254,8 +254,8 @@ function createEmulatorService({
       const emus = DataStore.getEmulatorConfig() || {};
       const perGame = DataStore.getGameEmulatorConfig(gameFilePath) || null;
 
-      const rawSel = (perGame && (perGame.emulator || perGame.selectedEmulator)) || 'freej2mePlus';
-      let selectedEmulator = rawSel === 'kemulator' ? 'ke' : rawSel;
+      const selectedEmulator =
+        (perGame && (perGame.emulator || perGame.selectedEmulator)) || 'freej2mePlus';
 
       let adapter = adapters && adapters[selectedEmulator];
       if (!adapter) {

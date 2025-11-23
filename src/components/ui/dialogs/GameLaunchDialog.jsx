@@ -240,7 +240,7 @@ function GameLaunchDialog({
               const perGame = await window.electronAPI.getGameEmulatorConfig(game.filePath);
               if (perGame) {
                 const sel = perGame.emulator || perGame.selectedEmulator || 'freej2mePlus';
-                selectedEmulator = sel === 'kemulator' ? 'ke' : sel;
+                selectedEmulator = sel;
                 // FreeJ2ME-Plus 覆寫（預設/自訂 + romCache）
                 const pgFree = perGame.freej2mePlus || {};
                 const useGlobFree = !(pgFree && pgFree.useGlobal === false);
