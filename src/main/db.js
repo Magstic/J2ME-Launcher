@@ -106,6 +106,16 @@ function initSchema() {
     CREATE INDEX IF NOT EXISTS idx_games_name ON games(gameName);
     CREATE INDEX IF NOT EXISTS idx_games_mtime ON games(mtimeMs);
 
+    -- 記錄非 J2ME / 無 MANIFEST 或解析失敗的 JAR，用於增量掃描時跳過
+    CREATE TABLE IF NOT EXISTS invalid_jars (
+      filePath TEXT PRIMARY KEY,
+      mtimeMs INTEGER,
+      size INTEGER,
+      lastTried TEXT,
+      reason TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_invalid_jars_mtime ON invalid_jars(mtimeMs);
+
     CREATE TABLE IF NOT EXISTS emulator_configs (
       filePath TEXT NOT NULL,
       emulator TEXT NOT NULL,

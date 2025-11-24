@@ -283,11 +283,25 @@ async function processDirectory(directoryPath, isIncrementalScan = false, opts =
             try {
               const db = getDB();
               const existingGame = db
-                .prepare('SELECT * FROM games WHERE filePath = ?')
+                .prepare('SELECT mtimeMs, size FROM games WHERE filePath = ?')
                 .get(fullPath);
+              const invalidRow = db
+                .prepare('SELECT mtimeMs, size FROM invalid_jars WHERE filePath = ?')
+                .get(fullPath);
+
               if (existingGame && existingGame.mtimeMs >= stat.mtimeMs) {
+                // 已有有效遊戲記錄且檔案未更新：跳過
                 skippedFiles.push(fullPath);
                 log.debug(`⏭️  跳過未變化檔案: ${path.basename(fullPath)}`);
+              } else if (
+                invalidRow &&
+                typeof invalidRow.mtimeMs === 'number' &&
+                invalidRow.mtimeMs >= stat.mtimeMs &&
+                (invalidRow.size == null || invalidRow.size === stat.size)
+              ) {
+                // 先前已確認為非 J2ME / 無 MANIFEST 或壞檔，且檔案未更新：直接跳過
+                skippedFiles.push(fullPath);
+                log.debug(`⏭️  跳過先前標記為無效的 JAR（未變化）: ${path.basename(fullPath)}`);
               } else {
                 filesToParse.push({ path: fullPath, stat });
               }
@@ -335,6 +349,28 @@ async function processDirectory(directoryPath, isIncrementalScan = false, opts =
           }
         } else {
           log.info(`⏭️  跳過非 J2ME 或無 MANIFEST 檔案: ${path.basename(file.path)}`);
+          // 記錄為無效 JAR，供後續增量掃描跳過
+          try {
+            const { getDB } = require('./db');
+            const db = getDB();
+            const stmt = db.prepare(`
+              INSERT INTO invalid_jars (filePath, mtimeMs, size, lastTried, reason)
+              VALUES (?, ?, ?, ?, ?)
+              ON CONFLICT(filePath) DO UPDATE SET
+                mtimeMs = excluded.mtimeMs,
+                size = excluded.size,
+                lastTried = excluded.lastTried,
+                reason = excluded.reason
+            `);
+            const mtime =
+              file.stat && typeof file.stat.mtimeMs === 'number' ? file.stat.mtimeMs : null;
+            const size = file.stat && typeof file.stat.size === 'number' ? file.stat.size : null;
+            stmt.run(file.path, mtime, size, new Date().toISOString(), 'non-j2me-or-no-manifest');
+          } catch (e) {
+            try {
+              log.warn('[SQL] 記錄無效 JAR 失敗:', e && e.message ? e.message : e);
+            } catch (_) {}
+          }
         }
       } catch (error) {
         log.error(`解析文件失败 ${file.path}:`, error.message);
