@@ -18,6 +18,7 @@ const {
 const { getDB } = require('../db');
 const { batchAddGamesToFolder } = require('../utils/batch-operations');
 const { getGameStateCache } = require('../utils/game-state-cache');
+const { getIncrementalUpdater } = require('./incremental-updates');
 
 function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWindow }) {
   const looksLikePath = (s) =>
@@ -27,6 +28,7 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWi
     const n = path.normalize(p);
     return process.platform === 'win32' ? n.replace(/\//g, '\\') : n;
   };
+  const incrementalUpdater = getIncrementalUpdater();
 
   // Debug helper: check if a file path is under any enabled directory
   const isUnderEnabledDirectory = (filePath) => {
@@ -461,6 +463,9 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWi
           } catch (_) {}
 
           if (!result.success) allOk = false;
+          else {
+            incrementalUpdater.updateFolderMembership(filePaths, targetId, 'add');
+          }
         } catch (e) {
           console.warn('[batch] add to folder failed:', e.message);
           // 廣播錯誤事件
@@ -519,6 +524,10 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWi
           }
 
           if (!result.success) allOk = false;
+          else {
+            incrementalUpdater.updateFolderMembership(filePaths, source.id, 'remove');
+            incrementalUpdater.updateFolderMembership(filePaths, targetId, 'add');
+          }
         } catch (e) {
           console.warn('[batch] move failed:', e.message);
           // 廣播錯誤事件
@@ -643,6 +652,7 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWi
       // 批次移除
       if (removeItems.length > 0) {
         try {
+          const removedPaths = [];
           for (const item of removeItems) {
             const fp = resolveFilePath(item.gameId || item.filePath || item.id);
             try {
@@ -651,6 +661,10 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWi
               console.warn('[SQL write] remove failed:', e.message);
               allOk = false;
             }
+            removedPaths.push(fp);
+          }
+          if (removedPaths.length > 0) {
+            incrementalUpdater.updateFolderMembership(removedPaths, source.id, 'remove');
           }
         } catch (e) {
           console.warn('[batch] remove failed:', e.message);
@@ -698,11 +712,11 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWi
         affectedGames.push(...changes.updated);
       }
 
-      // 增量廣播變更
-      if (affectedGames.length > 0) {
-        broadcastToAll('games-incremental-update', {
+      const dedupAffected = [...new Set(affectedGames)];
+      if (dedupAffected.length > 0) {
+        incrementalUpdater.attachMeta({
           action: 'drag-drop-completed',
-          affectedGames: [...new Set(affectedGames)], // 去重
+          affectedGames: dedupAffected,
           sourceFolder: source.id,
           targetFolder: targetId,
           operations: {
@@ -712,8 +726,8 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, BrowserWi
           },
         });
         try {
-          console.log('[drag-session:drop] incremental-update sent:', {
-            affected: affectedGames.length,
+          console.log('[drag-session:drop] incremental payload queued:', {
+            affected: dedupAffected.length,
             source: source.id,
             target: targetId,
           });

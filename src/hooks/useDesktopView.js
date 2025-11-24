@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { extractAffectedFilePaths } from '@/utils/incrementalPayload';
 import useUnifiedContextMenu from '@shared/hooks/useUnifiedContextMenu';
 import useCreateShortcut from '@shared/hooks/useCreateShortcut';
 import { useSelectedGames } from '@hooks/useGameStore';
@@ -249,18 +250,20 @@ export const useDesktopView = ({ games, onGameSelect, onAddToFolder, onRefresh, 
       ? api.onDesktopRemoveItems((payload) => addToHide(payload?.filePaths))
       : null;
     const offB = api?.onGamesIncrementalUpdate
-      ? api.onGamesIncrementalUpdate((u) => {
-          if (u && u.action === 'drag-drop-completed' && Array.isArray(u.affectedGames)) {
-            addToHide(u.affectedGames);
-            // 輕量維護徽章 memberSet：延後到空閒時合併更新
-            try {
-              const fps = Array.from(new Set(u.affectedGames.map(String)));
-              const hasSource = !!u.sourceFolder;
-              const hasTarget = !!u.targetFolder;
-              if (!hasSource && hasTarget) enqueueMemberSetUpdate('add', fps);
-              else if (hasSource && !hasTarget) enqueueMemberSetUpdate('remove', fps);
-              else if (hasSource && hasTarget) enqueueMemberSetUpdate('add', fps);
-            } catch (_) {}
+      ? api.onGamesIncrementalUpdate((payload) => {
+          if (payload?.action === 'drag-drop-completed') {
+            const affected = extractAffectedFilePaths(payload);
+            if (affected.length > 0) {
+              addToHide(affected);
+              try {
+                const fps = Array.from(new Set(affected.map(String)));
+                const hasSource = !!payload.sourceFolder;
+                const hasTarget = !!payload.targetFolder;
+                if (!hasSource && hasTarget) enqueueMemberSetUpdate('add', fps);
+                else if (hasSource && !hasTarget) enqueueMemberSetUpdate('remove', fps);
+                else if (hasSource && hasTarget) enqueueMemberSetUpdate('add', fps);
+              } catch (_) {}
+            }
           }
         })
       : null;

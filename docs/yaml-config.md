@@ -348,6 +348,9 @@ emulators:
   ke:
     jarPath: "C:\\Emus\\KEmulator\\KEmulator.jar"
     romCache: true
+  freej2meZb3:
+    jarPath: "C:\\Emus\\FreeJ2ME-Zb3\\FreeJ2ME-Zb3.jar"
+    romCache: true
   squirreljme:
     jarPath: "C:\\Emus\\SquirrelJME\\squirreljme-standalone.jar"
     romCache: true

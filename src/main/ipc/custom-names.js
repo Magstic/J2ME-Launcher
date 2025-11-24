@@ -9,23 +9,22 @@ const {
 } = require('../sql/custom-names');
 const { addUrlToGames } = require('../utils/icon-url');
 const { getAllGamesFromSql } = require('../sql/read');
+const { getIncrementalUpdater } = require('./incremental-updates');
 
 function register({ ipcMain, broadcastToAll }) {
+  const incrementalUpdater = getIncrementalUpdater();
+
   // 更新遊戲自訂名稱
   ipcMain.handle('update-custom-name', async (event, filePath, customName) => {
     try {
       const result = updateCustomName(filePath, customName);
       if (result.changes > 0) {
         // 先廣播精簡增量事件（即時修補當前視圖）
-        try {
-          broadcastToAll('games-incremental-update', [
-            {
-              filePath,
-              gameName: customName || null,
-              customName: customName || null,
-            },
-          ]);
-        } catch (_) {}
+        incrementalUpdater.queueUpdatedGame({
+          filePath,
+          gameName: customName || null,
+          customName: customName || null,
+        });
         // 再廣播全量列表（後備/跨視圖一致）
         const sqlGames = getAllGamesFromSql();
         broadcastToAll('games-updated', addUrlToGames(sqlGames));
@@ -43,15 +42,11 @@ function register({ ipcMain, broadcastToAll }) {
       const result = updateCustomVendor(filePath, customVendor);
       if (result.changes > 0) {
         // 先廣播精簡增量事件
-        try {
-          broadcastToAll('games-incremental-update', [
-            {
-              filePath,
-              vendor: customVendor || null,
-              customVendor: customVendor || null,
-            },
-          ]);
-        } catch (_) {}
+        incrementalUpdater.queueUpdatedGame({
+          filePath,
+          vendor: customVendor || null,
+          customVendor: customVendor || null,
+        });
         // 後備：全量
         const sqlGames = getAllGamesFromSql();
         broadcastToAll('games-updated', addUrlToGames(sqlGames));
@@ -69,18 +64,16 @@ function register({ ipcMain, broadcastToAll }) {
       const result = updateCustomData(filePath, customData);
       if (result.changes > 0) {
         // 先廣播精簡增量事件
-        try {
-          const payload = { filePath };
-          if (Object.prototype.hasOwnProperty.call(customData || {}, 'customName')) {
-            payload.gameName = customData.customName || null;
-            payload.customName = customData.customName || null;
-          }
-          if (Object.prototype.hasOwnProperty.call(customData || {}, 'customVendor')) {
-            payload.vendor = customData.customVendor || null;
-            payload.customVendor = customData.customVendor || null;
-          }
-          broadcastToAll('games-incremental-update', [payload]);
-        } catch (_) {}
+        const payload = { filePath };
+        if (Object.prototype.hasOwnProperty.call(customData || {}, 'customName')) {
+          payload.gameName = customData.customName || null;
+          payload.customName = customData.customName || null;
+        }
+        if (Object.prototype.hasOwnProperty.call(customData || {}, 'customVendor')) {
+          payload.vendor = customData.customVendor || null;
+          payload.customVendor = customData.customVendor || null;
+        }
+        incrementalUpdater.queueUpdatedGame(payload);
         // 後備：全量
         const sqlGames = getAllGamesFromSql();
         broadcastToAll('games-updated', addUrlToGames(sqlGames));

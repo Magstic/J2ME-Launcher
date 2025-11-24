@@ -1,4 +1,61 @@
 import { useEffect, useCallback } from 'react';
+import { extractIncrementalPatches, extractRemovedFilePaths } from '../utils/incrementalPayload';
+
+const mergeIncrementalGames = (current, patches, removed) => {
+  if (!Array.isArray(current)) return current;
+  if ((!patches || patches.length === 0) && (!removed || removed.length === 0)) return current;
+
+  const map = new Map();
+  const order = [];
+  current.forEach((game) => {
+    const fp = game && game.filePath ? String(game.filePath) : null;
+    if (!fp) return;
+    map.set(fp, game);
+    order.push(fp);
+  });
+
+  let changed = false;
+  patches.forEach((patch) => {
+    const fp = patch && patch.filePath ? String(patch.filePath) : null;
+    if (!fp) return;
+    const existing = map.get(fp);
+    if (existing) {
+      const next = { ...existing, ...patch };
+      if (next !== existing) {
+        map.set(fp, next);
+        changed = true;
+      }
+    } else {
+      map.set(fp, { ...patch });
+      changed = true;
+    }
+  });
+
+  const removedSet = new Set((removed || []).map((fp) => String(fp)));
+  removedSet.forEach((fp) => {
+    if (map.delete(fp)) changed = true;
+  });
+
+  if (!changed) return current;
+
+  const seen = new Set();
+  const result = [];
+  order.forEach((fp) => {
+    const entry = map.get(fp);
+    if (entry) {
+      result.push(entry);
+      seen.add(fp);
+    }
+  });
+
+  for (const [fp, entry] of map.entries()) {
+    if (!seen.has(fp)) {
+      result.push(entry);
+    }
+  }
+
+  return result;
+};
 
 /**
  * 應用級事件監聽器
@@ -178,26 +235,16 @@ export const useAppEventListeners = ({
 
     // 增量更新處理器：僅更新受影響的遊戲
     const handleIncrementalUpdate = (updateData) => {
-      const { action, affectedGames } = updateData || {};
-      if (!affectedGames || affectedGames.length === 0) return;
+      const action = updateData?.action;
+      const patches = extractIncrementalPatches(updateData);
+      const removed = extractRemovedFilePaths(updateData);
 
-      // 減少拖放後的瞬時壓力：
-      // drag-drop-completed 僅涉及資料夾成員變更，桌面層已有樂觀隱藏與徽章延後刷新，
-      // 在此不再做全量 getInitialGames() 重載，以避免渲染端大陣列重算造成卡頓。
       if (action === 'drag-drop-completed') {
         return;
       }
 
-      if (action === 'folder-membership-changed') {
-        // 若未来需要，可改為閒置時刷新或延後更長時間
-        setTimeout(async () => {
-          try {
-            const updatedGames = await window.electronAPI.getInitialGames();
-            if (updatedGames) setGames(updatedGames);
-          } catch (e) {
-            console.warn('增量更新失敗，回退到當前狀態:', e);
-          }
-        }, 150);
+      if (patches.length > 0 || removed.length > 0) {
+        setGames((prev) => mergeIncrementalGames(prev, patches, removed));
       }
     };
 

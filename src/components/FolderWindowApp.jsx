@@ -13,6 +13,7 @@ import './Desktop/Desktop.css';
 import { AppIconSvg } from '@/assets/icons';
 import NotificationBubble from './ui/NotificationBubble';
 import { ClusterSelectDialog, ClusterDialog, RenameDialog } from '@ui';
+import { extractIncrementalPatches } from '@/utils/incrementalPayload';
 
 // 已切換至統一網格（UnifiedGrid）
 
@@ -463,27 +464,21 @@ const FolderWindowApp = () => {
     },
   });
 
-  // 監聽：遊戲增量更新（若主進程提供），就地修補名稱/廠商/圖標，避免整體重載
+  // 監聽：遊戲增量更新（僅支援統一結構），就地修補名稱/廠商/圖標，避免整體重載
   useEffect(() => {
     const api = window.electronAPI;
     if (!api?.onGamesIncrementalUpdate) return;
-    const off = api.onGamesIncrementalUpdate((u) => {
+    const off = api.onGamesIncrementalUpdate((payload) => {
       try {
-        const arr = Array.isArray(u?.updated)
-          ? u.updated
-          : Array.isArray(u)
-            ? u
-            : u && u.games && Array.isArray(u.games)
-              ? u.games
-              : [];
-        if (!arr.length) return;
+        const patches = extractIncrementalPatches(payload);
+        if (!patches.length) return;
         const byPath = new Map(
-          arr
+          patches
             .map((x) => ({
-              filePath: String(x?.filePath || x?.path || ''),
-              gameName: x?.gameName || x?.name || x?.title || x?.customName,
+              filePath: String(x?.filePath || ''),
+              gameName: x?.gameName || x?.customName,
               vendor: x?.vendor || x?.customVendor,
-              iconUrl: x?.iconUrl || x?.icon,
+              iconUrl: x?.iconUrl,
               customName: x?.customName,
               customVendor: x?.customVendor,
             }))
@@ -491,7 +486,6 @@ const FolderWindowApp = () => {
             .map((x) => [x.filePath, x])
         );
         if (byPath.size === 0) return;
-        // 局部修補：僅更新存在於當前資料夾列表中的項目
         startTransition(() => {
           setFolderGames((prev) => {
             if (!Array.isArray(prev) || prev.length === 0) return prev;
@@ -507,7 +501,6 @@ const FolderWindowApp = () => {
               const nextCustomName = hasCustomName ? upd.customName || null : g.customName;
               const nextCustomVendor = hasCustomVendor ? upd.customVendor || null : g.customVendor;
 
-              // 當清除 customName (null) 時，gameName 回退到 originalName
               const nextGameName = hasGameName
                 ? upd.gameName || g.originalName || g.gameName
                 : hasCustomName
@@ -516,7 +509,6 @@ const FolderWindowApp = () => {
                     : g.originalName || g.gameName
                   : g.gameName;
 
-              // 當清除 customVendor (null) 時，vendor 回退到 originalVendor
               const nextVendor = hasVendor
                 ? upd.vendor || g.originalVendor || g.vendor
                 : hasCustomVendor
@@ -537,7 +529,6 @@ const FolderWindowApp = () => {
               return n;
             });
             if (!changed) return prev;
-            // 根據顯示名（customName 優先）排序，與 SQL 重載行為一致
             next.sort((a, b) => {
               const an = String(a?.customName || a?.gameName || '');
               const bn = String(b?.customName || b?.gameName || '');

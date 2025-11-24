@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, startTransition } from 'react';
+import { extractAffectedFilePaths } from '../utils/incrementalPayload';
 
 /**
  * 桌面狀態管理 Hook
@@ -132,8 +133,8 @@ export const useDesktopState = () => {
     if (!api?.onGamesIncrementalUpdate) return;
     const off = api.onGamesIncrementalUpdate((update) => {
       try {
-        const action = update && update.action;
-        const affected = Array.isArray(update && update.affectedGames) ? update.affectedGames : [];
+        const action = update?.action;
+        const affected = action === 'drag-drop-completed' ? extractAffectedFilePaths(update) : [];
         if (action === 'drag-drop-completed' && affected.length > 0) {
           try {
             console.log('[DesktopState] drag-drop-completed received:', {

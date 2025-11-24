@@ -43,12 +43,4 @@ logs/
 *.log
 *.zip
 Magstic.pfx
-優化架構.md
-多層快取架構技術指南.md
-冗餘清理.md
-簇模式開發粗略計劃.md
-簇模式開發計劃.md
-簇模式-SQL架構審查.md
-Codebase-Audit-Report.md
-代辦事項.md
-資料夾修復.md
+docs/dep/

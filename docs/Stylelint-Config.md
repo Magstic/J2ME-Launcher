@@ -62,10 +62,10 @@
   ```css
   /* ✅ 推薦 */
   .game-card {
-    background: var(--color-surface);
-    border-radius: var(--radius-md);
-    padding: var(--spacing-md);
-    box-shadow: var(--shadow-sm);
+    background: var(--background-secondary);
+    border-radius: var(--border-radius-md);
+    padding: 16px;
+    box-shadow: var(--card-shadow);
   }
 
   /* ❌ 避免 */
@@ -84,48 +84,54 @@
 - **覆寫原則**：限制在組件根節點，並添加註解說明
 
 ```css
-/* ✅ 良好的組件樣式結構 */
+/* ✅ 良好的組件樣式結構（對應 App.css 的 .game-grid 現況） */
 .game-grid {
   /* 佈局相關 */
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: var(--spacing-md);
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 24px;
 
   /* 尺寸相關 */
-  width: 100%;
-  height: 100%;
-
-  /* 動畫相關 */
-  transition: opacity var(--duration-fast) var(--easing-standard);
+  flex: 1;
+  min-height: 0;
 }
 
-/* 特殊情況的覆寫，需要註解 */
-.game-grid--loading {
-  /* 載入狀態需要特殊的背景色彩 */
-  background: var(--color-surface-variant);
+/* 特殊狀態的覆寫：空狀態置中 */
+.game-grid.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 ```
 
 ### 動畫與過渡
 
-- **沿用既有模式**：參考 `.desktop-shift-layer` 等既有實作
+- **沿用既有模式**：參考 `.desktop-view .game-card`、`.folder-drawer .folder-card` 等既有實作
 - **性能優先**：使用 `transform` 和 `opacity` 進行動畫
 - **減少動畫支援**：遵循 `prefers-reduced-motion` 媒體查詢
 
 ```css
-/* 動畫最佳實踐 */
-.folder-drawer {
-  transform: translateX(-100%);
-  transition: transform var(--duration-normal) var(--easing-standard);
+/* 動畫最佳實踐：使用 transform / opacity（對應 FolderDrawer.css 現況） */
+.folder-drawer .folder-card {
+  transition:
+    opacity 120ms ease-out,
+    transform 120ms ease-out,
+    background-color 200ms ease;
 }
 
-.folder-drawer--open {
-  transform: translateX(0);
+.folder-drawer .folder-card.appearing {
+  opacity: 0;
+  transform: translateY(2px);
 }
 
-/* 減少動畫支援 */
+.folder-drawer .folder-card:hover {
+  transform: translateY(-2px);
+  background-color: var(--hover-color);
+}
+
+/* 減少動畫支援：在 Desktop 視圖中關閉整體過渡（對應 Desktop.css 現況） */
 @media (prefers-reduced-motion: reduce) {
-  .folder-drawer {
+  .desktop-view {
     transition: none;
   }
 }
@@ -174,8 +180,8 @@ npm run format:check && npm run stylelint
 
 #### 核心樣式檔案
 
-- **`theme.css`** - 主題變數與色彩系統
-- **`tokens.css`** - 設計系統代幣（間距、字型、圓角等）
+- **`theme.css`** - 主題樣式聚合與共享微調元件（引入 `tokens.css`，定義 selection-rect、loading-spinner、drag-overlay、滾動條等）
+- **`tokens.css`** - 設計系統代幣（色彩、陰影、圓角等基礎 Token）
 - **`utility.css`** - 工具類樣式（Utility Classes）
 
 #### 組件樣式檔案
@@ -197,25 +203,25 @@ npm run format:check && npm run stylelint
 #### 樣式組織原則
 
 ```css
-/* 組件樣式檔案結構範例 */
+/* 組件樣式檔案結構範例（對應 DirectoryManager.css 現況） */
 
 /* 1. 組件根元素 */
 .directory-manager {
-  /* 佈局與尺寸 */
+  /* 佈局與尺寸（由共用 modal 樣式主導，此處僅示意） */
 }
 
 /* 2. 子元素 */
-.directory-manager__header {
+.directory-manager .directory-list {
   /* 子元素樣式 */
 }
 
-/* 3. 狀態修飾符 */
-.directory-manager--loading {
+/* 3. 狀態修飾符／輔助 class */
+.directory-manager .directory-item.disabled {
   /* 狀態相關樣式 */
 }
 
 /* 4. 響應式設計 */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .directory-manager {
     /* 行動端適配 */
   }
@@ -224,68 +230,10 @@ npm run format:check && npm run stylelint
 
 ## 進階配置
 
-### 自訂規則
-
-目前專案的 `.stylelintrc.json` 僅做少量調整；若未來需要更嚴格的命名規範或忽略檔案設定，可參考以下擴充範例：
-
-```json
-{
-  "extends": ["stylelint-config-standard"],
-  "rules": {
-    "selector-class-pattern": [
-      "^[a-z][a-z0-9]*(-[a-z0-9]+)*(__[a-z0-9]+(-[a-z0-9]+)*)?(--[a-z0-9]+(-[a-z0-9]+)*)?$",
-      {
-        "message": "Expected class selector to be kebab-case with BEM methodology"
-      }
-    ],
-    "custom-property-pattern": [
-      "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
-      {
-        "message": "Expected custom property to be kebab-case"
-      }
-    ]
-  },
-  "ignoreFiles": ["node_modules/**", "dist/**", "build/**"]
-}
-```
-
-> 註：上述設定為進階示例，預設專案僅使用前文列出的簡化版本。若要引入 BEM 命名規範或額外忽略檔案，請先在團隊內達成共識再調整 `.stylelintrc.json`。
-
-### CSS 命名規範
-
-採用 BEM (Block Element Modifier) 方法論：
-
-```css
-/* Block */
-.game-card {
-}
-
-/* Element */
-.game-card__title {
-}
-.game-card__icon {
-}
-.game-card__actions {
-}
-
-/* Modifier */
-.game-card--selected {
-}
-.game-card--loading {
-}
-.game-card--large {
-}
-
-/* Element + Modifier */
-.game-card__title--truncated {
-}
-```
-
 ### 性能考量
 
-- **避免深層嵌套**：選擇器嵌套不超過 3 層
+- **避免深層嵌套**：選擇器嵌套不超過 3 層（非必須）
 - **減少重繪**：使用 `transform` 和 `opacity` 進行動畫
-- **懶加載**：大型樣式檔案考慮按需加載
 
 ### 可訪問性
 
