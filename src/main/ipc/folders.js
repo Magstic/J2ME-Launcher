@@ -567,7 +567,40 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
         }
       }
 
-      // 定義批次處理函數
+      // 規範化路徑，確保與資料庫中的 canonical filePath 對齊
+      const resolvedPaths = resolveManyFilePaths(cleanFilePaths);
+
+      // 在寫入前抓取這批遊戲原本所在的其它資料夾，用於稍後廣播 remove 事件
+      const removedByFolderId = new Map(); // folderId -> Set(filePath)
+      try {
+        if (resolvedPaths.length > 0) {
+          const db = getDB();
+          const MAX_BATCH = 400;
+          for (let i = 0; i < resolvedPaths.length; i += MAX_BATCH) {
+            const slice = resolvedPaths.slice(i, i + MAX_BATCH);
+            if (!slice || slice.length === 0) continue;
+            const placeholders = slice.map(() => '?').join(',');
+            const rows = db
+              .prepare(
+                `SELECT folderId, filePath FROM folder_games WHERE folderId != ? AND filePath IN (${placeholders})`
+              )
+              .all(cleanFolderId, ...slice);
+            for (const row of rows) {
+              if (!row || !row.folderId || !row.filePath) continue;
+              if (!removedByFolderId.has(row.folderId)) {
+                removedByFolderId.set(row.folderId, new Set());
+              }
+              removedByFolderId.get(row.folderId).add(row.filePath);
+            }
+          }
+        }
+      } catch (e) {
+        try {
+          log.warn('[folders:batch-add] failed to query previous folder membership:', e.message);
+        } catch (_) {}
+      }
+
+      // 定義批次處理函數（依然透過 sqlAddGameToFolder，內部已保證單一資料夾歸屬）
       const addGameToFolder = (filePath, folderId) => {
         try {
           sqlAddGameToFolder(folderId, resolveFilePath(filePath), {});
@@ -590,16 +623,68 @@ function register({ ipcMain, DataStore, addUrlToGames, broadcastToAll, toIconUrl
         }
       };
 
-      const result = await batchAddGamesToFolder(cleanFilePaths, cleanFolderId, {
+      const result = await batchAddGamesToFolder(resolvedPaths, cleanFolderId, {
         ...cleanOptions,
         addGameToFolder,
         addGamesToFolderBatch,
       });
 
+      // 寫入成功後，更新快取與前端 store，並廣播單一資料夾歸屬下的 membership 變更
+      if (result && result.success) {
+        try {
+          const cache = getGameStateCache();
+          const bridge = getStoreBridge();
+
+          // 先通知所有舊資料夾：這些遊戲已被移出
+          for (const [fromFolderId, fpSet] of removedByFolderId) {
+            const fps = Array.from(fpSet || []);
+            if (!fps || fps.length === 0) continue;
+            try {
+              cache.updateFolderMembership(fps, fromFolderId, 'remove');
+            } catch (_) {}
+            try {
+              bridge.onCacheUpdate('folder-membership-changed', {
+                filePaths: fps,
+                folderId: fromFolderId,
+                operation: 'remove',
+              });
+            } catch (_) {}
+            try {
+              broadcastToAll('folder-membership-changed', {
+                filePaths: fps,
+                folderId: fromFolderId,
+                operation: 'remove',
+              });
+            } catch (_) {}
+          }
+
+          // 再通知目標資料夾：這些遊戲現在屬於此資料夾
+          if (resolvedPaths.length > 0) {
+            try {
+              cache.updateFolderMembership(resolvedPaths, cleanFolderId, 'add');
+            } catch (_) {}
+            try {
+              bridge.onCacheUpdate('folder-membership-changed', {
+                filePaths: resolvedPaths,
+                folderId: cleanFolderId,
+                operation: 'add',
+              });
+            } catch (_) {}
+            try {
+              broadcastToAll('folder-membership-changed', {
+                filePaths: resolvedPaths,
+                folderId: cleanFolderId,
+                operation: 'add',
+              });
+            } catch (_) {}
+          }
+        } catch (_) {}
+      }
+
       // 不再廣播全量 games-updated（資料夾與增量事件足夠同步 UI）
 
       try {
-        const updatedFolder = sqlGetFolderById(folderId);
+        const updatedFolder = sqlGetFolderById(cleanFolderId);
         if (updatedFolder) broadcastToAll('folder-updated', updatedFolder);
       } catch (_) {}
 

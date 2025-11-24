@@ -45,6 +45,13 @@ function addGameToFolder(folderId, filePath, payload = {}) {
   try {
     db.prepare(`INSERT OR IGNORE INTO games (filePath) VALUES (?)`).run(filePath);
   } catch (_) {}
+  // 單一資料夾歸屬：先清除該遊戲在其他資料夾中的關係，再加入目標資料夾
+  try {
+    db.prepare(`DELETE FROM folder_games WHERE filePath = ? AND folderId != ?`).run(
+      filePath,
+      folderId
+    );
+  } catch (_) {}
   const stmt = db.prepare(`
     INSERT OR REPLACE INTO folder_games (folderId, filePath, addedTime, customName, notes)
     VALUES (@folderId, @filePath, @addedTime, @customName, @notes)
@@ -67,11 +74,16 @@ function addGamesToFolderBatch(folderId, filePaths, payload = {}) {
     INSERT OR REPLACE INTO folder_games (folderId, filePath, addedTime, customName, notes)
     VALUES (@folderId, @filePath, @addedTime, @customName, @notes)
   `);
+  const clearRel = db.prepare(`DELETE FROM folder_games WHERE filePath = ? AND folderId != ?`);
   const tx = db.transaction((paths) => {
     for (const fp of paths) {
       if (!fp) continue;
       try {
         ensureGame.run(fp);
+      } catch (_) {}
+      // 單一資料夾歸屬：批次處理時，同樣先移除其他資料夾關係
+      try {
+        clearRel.run(fp, folderId);
       } catch (_) {}
       upsertRel.run({
         folderId,
